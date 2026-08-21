@@ -229,6 +229,12 @@ export async function buscarPosicaoLinha(codigoLinha: number): Promise<{ posicao
 }
 
 export async function buscarPrevisaoParada(codigoParada: number): Promise<{ previsao: SPTransPrevisaoResponse | null; isMock: boolean }> {
+  const cookie = await authenticateSPTrans();
+
+  if (!cookie) {
+    return { previsao: getMockPrevisaoParada(codigoParada), isMock: true };
+  }
+
   const { data } = await fetchSPTrans<SPTransPrevisaoResponse>(
     `/Previsao/Parada?codigoParada=${codigoParada}`
   );
@@ -237,10 +243,7 @@ export async function buscarPrevisaoParada(codigoParada: number): Promise<{ prev
     return { previsao: data, isMock: false };
   }
 
-  return {
-    previsao: getMockPrevisaoParada(codigoParada),
-    isMock: false
-  };
+  return { previsao: null, isMock: false };
 }
 
 export async function buscarPrevisaoLinha(codigoLinha: number): Promise<{ previsao: SPTransPrevisaoResponse | null; isMock: boolean }> {
