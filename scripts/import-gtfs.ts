@@ -31,10 +31,14 @@ async function downloadGtfsZip(): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-function readCsvFromZip<T extends Record<string, string>>(zip: AdmZip, fileName: string): T[] {
+function readCsvFromZip<T extends Record<string, string>>(zip: AdmZip, fileName: string, required = true): T[] {
   const entry = zip.getEntry(fileName);
   if (!entry) {
-    throw new Error(`Arquivo ${fileName} não encontrado no GTFS`);
+    if (required) {
+      throw new Error(`Arquivo ${fileName} não encontrado no GTFS`);
+    }
+    console.log(`  ${fileName} não presente neste feed (opcional) — ignorando.`);
+    return [];
   }
   const content = entry.getData().toString('utf-8');
   return parse(content, { columns: true, skip_empty_lines: true }) as T[];
@@ -78,7 +82,7 @@ async function main() {
   const tripRows = readCsvFromZip(zip, 'trips.txt').map(parseTripRow);
   const stopTimeRows = readCsvFromZip(zip, 'stop_times.txt').map(parseStopTimeRow);
   const calendarRows = readCsvFromZip(zip, 'calendar.txt').map(parseCalendarRow);
-  const calendarDateRows = readCsvFromZip(zip, 'calendar_dates.txt').map(parseCalendarDateRow);
+  const calendarDateRows = readCsvFromZip(zip, 'calendar_dates.txt', false).map(parseCalendarDateRow);
 
   console.log('Linhas lidas do GTFS:');
   console.log(`  agency: ${agencyRows.length}`);
