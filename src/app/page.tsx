@@ -15,9 +15,9 @@ import MoovitHome from '@/components/Moovit/MoovitHome';
 import MoovitRouteResults from '@/components/Moovit/MoovitRouteResults';
 import MoovitRouteDetail from '@/components/Moovit/MoovitRouteDetail';
 import MoovitDeparturesModal from '@/components/Moovit/MoovitDeparturesModal';
-import MoovitPassagens from '@/components/Moovit/MoovitPassagens';
+import StationsExplorerPanel from '@/components/Stations/StationsExplorerPanel';
+import { StationItem, SP_ALL_STATIONS } from '@/lib/stationsData';
 import LineItineraryPanel from '@/components/BusSearch/LineItineraryPanel';
-import RailsStatusBoard from '@/components/Rails/RailsStatusBoard';
 import FavoritesDrawer from '@/components/Favorites/FavoritesDrawer';
 import TokenConfigModal from '@/components/UI/TokenConfigModal';
 import {
@@ -75,6 +75,7 @@ export default function HomePage() {
 
   const [selectedLine, setSelectedLine] = useState<SPTransLinha | null>(null);
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
+  const [selectedStation, setSelectedStation] = useState<StationItem | null>(null);
   const [veiculos, setVeiculos] = useState<SPTransVeiculo[]>([]);
   const [paradas, setParadas] = useState<SPTransParada[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
@@ -218,6 +219,13 @@ export default function HomePage() {
             setIsMapFullscreen(true);
           }}
           onStopPercurso={() => setIsPercursoActive(false)}
+          stations={SP_ALL_STATIONS}
+          selectedStation={selectedStation}
+          onRouteToStation={(st) => {
+            setDestino(`${st.name}, ${st.address}`);
+            setActiveTab('DIRECOES');
+            handleCalculateRoutes(`${st.name}, ${st.address}`);
+          }}
         />
       </div>
 
@@ -381,9 +389,17 @@ export default function HomePage() {
           )}
 
           {activeTab === 'ESTACOES' && (
-            <div style={{ background: '#1C1E24', border: '1px solid #2D313C', borderRadius: '16px', padding: '16px' }}>
-              <RailsStatusBoard />
-            </div>
+            <StationsExplorerPanel
+              selectedStationId={selectedStation?.id}
+              onSelectStation={(st) => {
+                setSelectedStation(st);
+              }}
+              onRouteToStation={(st) => {
+                setDestino(`${st.name}, ${st.address}`);
+                setActiveTab('DIRECOES');
+                handleCalculateRoutes(`${st.name}, ${st.address}`);
+              }}
+            />
           )}
 
           {activeTab === 'LINHAS' && (
@@ -396,10 +412,6 @@ export default function HomePage() {
               veiculos={veiculos}
               isLoadingVehicles={isLoadingVehicles}
             />
-          )}
-
-          {activeTab === 'PASSAGENS' && (
-            <MoovitPassagens />
           )}
 
           {activeTab === 'FAVORITOS' && (

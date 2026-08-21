@@ -8,8 +8,9 @@ import {
   SPTransParada,
   SPTransVeiculo
 } from '@/types/sptrans';
+import { StationItem } from '@/lib/stationsData';
 import { RoutePlan } from '@/lib/routing';
-import { RefreshCw, Locate, Footprints, Layers, Square, Navigation, Play, Radio } from 'lucide-react';
+import { RefreshCw, Locate, Footprints, Layers, Square, Navigation, Play, Radio, TrainTrack, MapPin } from 'lucide-react';
 
 export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -24,6 +25,9 @@ export interface LiveMapProps {
   isPercursoActive?: boolean;
   onStopPercurso?: () => void;
   onStartPercurso?: () => void;
+  stations?: StationItem[];
+  selectedStation?: StationItem | null;
+  onRouteToStation?: (station: StationItem) => void;
 }
 
 export default function LiveMap({
@@ -38,12 +42,16 @@ export default function LiveMap({
   userCoords,
   isPercursoActive = false,
   onStopPercurso,
-  onStartPercurso
+  onStartPercurso,
+  stations = [],
+  selectedStation,
+  onRouteToStation
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const busMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stopMarkersGroupRef = useRef<L.LayerGroup | null>(null);
+  const stationMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const routePolylinesGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
@@ -74,6 +82,7 @@ export default function LiveMap({
 
     busMarkersGroupRef.current = L.layerGroup().addTo(map);
     stopMarkersGroupRef.current = L.layerGroup().addTo(map);
+    stationMarkersGroupRef.current = L.layerGroup().addTo(map);
     routePolylinesGroupRef.current = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
@@ -439,6 +448,69 @@ export default function LiveMap({
       stopMarkersGroupRef.current?.addLayer(marker);
     });
   }, [paradas, onSelectParada]);
+
+  // Atualizar marcadores de Estações e Terminais
+  useEffect(() => {
+    if (!stationMarkersGroupRef.current || !mapInstanceRef.current) return;
+
+    stationMarkersGroupRef.current.clearLayers();
+
+    if (!stations || stations.length === 0) return;
+
+    stations.forEach((st) => {
+      const isSelected = selectedStation?.id === st.id;
+      const bgColor = st.type === 'METRO' ? '#003399' : st.type === 'CPTM' ? '#A61327' : '#E30613';
+      const iconEmoji = st.type === 'TERMINAL_BUS' ? '🚏' : st.type === 'METRO' ? '🚇' : '🚆';
+
+      const htmlIcon = `
+        <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          ${isSelected ? `<div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 102, 0, 0.5); animation: markerPulse 1.5s infinite;"></div>` : ''}
+          <div style="background: ${bgColor}; width: ${isSelected ? '36px' : '30px'}; height: ${isSelected ? '36px' : '30px'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.6); font-size: ${isSelected ? '16px' : '13px'}; color: #fff; font-weight: 800;">
+            ${iconEmoji}
+          </div>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: htmlIcon,
+        className: 'station-marker',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      const marker = L.marker([st.lat, st.lng], { icon: customIcon, zIndexOffset: isSelected ? 800 : 200 });
+
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 220px; padding: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span style="background: ${bgColor}; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">
+              ${st.type === 'METRO' ? 'METRÔ SP' : st.type === 'CPTM' ? 'TREM CPTM' : 'TERMINAL SPTRANS'}
+            </span>
+          </div>
+          <strong style="color: #FFFFFF; font-size: 14px; display: block; margin-bottom: 2px;">
+            ${st.name}
+          </strong>
+          <div style="color: #38BDF8; font-size: 12px; font-weight: 600; margin-bottom: 6px;">
+            📍 ${st.address}
+          </div>
+          <div style="font-size: 11px; color: #94A3B8; margin-bottom: 8px;">
+            ${st.neighborhood}
+          </div>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            ${st.lines.map(l => `<span style="background:${l.color}; color:${l.color === '#FFF000' || l.color === '#A7A8AA' ? '#000' : '#fff'}; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">${l.name}</span>`).join('')}
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml);
+      stationMarkersGroupRef.current?.addLayer(marker);
+
+      if (isSelected && mapInstanceRef.current) {
+        mapInstanceRef.current.setView([st.lat, st.lng], 16, { animate: true });
+        marker.openPopup();
+      }
+    });
+  }, [stations, selectedStation]);
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {

@@ -3,7 +3,7 @@
 import React from 'react';
 import { ArrowLeftRight, MapPin, GitCommitHorizontal, CreditCard, Star } from 'lucide-react';
 
-export type MoovitTabType = 'DIRECOES' | 'ESTACOES' | 'LINHAS' | 'PASSAGENS' | 'FAVORITOS';
+export type MoovitTabType = 'DIRECOES' | 'ESTACOES' | 'LINHAS' | 'FAVORITOS';
 
 interface MoovitTabBarProps {
   activeTab: MoovitTabType;
@@ -31,11 +31,6 @@ export default function MoovitTabBar({
       id: 'LINHAS' as MoovitTabType,
       label: 'Linhas',
       icon: <GitCommitHorizontal size={20} />
-    },
-    {
-      id: 'PASSAGENS' as MoovitTabType,
-      label: 'Passagens',
-      icon: <CreditCard size={20} />
     },
     {
       id: 'FAVORITOS' as MoovitTabType,
