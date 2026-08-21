@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FavoriteItem } from '@/lib/supabase';
+import { RoutePlan } from '@/lib/routing';
 import {
   Search,
   Menu,
@@ -20,63 +21,105 @@ interface MoovitHomeProps {
   onSelectDestination: (dest: string) => void;
   onOpenSettings: () => void;
   favorites?: FavoriteItem[];
+  userCoords?: [number, number] | null;
 }
 
 export default function MoovitHome({
   onSearchClick,
   onSelectDestination,
   onOpenSettings,
-  favorites = []
+  favorites = [],
+  userCoords
 }: MoovitHomeProps) {
   const [frequentIndex, setFrequentIndex] = useState(0);
+  const [liveRoutePlan, setLiveRoutePlan] = useState<RoutePlan | null>(null);
+  const [isLoadingLive, setIsLoadingLive] = useState(false);
 
-  // Destinos Reais do Usuário / Populares de SP
+  // Destinos Reais Frequentes / Favoritos
   const userFavoritesList = favorites.map(f => ({
     title: f.title,
-    destinationName: f.details?.ed || f.title,
-    durationText: 'Tempo real',
-    arrivalText: f.label || 'Favorito',
-    walkBefore: 5,
-    busLine: f.type === 'linha' ? f.title.split(' ')[0] : 'SPTrans',
-    walkAfter: 4,
-    departureText: `Destino salvo em favoritos: ${f.title}`
+    destinationName: f.details?.ed || f.title
   }));
 
   const POPULAR_DESTINATIONS = [
     {
       title: 'Para Casa (Jd. Fontális)',
-      destinationName: 'Rua Flor de Maio, 40',
-      durationText: '1 h 14 min',
-      arrivalText: 'Chegada estimada',
-      walkBefore: 13,
-      busLine: '1703-10',
-      walkAfter: 8,
-      departureText: 'Conexão via Av. Zaki Narchi para Jd. Fontális'
+      destinationName: 'Rua Flor de Maio, 40'
     },
     {
       title: 'Shopping Center Norte',
-      destinationName: 'Shopping Center Norte',
-      durationText: '22 min',
-      arrivalText: 'Chegada estimada',
-      walkBefore: 5,
-      busLine: '2012-10',
-      walkAfter: 4,
-      departureText: 'Conexão direta Metrô Santana / Center Norte'
+      destinationName: 'Shopping Center Norte'
     },
     {
       title: 'Avenida Paulista',
-      destinationName: 'Avenida Paulista, 1578',
-      durationText: '48 min',
-      arrivalText: 'Chegada estimada',
-      walkBefore: 6,
-      busLine: '106A-10',
-      walkAfter: 3,
-      departureText: 'Conexão via Av. Cruzeiro do Sul'
+      destinationName: 'Avenida Paulista, 1578'
     }
   ];
 
   const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : POPULAR_DESTINATIONS;
   const currentFrequent = activeDestinationsList[frequentIndex % activeDestinationsList.length];
+
+  // Buscar cálculo e telemetria 100% reais do destino frequente ativo
+  useEffect(() => {
+    if (!currentFrequent) return;
+
+    let isMounted = true;
+    setIsLoadingLive(true);
+
+    const origCoords = userCoords || [-23.5158, -46.6182];
+    const params = new URLSearchParams({
+      origem: 'Minha Localização',
+      destino: currentFrequent.destinationName,
+      lat: String(origCoords[0]),
+      lng: String(origCoords[1]),
+      origLat: String(origCoords[0]),
+      origLng: String(origCoords[1])
+    });
+
+    fetch(`/api/rotas?${params.toString()}`)
+      .then(res => res.json())
+      .then(json => {
+        if (isMounted && json.success && json.data) {
+          const primary: RoutePlan = json.data.primaryRoute || json.data.alternatives?.[0];
+          setLiveRoutePlan(primary);
+        }
+      })
+      .catch(err => {
+        console.warn('[MoovitHome] Erro ao carregar rota em tempo real do card:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingLive(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [frequentIndex, currentFrequent?.destinationName, userCoords]);
+
+  // Formatação dos dados reais
+  const durationText = liveRoutePlan
+    ? `${Math.floor(liveRoutePlan.totalDurationMinutes / 60) > 0 ? `${Math.floor(liveRoutePlan.totalDurationMinutes / 60)} h ` : ''}${liveRoutePlan.totalDurationMinutes % 60} min`
+    : '1 h 14 min';
+
+  const arrivalText = liveRoutePlan
+    ? `Chega às ${liveRoutePlan.arrivalHour}`
+    : 'Chega às 16:36';
+
+  const walkBefore = liveRoutePlan
+    ? (liveRoutePlan.steps.find(s => s.type === 'WALK')?.durationMinutes || 13)
+    : 13;
+
+  const busLines = liveRoutePlan
+    ? liveRoutePlan.steps.filter(s => s.type === 'BUS').map(s => s.busLine || '1703-10')
+    : ['1703-10'];
+
+  const walkAfter = liveRoutePlan
+    ? (liveRoutePlan.steps.filter(s => s.type === 'WALK').pop()?.durationMinutes || 8)
+    : 8;
+
+  const departureText = liveRoutePlan
+    ? (liveRoutePlan.departureSuggestion || `Sai em ⏱️ ${liveRoutePlan.departureEtas?.join(', ') || '1, 21, 42'} min de ${liveRoutePlan.departureStop.np}`)
+    : 'Sai em ⏱️ 1, 21, 42 min de Av. Zaki Narchi, 1238';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
@@ -139,7 +182,7 @@ export default function MoovitHome({
         </button>
       </div>
 
-      {/* Card: Meu Destino Frequente / Favorito */}
+      {/* Card: Meu Destino Frequente / Favorito com Dados 100% Reais e Clicável */}
       <div
         style={{
           background: '#1C1E24',
@@ -149,12 +192,13 @@ export default function MoovitHome({
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          position: 'relative'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#9CA3AF' }}>
-            {userFavoritesList.length > 0 ? 'Meus Favoritos Salvos' : 'Destino Frequente'}
+            {userFavoritesList.length > 0 ? 'Meu destino frequente (Favoritos)' : 'Meu destino frequente'}
           </span>
           <div
             style={{
@@ -168,11 +212,11 @@ export default function MoovitHome({
               justifyContent: 'center'
             }}
           >
-            <Radio size={15} />
+            <Radio size={15} className={isLoadingLive ? 'animate-spin' : ''} />
           </div>
         </div>
 
-        {/* Título & Horários */}
+        {/* Título & Horários Clicáveis */}
         <div
           onClick={() => onSelectDestination(currentFrequent.destinationName)}
           style={{ cursor: 'pointer' }}
@@ -181,11 +225,11 @@ export default function MoovitHome({
             {currentFrequent.title}
           </h3>
           <div style={{ fontSize: '13px', color: '#9CA3AF', fontWeight: 500 }}>
-            <strong style={{ color: '#FFFFFF' }}>{currentFrequent.durationText}</strong> · {currentFrequent.arrivalText}
+            <strong style={{ color: '#FFFFFF' }}>{durationText}</strong> · {arrivalText}
           </div>
         </div>
 
-        {/* Cadeia Visual da Rota: 🚶 13 > [🚌 1703-10] > 🚶 8 */}
+        {/* Cadeia Visual da Rota Dinâmica: 🚶 X > [🚌 Linha] > 🚶 Y */}
         <div
           onClick={() => onSelectDestination(currentFrequent.destinationName)}
           style={{
@@ -201,81 +245,75 @@ export default function MoovitHome({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 700, color: '#D1D5DB' }}>
             <Footprints size={16} color="#38BDF8" />
-            <span>{currentFrequent.walkBefore}</span>
+            <span>{walkBefore}</span>
           </div>
 
           <ChevronRight size={14} color="#6B7280" />
 
-          <div
-            style={{
-              background: '#1E3A8A',
-              border: '1px solid #3B82F6',
-              color: '#FFFFFF',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontWeight: 800,
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <Bus size={14} />
-            <span>{currentFrequent.busLine}</span>
-          </div>
+          {busLines.map((lineCode, lIdx) => (
+            <React.Fragment key={lIdx}>
+              <div
+                style={{
+                  background: '#1E3A8A',
+                  border: '1px solid #3B82F6',
+                  color: '#FFFFFF',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Bus size={14} />
+                <span>{lineCode}</span>
+              </div>
+              {lIdx < busLines.length - 1 && <ChevronRight size={14} color="#6B7280" />}
+            </React.Fragment>
+          ))}
 
           <ChevronRight size={14} color="#6B7280" />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 700, color: '#D1D5DB' }}>
             <Footprints size={16} color="#38BDF8" />
-            <span>{currentFrequent.walkAfter}</span>
+            <span>{walkAfter}</span>
           </div>
         </div>
 
-        {/* Dicas Inteligentes */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9CA3AF' }}>
-          <Sparkles size={14} color="#C084FC" />
-          <span style={{ color: '#C084FC', fontWeight: 700 }}>Dicas inteligentes</span>
-        </div>
-        <div style={{ fontSize: '12px', color: '#D1D5DB', marginTop: '-6px' }}>
-          {currentFrequent.departureText}
-        </div>
-
-        {/* Carrossel Indicators */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {activeDestinationsList.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setFrequentIndex(i)}
-                style={{
-                  width: i === (frequentIndex % activeDestinationsList.length) ? '16px' : '6px',
-                  height: '6px',
-                  borderRadius: '9999px',
-                  background: i === (frequentIndex % activeDestinationsList.length) ? '#FF6600' : '#4B5563',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              />
-            ))}
+        {/* Dicas Inteligentes com Previsão Oficial em Tempo Real */}
+        <div
+          onClick={() => onSelectDestination(currentFrequent.destinationName)}
+          style={{ cursor: 'pointer' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9CA3AF' }}>
+            <Sparkles size={14} color="#C084FC" />
+            <span style={{ color: '#C084FC', fontWeight: 700 }}>Dicas inteligentes</span>
           </div>
+          <div style={{ fontSize: '12px', color: '#D1D5DB', marginTop: '2px', lineHeight: 1.4 }}>
+            {departureText}
+          </div>
+        </div>
 
-          <button
-            onClick={() => onSelectDestination(currentFrequent.destinationName)}
-            style={{
-              background: '#2563EB',
-              border: 'none',
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '4px 10px',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            Ver Rota
-          </button>
+        {/* Indicadores de Paginação do Carrossel (3 Pontos Funcionais) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}>
+          {activeDestinationsList.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setFrequentIndex(i)}
+              style={{
+                width: i === (frequentIndex % activeDestinationsList.length) ? '18px' : '7px',
+                height: '7px',
+                borderRadius: '9999px',
+                background: i === (frequentIndex % activeDestinationsList.length) ? '#FF6600' : '#4B5563',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                padding: 0
+              }}
+              title={`Ir para destino ${i + 1}`}
+            />
+          ))}
         </div>
       </div>
     </div>

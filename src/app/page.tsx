@@ -335,6 +335,7 @@ export default function HomePage() {
               }}
               onOpenSettings={() => setIsTokenModalOpen(true)}
               favorites={favorites}
+              userCoords={userCoords}
             />
           )}
 
