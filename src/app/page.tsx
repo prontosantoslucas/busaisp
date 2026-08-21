@@ -8,32 +8,28 @@ import {
   SPTransVeiculo,
   SPTransPrevisaoResponse
 } from '@/types/sptrans';
-import { RoutePlan } from '@/lib/routing';
+import { RoutePlan, RouteSearchResult } from '@/lib/routing';
 import { FavoriteItem, fetchFavorites, toggleFavorite } from '@/lib/supabase';
-import Header from '@/components/Navigation/Header';
-import MobileTabBar, { ActiveTabType } from '@/components/Navigation/MobileTabBar';
-import LineArrivalCard from '@/components/BusSearch/LineArrivalCard';
+import MoovitTabBar, { MoovitTabType } from '@/components/Moovit/MoovitTabBar';
+import MoovitHome from '@/components/Moovit/MoovitHome';
+import MoovitRouteResults from '@/components/Moovit/MoovitRouteResults';
+import MoovitRouteDetail from '@/components/Moovit/MoovitRouteDetail';
+import MoovitDeparturesModal from '@/components/Moovit/MoovitDeparturesModal';
+import MoovitPassagens from '@/components/Moovit/MoovitPassagens';
 import LineItineraryPanel from '@/components/BusSearch/LineItineraryPanel';
 import RailsStatusBoard from '@/components/Rails/RailsStatusBoard';
 import FavoritesDrawer from '@/components/Favorites/FavoritesDrawer';
-import RoutePlanner from '@/components/Routing/RoutePlanner';
-import BottomSheet from '@/components/UI/BottomSheet';
 import TokenConfigModal from '@/components/UI/TokenConfigModal';
 import {
   Bus,
-  MapPin,
-  Star,
-  RefreshCw,
-  X,
-  ChevronDown,
+  Map as MapIcon,
+  Play,
+  Share2,
   ChevronUp,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Route,
-  Navigation
+  ChevronDown,
+  X
 } from 'lucide-react';
 
-// Importação dinâmica do mapa (Leaflet client-side)
 const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
   ssr: false,
   loading: () => (
@@ -47,80 +43,54 @@ const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0B0F17',
-        color: '#94A3B8',
+        backgroundColor: '#121316',
+        color: '#9CA3AF',
         gap: '12px'
       }}
     >
       <div className="animate-spin">
-        <Bus size={32} color="#E30613" />
+        <Bus size={32} color="#FF6600" />
       </div>
-      <span style={{ fontSize: '13px' }}>Carregando mapa interativo de São Paulo...</span>
+      <span style={{ fontSize: '13px' }}>Carregando mapa Moovit SP...</span>
     </div>
   )
 });
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<ActiveTabType>('ROTAS');
+  const [activeTab, setActiveTab] = useState<MoovitTabType>('DIRECOES');
+  const [screenMode, setScreenMode] = useState<'HOME' | 'RESULTS' | 'DETAIL'>('HOME');
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-  const [isPanelMinimized, setIsPanelMinimized] = useState(false);
+  const [isDeparturesModalOpen, setIsDeparturesModalOpen] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+
+  const [origem, setOrigem] = useState('Local atual');
+  const [destino, setDestino] = useState('Rua Flor de Maio, 40');
+  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+
+  const [routes, setRoutes] = useState<RoutePlan[]>([]);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const [selectedLine, setSelectedLine] = useState<SPTransLinha | null>(null);
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
-  const [activeRoute, setActiveRoute] = useState<RoutePlan | null>(null);
-  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
-
   const [veiculos, setVeiculos] = useState<SPTransVeiculo[]>([]);
   const [paradas, setParadas] = useState<SPTransParada[]>([]);
-  const [previsoes, setPrevisoes] = useState<SPTransPrevisaoResponse | null>(null);
-
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
-  const [isLoadingPredictions, setIsLoadingPredictions] = useState(false);
-  const [isMockMode, setIsMockMode] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
 
-  // Monitorar geolocalização do usuário (GPS em tempo real)
+  // GPS
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserCoords([pos.coords.latitude, pos.coords.longitude]);
-        },
-        (err) => {
-          console.log('GPS padrão ativado:', err.message);
-          setUserCoords([-23.5158, -46.6182]);
-        },
+        (pos) => setUserCoords([pos.coords.latitude, pos.coords.longitude]),
+        () => setUserCoords([-23.5158, -46.6182]),
         { enableHighAccuracy: true, timeout: 6000 }
       );
     }
-  }, []);
-
-  // Carregar favoritos e verificar status da conexão
-  useEffect(() => {
     fetchFavorites().then(setFavorites);
-
-    fetch('/api/onibus?tipo=status_auth')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setIsMockMode(!data.authenticated);
-        }
-      })
-      .catch(() => setIsMockMode(false));
-
-    // Carregar linha inicial padrão
-    handleSelectLinha({
-      cl: 1703,
-      lc: false,
-      lt: '1703',
-      tl: 10,
-      sl: 1,
-      tp: 'JD. HEBRON',
-      ts: 'SHOPPING CENTER NORTE'
-    });
   }, []);
 
-  // Buscar veículos ao vivo da linha selecionada
+  // Buscar linhas
   const loadVeiculos = useCallback(async (linha: SPTransLinha) => {
     setIsLoadingVehicles(true);
     try {
@@ -130,78 +100,78 @@ export default function HomePage() {
         setVeiculos(json.data.vs);
       }
     } catch (e) {
-      console.error('Erro ao buscar veículos:', e);
+      console.error(e);
     } finally {
       setIsLoadingVehicles(false);
     }
   }, []);
 
-  // Polling automático a cada 25 segundos
   useEffect(() => {
     if (!selectedLine) return;
     loadVeiculos(selectedLine);
-    const interval = setInterval(() => {
-      loadVeiculos(selectedLine);
-    }, 25000);
+    const interval = setInterval(() => loadVeiculos(selectedLine), 25000);
     return () => clearInterval(interval);
   }, [selectedLine, loadVeiculos]);
 
-  // Selecionar uma linha
-  const handleSelectLinha = (linha: SPTransLinha) => {
-    setSelectedLine(linha);
-    loadVeiculos(linha);
-  };
+  // Executar Cálculo de Rotas
+  const handleCalculateRoutes = async (destParam?: string, origParam?: string) => {
+    const destToUse = destParam || destino;
+    const origToUse = origParam || origem;
+    if (!destToUse || destToUse.trim().length < 2) return;
 
-  // Selecionar uma parada e carregar previsões de chegada
-  const handleSelectParada = async (parada: SPTransParada) => {
-    setSelectedParada(parada);
-    setIsLoadingPredictions(true);
+    setIsCalculating(true);
+    setScreenMode('RESULTS');
+
     try {
-      const res = await fetch(`/api/onibus?tipo=previsao_parada&codigo=${parada.cp}`);
+      const origCoords = userCoords || [-23.5158, -46.6182];
+      const params = new URLSearchParams({
+        origem: origToUse === 'Local atual' ? 'Minha Localização' : origToUse,
+        destino: destToUse,
+        lat: String(origCoords[0]),
+        lng: String(origCoords[1])
+      });
+
+      const res = await fetch(`/api/rotas?${params.toString()}`);
       const json = await res.json();
+
       if (json.success && json.data) {
-        setPrevisoes(json.data);
+        const searchResult: RouteSearchResult = json.data;
+        const alts = searchResult.alternatives && searchResult.alternatives.length > 0
+          ? searchResult.alternatives
+          : [searchResult.primaryRoute];
+        setRoutes(alts);
+        setSelectedRouteIndex(0);
+        setSelectedLine(alts[0].recommendedLine);
       }
     } catch (e) {
-      console.error('Erro ao buscar previsão da parada:', e);
+      console.error('Erro ao calcular rotas:', e);
     } finally {
-      setIsLoadingPredictions(false);
+      setIsCalculating(false);
     }
   };
 
-  // Favoritar / Desfavoritar linha ou parada
-  const isLineFavorited = selectedLine
-    ? favorites.some((f) => f.type === 'linha' && String(f.ref_code) === String(selectedLine.cl))
-    : false;
-
-  const isStopFavorited = selectedParada
-    ? favorites.some((f) => f.type === 'parada' && String(f.ref_code) === String(selectedParada.cp))
-    : false;
-
-  const handleToggleFavoriteLine = async () => {
-    if (!selectedLine) return;
-    const item: FavoriteItem = {
-      type: 'linha',
-      ref_code: String(selectedLine.cl),
-      title: `${selectedLine.lt}-${selectedLine.tl} ${selectedLine.tp}`,
-      label: 'Ônibus'
-    };
-    const updated = await toggleFavorite(item);
-    setFavorites(updated);
+  const handleSelectRouteFromList = (idx: number) => {
+    setSelectedRouteIndex(idx);
+    const sel = routes[idx];
+    if (sel) {
+      setSelectedLine(sel.recommendedLine);
+    }
+    setScreenMode('DETAIL');
   };
 
-  const handleToggleFavoriteStop = async () => {
-    if (!selectedParada) return;
+  const activeRoute = routes[selectedRouteIndex] || null;
+
+  const isCurrentRouteFavorited = activeRoute
+    ? favorites.some((f) => f.ref_code === String(activeRoute.recommendedLine.cl))
+    : false;
+
+  const handleToggleRouteFavorite = async () => {
+    if (!activeRoute) return;
     const item: FavoriteItem = {
-      type: 'parada',
-      ref_code: String(selectedParada.cp),
-      title: selectedParada.np,
-      label: 'Parada',
-      details: {
-        ed: selectedParada.ed,
-        py: selectedParada.py,
-        px: selectedParada.px
-      }
+      type: 'linha',
+      ref_code: String(activeRoute.recommendedLine.cl),
+      title: `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl} ${activeRoute.destination.name}`,
+      label: 'Rota'
     };
     const updated = await toggleFavorite(item);
     setFavorites(updated);
@@ -214,10 +184,10 @@ export default function HomePage() {
         width: '100vw',
         height: '100vh',
         overflow: 'hidden',
-        background: '#0B0F17'
+        background: '#121316'
       }}
     >
-      {/* 1. MAPA PERSISTENTE NO FUNDO DE TODA A APLICAÇÃO */}
+      {/* 1. MAPA PERSISTENTE NO FUNDO */}
       <div
         style={{
           position: 'absolute',
@@ -231,128 +201,86 @@ export default function HomePage() {
           selectedLine={selectedLine}
           veiculos={veiculos}
           paradas={paradas}
-          onSelectParada={handleSelectParada}
+          onSelectParada={(p) => setSelectedParada(p)}
           isLoading={isLoadingVehicles}
           onRefresh={() => selectedLine && loadVeiculos(selectedLine)}
-          isMockMode={isMockMode}
           activeRoute={activeRoute}
           userCoords={userCoords}
         />
       </div>
 
-      {/* 2. HEADER SUPERIOR FIXO */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }}>
-        <Header
-          onOpenSettings={() => setIsTokenModalOpen(true)}
-          isMockMode={isMockMode}
-        />
-      </div>
-
-      {/* 3. BARRA COMPACTA QUANDO O PAINEL ESTÁ MINIMIZADO OU ROTA ATIVA NO MAPA */}
-      {isPanelMinimized && (
+      {/* 2. BOTÕES FLUTUANTES SOBRE O MAPA NO MODO DETALHES (Screenshot 3) */}
+      {screenMode === 'DETAIL' && isMapFullscreen && activeRoute && (
         <div
           style={{
             position: 'absolute',
-            top: '72px',
+            top: '16px',
             left: '16px',
-            right: '16px',
-            maxWidth: '520px',
-            margin: '0 auto',
             zIndex: 960,
-            background: '#0F172A',
-            border: '1px solid #334155',
-            borderRadius: '9999px',
-            padding: '8px 16px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.7)',
+            flexDirection: 'column',
+            gap: '10px',
             animation: 'fadeIn 0.2s ease'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {activeRoute ? (
-              <>
-                <span style={{ background: 'var(--accent-sptrans)', color: '#fff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-                  {activeRoute.recommendedLine.lt}-{activeRoute.recommendedLine.tl}
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                  ~{activeRoute.totalDurationMinutes} min
-                </span>
-              </>
-            ) : selectedLine ? (
-              <>
-                <span style={{ background: 'var(--accent-sptrans)', color: '#fff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-                  {selectedLine.lt}-{selectedLine.tl}
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                  {selectedLine.ts}
-                </span>
-              </>
-            ) : (
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                BusaÍ SP Mapa
-              </span>
-            )}
-          </div>
+          <button
+            onClick={() => setIsMapFullscreen(false)}
+            style={{
+              background: '#10B981',
+              border: 'none',
+              borderRadius: '9999px',
+              padding: '12px 18px',
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            <Play size={16} fill="#fff" />
+            <span>Começar Navegação</span>
+          </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={() => setIsPanelMinimized(false)}
-              style={{
-                background: '#1E293B',
-                border: '1px solid #334155',
-                color: '#38BDF8',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                fontSize: '11px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <PanelLeftOpen size={14} />
-              <span>Ver Opções</span>
-            </button>
-
-            {activeRoute && (
-              <button
-                onClick={() => setActiveRoute(null)}
-                style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#FCA5A5',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-                title="Limpar traçado do mapa"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+          <button
+            onClick={() => setIsMapFullscreen(false)}
+            style={{
+              background: '#1C1E24',
+              border: '1px solid #2D313C',
+              borderRadius: '9999px',
+              padding: '10px 16px',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.6)'
+            }}
+          >
+            <ChevronUp size={16} />
+            <span>Ver Instruções da Viagem</span>
+          </button>
         </div>
       )}
 
-      {/* 4. MENU FLUTUANTE À ESQUERDA (DESKTOP) E CENTRALIZADO (MOBILE) */}
-      {!isPanelMinimized && (
+      {/* 3. PAINEL PRINCIPAL MOOVIT (Desktop à Esquerda / Mobile Central) */}
+      {!isMapFullscreen && (
         <div
           className="floating-main-panel"
           style={{
             position: 'absolute',
-            top: '72px',
+            top: '16px',
             left: '16px',
             zIndex: 950,
             width: 'calc(100% - 32px)',
-            maxWidth: '420px',
-            maxHeight: 'calc(100vh - 150px)',
+            maxWidth: '440px',
+            maxHeight: 'calc(100vh - 85px)',
             overflowY: 'auto',
-            borderRadius: '16px',
+            borderRadius: '18px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
@@ -360,142 +288,114 @@ export default function HomePage() {
             scrollbarWidth: 'thin'
           }}
         >
-          {/* Botão Superior para Minimizar e ver o mapa livre */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-4px' }}>
-            <button
-              onClick={() => setIsPanelMinimized(true)}
-              style={{
-                background: '#0F172A',
-                border: '1px solid #334155',
-                color: '#94A3B8',
-                borderRadius: '8px',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+          {activeTab === 'DIRECOES' && screenMode === 'HOME' && (
+            <MoovitHome
+              onSearchClick={() => {
+                setScreenMode('RESULTS');
+                handleCalculateRoutes();
               }}
-              title="Minimizar para ver o mapa completo"
-            >
-              <PanelLeftClose size={13} />
-              <span>Ver Mapa Livre</span>
-            </button>
-          </div>
-
-          {activeTab === 'ROTAS' && (
-            <RoutePlanner
-              userCoords={userCoords}
-              onRouteCalculated={(route) => {
-                setActiveRoute(route);
-                // Minimiza automaticamente para mostrar a rota clara no mapa
-                setIsPanelMinimized(true);
+              onSelectDestination={(dest) => {
+                setDestino(dest);
+                handleCalculateRoutes(dest);
               }}
+              onOpenSettings={() => setIsTokenModalOpen(true)}
             />
           )}
 
-          {activeTab === 'ITINERARIOS' && (
-            <LineItineraryPanel
-              selectedLine={selectedLine}
-              onSelectLine={(l) => {
-                handleSelectLinha(l);
+          {activeTab === 'DIRECOES' && screenMode === 'RESULTS' && (
+            <MoovitRouteResults
+              origem={origem}
+              destino={destino}
+              onOrigemChange={setOrigem}
+              onDestinoChange={setDestino}
+              onSwap={() => {
+                const temp = origem;
+                setOrigem(destino);
+                setDestino(temp);
+                handleCalculateRoutes(temp, destino);
               }}
-              veiculos={veiculos}
-              isLoadingVehicles={isLoadingVehicles}
-              onToggleFavoriteLine={handleToggleFavoriteLine}
-              isLineFavorited={isLineFavorited}
+              onBack={() => setScreenMode('HOME')}
+              onToggleMap={() => setIsMapFullscreen(!isMapFullscreen)}
+              isMapVisible={isMapFullscreen}
+              routes={routes}
+              selectedRouteIndex={selectedRouteIndex}
+              onSelectRoute={handleSelectRouteFromList}
+              onCalculate={() => handleCalculateRoutes()}
+              isCalculating={isCalculating}
             />
           )}
 
-          {activeTab === 'TRILHOS' && (
-            <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px' }}>
+          {activeTab === 'DIRECOES' && screenMode === 'DETAIL' && activeRoute && (
+            <MoovitRouteDetail
+              route={activeRoute}
+              onBack={() => setScreenMode('RESULTS')}
+              onStartLiveNavigation={() => setIsMapFullscreen(true)}
+              onOpenDeparturesModal={() => setIsDeparturesModalOpen(true)}
+              onToggleFavorite={handleToggleRouteFavorite}
+              isFavorited={isCurrentRouteFavorited}
+            />
+          )}
+
+          {activeTab === 'ESTACOES' && (
+            <div style={{ background: '#1C1E24', border: '1px solid #2D313C', borderRadius: '16px', padding: '16px' }}>
               <RailsStatusBoard />
             </div>
           )}
 
+          {activeTab === 'LINHAS' && (
+            <LineItineraryPanel
+              selectedLine={selectedLine}
+              onSelectLine={(l) => {
+                setSelectedLine(l);
+                loadVeiculos(l);
+              }}
+              veiculos={veiculos}
+              isLoadingVehicles={isLoadingVehicles}
+            />
+          )}
+
+          {activeTab === 'PASSAGENS' && (
+            <MoovitPassagens />
+          )}
+
           {activeTab === 'FAVORITOS' && (
-            <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px' }}>
+            <div style={{ background: '#1C1E24', border: '1px solid #2D313C', borderRadius: '16px', padding: '16px' }}>
               <FavoritesDrawer
                 onSelectLinha={(linha) => {
-                  handleSelectLinha(linha);
-                  setActiveTab('ITINERARIOS');
+                  setSelectedLine(linha);
+                  setActiveTab('LINHAS');
                 }}
                 onSelectParada={(parada) => {
-                  handleSelectParada(parada);
+                  setSelectedParada(parada);
                 }}
-                onOpenSearch={() => setActiveTab('ITINERARIOS')}
+                onOpenSearch={() => setActiveTab('LINHAS')}
               />
             </div>
           )}
         </div>
       )}
 
-      {/* 5. BOTTOM SHEET COM DETALHES DA PARADA SELECIONADA */}
-      {selectedParada && (
-        <BottomSheet
-          isOpen={Boolean(selectedParada)}
-          onClose={() => setSelectedParada(null)}
-          title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MapPin size={18} color="#38BDF8" />
-              <span style={{ fontSize: '15px', fontWeight: 700 }}>{selectedParada.np}</span>
-            </div>
-          }
-          actionButton={
-            <button
-              onClick={handleToggleFavoriteStop}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: isStopFavorited ? '#FBBF24' : 'var(--text-muted)',
-                cursor: 'pointer',
-                padding: '4px'
-              }}
-              title={isStopFavorited ? 'Remover favorito' : 'Salvar parada'}
-            >
-              <Star size={18} fill={isStopFavorited ? '#FBBF24' : 'none'} />
-            </button>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              📍 {selectedParada.ed}
-            </div>
-
-            {isLoadingPredictions ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                <RefreshCw size={18} className="animate-spin" style={{ margin: '0 auto 6px auto' }} />
-                Consultando chegadas em tempo real...
-              </div>
-            ) : previsoes?.p?.l && previsoes.p.l.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {previsoes.p.l.map((l) => (
-                  <LineArrivalCard key={l.cl} linhaPrevisao={l} />
-                ))}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                Sem previsões no momento para esta parada.
-              </div>
-            )}
-          </div>
-        </BottomSheet>
+      {/* 4. MODAL DE PRÓXIMAS PARTIDAS (Screenshot 5) */}
+      {isDeparturesModalOpen && activeRoute && (
+        <MoovitDeparturesModal
+          route={activeRoute}
+          onClose={() => setIsDeparturesModalOpen(false)}
+        />
       )}
 
-      {/* 6. MODAL DE CONFIGURAÇÃO DE TOKEN */}
+      {/* 5. MODAL DE CONFIGURAÇÃO DE TOKEN */}
       <TokenConfigModal
         isOpen={isTokenModalOpen}
         onClose={() => setIsTokenModalOpen(false)}
       />
 
-      {/* 7. TAB BAR MOBILE-FIRST INFERIOR */}
-      <MobileTabBar
+      {/* 6. TAB BAR INFERIOR MOOVIT (5 ABAS) */}
+      <MoovitTabBar
         activeTab={activeTab}
         onChangeTab={(tab) => {
           setActiveTab(tab);
-          setIsPanelMinimized(false);
+          if (tab === 'DIRECOES') setScreenMode('HOME');
+          setIsMapFullscreen(false);
         }}
         favoritesCount={favorites.length}
       />
