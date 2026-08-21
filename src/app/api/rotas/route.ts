@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { geocodeAddress, calculateRoute, RouteLocation } from '@/lib/routing';
+import { geocodeAddress, calculateRoute, searchAddressSuggestions, RouteLocation } from '@/lib/routing';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const tipo = searchParams.get('tipo');
+  const query = searchParams.get('q');
+
+  // Sugestões de autocomplete enquanto digita
+  if (tipo === 'sugestoes' && query) {
+    const suggestions = await searchAddressSuggestions(query);
+    return NextResponse.json({
+      success: true,
+      data: suggestions
+    });
+  }
+
   const origemStr = searchParams.get('origem') || 'Minha Localização';
-  const destinoStr = searchParams.get('destino') || 'Terminal Lapa';
+  const destinoStr = searchParams.get('destino') || 'Shopping Center Norte';
   const origLat = searchParams.get('origLat');
   const origLng = searchParams.get('origLng');
   const destLat = searchParams.get('destLat');
@@ -17,6 +29,7 @@ export async function GET(request: NextRequest) {
     if (origLat && origLng) {
       originLoc = {
         name: origemStr,
+        addressDetails: 'Localização atual pelo GPS',
         lat: parseFloat(origLat),
         lng: parseFloat(origLng)
       };
@@ -27,6 +40,7 @@ export async function GET(request: NextRequest) {
     if (destLat && destLng) {
       destLoc = {
         name: destinoStr,
+        addressDetails: 'Endereço selecionado',
         lat: parseFloat(destLat),
         lng: parseFloat(destLng)
       };
