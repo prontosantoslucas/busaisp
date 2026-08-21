@@ -25,7 +25,12 @@ import {
   Star,
   RefreshCw,
   X,
-  Layers
+  ChevronDown,
+  ChevronUp,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Route,
+  Navigation
 } from 'lucide-react';
 
 // Importação dinâmica do mapa (Leaflet client-side)
@@ -58,6 +63,7 @@ const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<ActiveTabType>('ROTAS');
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+  const [isPanelMinimized, setIsPanelMinimized] = useState(false);
 
   const [selectedLine, setSelectedLine] = useState<SPTransLinha | null>(null);
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
@@ -102,7 +108,7 @@ export default function HomePage() {
       })
       .catch(() => setIsMockMode(false));
 
-    // Carregar linha inicial padrão (1703-10 Jd. Hebron / Shopping Center Norte)
+    // Carregar linha inicial padrão
     handleSelectLinha({
       cl: 1703,
       lc: false,
@@ -242,69 +248,191 @@ export default function HomePage() {
         />
       </div>
 
-      {/* 3. MENU FLUTUANTE À ESQUERDA (DESKTOP) E CENTRALIZADO (MOBILE) */}
-      <div
-        className="floating-main-panel"
-        style={{
-          position: 'absolute',
-          top: '72px',
-          left: '16px',
-          zIndex: 950,
-          width: 'calc(100% - 32px)',
-          maxWidth: '420px',
-          maxHeight: 'calc(100vh - 150px)',
-          overflowY: 'auto',
-          borderRadius: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          pointerEvents: 'auto',
-          scrollbarWidth: 'thin'
-        }}
-      >
-        {activeTab === 'ROTAS' && (
-          <RoutePlanner
-            userCoords={userCoords}
-            onRouteCalculated={(route) => {
-              setActiveRoute(route);
-            }}
-          />
-        )}
-
-        {activeTab === 'ITINERARIOS' && (
-          <LineItineraryPanel
-            selectedLine={selectedLine}
-            onSelectLine={handleSelectLinha}
-            veiculos={veiculos}
-            isLoadingVehicles={isLoadingVehicles}
-            onToggleFavoriteLine={handleToggleFavoriteLine}
-            isLineFavorited={isLineFavorited}
-          />
-        )}
-
-        {activeTab === 'TRILHOS' && (
-          <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px' }}>
-            <RailsStatusBoard />
+      {/* 3. BARRA COMPACTA QUANDO O PAINEL ESTÁ MINIMIZADO OU ROTA ATIVA NO MAPA */}
+      {isPanelMinimized && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '72px',
+            left: '16px',
+            right: '16px',
+            maxWidth: '520px',
+            margin: '0 auto',
+            zIndex: 960,
+            background: '#0F172A',
+            border: '1px solid #334155',
+            borderRadius: '9999px',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.7)',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {activeRoute ? (
+              <>
+                <span style={{ background: 'var(--accent-sptrans)', color: '#fff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                  {activeRoute.recommendedLine.lt}-{activeRoute.recommendedLine.tl}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                  ~{activeRoute.totalDurationMinutes} min
+                </span>
+              </>
+            ) : selectedLine ? (
+              <>
+                <span style={{ background: 'var(--accent-sptrans)', color: '#fff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                  {selectedLine.lt}-{selectedLine.tl}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                  {selectedLine.ts}
+                </span>
+              </>
+            ) : (
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                BusaÍ SP Mapa
+              </span>
+            )}
           </div>
-        )}
 
-        {activeTab === 'FAVORITOS' && (
-          <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px' }}>
-            <FavoritesDrawer
-              onSelectLinha={(linha) => {
-                handleSelectLinha(linha);
-                setActiveTab('ITINERARIOS');
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setIsPanelMinimized(false)}
+              style={{
+                background: '#1E293B',
+                border: '1px solid #334155',
+                color: '#38BDF8',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
-              onSelectParada={(parada) => {
-                handleSelectParada(parada);
+            >
+              <PanelLeftOpen size={14} />
+              <span>Ver Opções</span>
+            </button>
+
+            {activeRoute && (
+              <button
+                onClick={() => setActiveRoute(null)}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#FCA5A5',
+                  borderRadius: '8px',
+                  padding: '6px 10px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Limpar traçado do mapa"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 4. MENU FLUTUANTE À ESQUERDA (DESKTOP) E CENTRALIZADO (MOBILE) */}
+      {!isPanelMinimized && (
+        <div
+          className="floating-main-panel"
+          style={{
+            position: 'absolute',
+            top: '72px',
+            left: '16px',
+            zIndex: 950,
+            width: 'calc(100% - 32px)',
+            maxWidth: '420px',
+            maxHeight: 'calc(100vh - 150px)',
+            overflowY: 'auto',
+            borderRadius: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            pointerEvents: 'auto',
+            scrollbarWidth: 'thin'
+          }}
+        >
+          {/* Botão Superior para Minimizar e ver o mapa livre */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-4px' }}>
+            <button
+              onClick={() => setIsPanelMinimized(true)}
+              style={{
+                background: '#0F172A',
+                border: '1px solid #334155',
+                color: '#94A3B8',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
               }}
-              onOpenSearch={() => setActiveTab('ITINERARIOS')}
+              title="Minimizar para ver o mapa completo"
+            >
+              <PanelLeftClose size={13} />
+              <span>Ver Mapa Livre</span>
+            </button>
+          </div>
+
+          {activeTab === 'ROTAS' && (
+            <RoutePlanner
+              userCoords={userCoords}
+              onRouteCalculated={(route) => {
+                setActiveRoute(route);
+                // Minimiza automaticamente para mostrar a rota clara no mapa
+                setIsPanelMinimized(true);
+              }}
             />
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* 4. BOTTOM SHEET COM DETALHES DA PARADA SELECIONADA */}
+          {activeTab === 'ITINERARIOS' && (
+            <LineItineraryPanel
+              selectedLine={selectedLine}
+              onSelectLine={(l) => {
+                handleSelectLinha(l);
+              }}
+              veiculos={veiculos}
+              isLoadingVehicles={isLoadingVehicles}
+              onToggleFavoriteLine={handleToggleFavoriteLine}
+              isLineFavorited={isLineFavorited}
+            />
+          )}
+
+          {activeTab === 'TRILHOS' && (
+            <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px' }}>
+              <RailsStatusBoard />
+            </div>
+          )}
+
+          {activeTab === 'FAVORITOS' && (
+            <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px' }}>
+              <FavoritesDrawer
+                onSelectLinha={(linha) => {
+                  handleSelectLinha(linha);
+                  setActiveTab('ITINERARIOS');
+                }}
+                onSelectParada={(parada) => {
+                  handleSelectParada(parada);
+                }}
+                onOpenSearch={() => setActiveTab('ITINERARIOS')}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. BOTTOM SHEET COM DETALHES DA PARADA SELECIONADA */}
       {selectedParada && (
         <BottomSheet
           isOpen={Boolean(selectedParada)}
@@ -356,16 +484,19 @@ export default function HomePage() {
         </BottomSheet>
       )}
 
-      {/* 5. MODAL DE CONFIGURAÇÃO DE TOKEN */}
+      {/* 6. MODAL DE CONFIGURAÇÃO DE TOKEN */}
       <TokenConfigModal
         isOpen={isTokenModalOpen}
         onClose={() => setIsTokenModalOpen(false)}
       />
 
-      {/* 6. TAB BAR MOBILE-FIRST INFERIOR */}
+      {/* 7. TAB BAR MOBILE-FIRST INFERIOR */}
       <MobileTabBar
         activeTab={activeTab}
-        onChangeTab={setActiveTab}
+        onChangeTab={(tab) => {
+          setActiveTab(tab);
+          setIsPanelMinimized(false);
+        }}
         favoritesCount={favorites.length}
       />
     </div>

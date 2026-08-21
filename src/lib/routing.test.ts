@@ -11,6 +11,10 @@ vi.mock('@/lib/sptrans', () => ({
   buscarPrevisaoParada: vi.fn()
 }));
 
+vi.mock('@/lib/osrm', () => ({
+  getSnappedRoutePolyline: vi.fn().mockImplementation((pts) => Promise.resolve(pts))
+}));
+
 import { findNearbyStops, findDirectRoutes, findRoutesFromStops, getTripStopCoordinates } from '@/lib/gtfs';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
 import { calculateRoute } from '@/lib/routing';

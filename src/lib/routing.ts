@@ -9,6 +9,7 @@ import {
   DirectRoute,
   ReachableRoute
 } from '@/lib/gtfs';
+import { getSnappedRoutePolyline } from '@/lib/osrm';
 
 export interface RouteLocation {
   name: string;
@@ -251,19 +252,19 @@ function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * Constrói um RoutePlan completo com traçado real das paradas e a pé direto
+ * Constrói um RoutePlan completo com traçado real das ruas e curvas via OSRM + paradas reais
  */
-export function buildMultiLegPlan(
+export async function buildMultiLegPlan(
   originLoc: RouteLocation,
   destLoc: RouteLocation,
   legs: DiscoveredLeg[]
-): RoutePlan {
+): Promise<RoutePlan> {
   const firstLeg = legs[0];
   const lastLeg = legs[legs.length - 1];
   const transferCount = legs.length - 1;
 
   const steps: RouteStep[] = [];
-  const transitPolyline: [number, number][] = [];
+  const rawTransitPoints: [number, number][] = [];
 
   let totalDurationMinutes = 0;
   let totalDistanceMeters = 0;
@@ -274,9 +275,8 @@ export function buildMultiLegPlan(
   const walkToStopMeters = Math.max(80, getDistanceMeters(originLoc.lat, originLoc.lng, firstLeg.boardStop.py, firstLeg.boardStop.px));
   const walkToStopMinutes = Math.max(1, Math.round(walkToStopMeters / 80));
   const walkToStopSteps = Math.round(walkToStopMeters / 0.75);
-  
-  // Caminho a pé limpo direto entre os pontos
-  const walkToStopPath: [number, number][] = [
+
+  const rawWalkToStop: [number, number][] = [
     [originLoc.lat, originLoc.lng],
     [firstLeg.boardStop.py, firstLeg.boardStop.px]
   ];
@@ -318,11 +318,10 @@ export function buildMultiLegPlan(
       stopName: leg.alightStop.np
     });
 
-    // Se temos as paradas intermediárias reais do GTFS, usamos elas; senão traçado limpo
     if (leg.pathCoordinates && leg.pathCoordinates.length > 0) {
-      transitPolyline.push(...leg.pathCoordinates);
+      rawTransitPoints.push(...leg.pathCoordinates);
     } else {
-      transitPolyline.push(
+      rawTransitPoints.push(
         [leg.boardStop.py, leg.boardStop.px],
         [leg.alightStop.py, leg.alightStop.px]
       );
@@ -367,7 +366,7 @@ export function buildMultiLegPlan(
   const walkToDestMeters = Math.max(50, getDistanceMeters(destLoc.lat, destLoc.lng, lastLeg.alightStop.py, lastLeg.alightStop.px));
   const walkToDestMinutes = Math.max(1, Math.round(walkToDestMeters / 80));
   const walkToDestSteps = Math.round(walkToDestMeters / 0.75);
-  const walkToDestPath: [number, number][] = [
+  const rawWalkToDest: [number, number][] = [
     [lastLeg.alightStop.py, lastLeg.alightStop.px],
     [destLoc.lat, destLoc.lng]
   ];
@@ -415,6 +414,13 @@ export function buildMultiLegPlan(
     totalDurationMinutes > 50 ? 'INTENSO' : totalDurationMinutes > 30 ? 'MODERADO' : 'FLUINDO';
   const trafficDelayMinutes = trafficStatus === 'INTENSO' ? 8 : trafficStatus === 'MODERADO' ? 4 : 0;
 
+  // Snapping de ruas real via OSRM (em paralelo para velocidade máxima)
+  const [walkToStopSnapped, transitSnapped, walkToDestSnapped] = await Promise.all([
+    getSnappedRoutePolyline(rawWalkToStop, 'walking'),
+    getSnappedRoutePolyline(rawTransitPoints, 'driving'),
+    getSnappedRoutePolyline(rawWalkToDest, 'walking')
+  ]);
+
   return {
     id: `route_${legs.map(l => l.line.lt).join('_')}_${Date.now()}`,
     origin: originLoc,
@@ -437,9 +443,9 @@ export function buildMultiLegPlan(
     trafficDelayMinutes,
     steps,
     polyline: {
-      walkToStop: walkToStopPath,
-      transit: transitPolyline,
-      walkToDest: walkToDestPath
+      walkToStop: walkToStopSnapped,
+      transit: transitSnapped,
+      walkToDest: walkToDestSnapped
     }
   };
 }
@@ -570,7 +576,8 @@ async function findMultiLegPlans(
         ...originEntry.legs,
         { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, etaMinutes: eta, vehiclePrefix: prefix }
       ];
-      plans.push(buildMultiLegPlan(originLoc, destLoc, legs));
+      const plan = await buildMultiLegPlan(originLoc, destLoc, legs);
+      plans.push(plan);
 
       if (plans.length >= MAX_ALTERNATIVES) break;
     }

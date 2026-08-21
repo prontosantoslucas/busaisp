@@ -2,11 +2,16 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { SPTransLinha, SPTransParada, SPTransVeiculo } from '@/types/sptrans';
+import 'leaflet/dist/leaflet.css';
+import {
+  SPTransLinha,
+  SPTransParada,
+  SPTransVeiculo
+} from '@/types/sptrans';
 import { RoutePlan } from '@/lib/routing';
-import { Compass, Locate, RefreshCw, Bus, MapPin, Accessibility, Clock, AlertCircle, ShieldCheck, Footprints, Flag, Zap, X } from 'lucide-react';
+import { RefreshCw, Locate, Footprints, Layers } from 'lucide-react';
 
-interface LiveMapProps {
+export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
   veiculos: SPTransVeiculo[];
   paradas: SPTransParada[];
@@ -18,9 +23,6 @@ interface LiveMapProps {
   userCoords?: [number, number] | null;
 }
 
-const DEFAULT_CENTER: [number, number] = [-23.5000, -46.6050];
-const DEFAULT_ZOOM = 13;
-
 export default function LiveMap({
   selectedLine,
   veiculos,
@@ -28,7 +30,7 @@ export default function LiveMap({
   onSelectParada,
   isLoading,
   onRefresh,
-  isMockMode,
+  isMockMode = false,
   activeRoute,
   userCoords
 }: LiveMapProps) {
@@ -39,34 +41,33 @@ export default function LiveMap({
   const routePolylinesGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
-
   const [isLocating, setIsLocating] = useState(false);
 
   // Inicializar o Mapa Leaflet
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
+    const initialCoords: [number, number] = userCoords || [-23.5158, -46.6182];
+
     const map = L.map(mapContainerRef.current, {
-      center: userCoords || DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
+      center: initialCoords,
+      zoom: 14,
       zoomControl: false,
       attributionControl: false
     });
 
+    // Dark Matter Tiles (CartoDB)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
-      subdomains: 'abcd',
+      subdomains: 'abcd'
     }).addTo(map);
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
-    const routeGroup = L.layerGroup().addTo(map);
-    const stopGroup = L.layerGroup().addTo(map);
-    const busGroup = L.layerGroup().addTo(map);
+    busMarkersGroupRef.current = L.layerGroup().addTo(map);
+    stopMarkersGroupRef.current = L.layerGroup().addTo(map);
+    routePolylinesGroupRef.current = L.layerGroup().addTo(map);
 
-    routePolylinesGroupRef.current = routeGroup;
-    stopMarkersGroupRef.current = stopGroup;
-    busMarkersGroupRef.current = busGroup;
     mapInstanceRef.current = map;
 
     return () => {
@@ -75,7 +76,7 @@ export default function LiveMap({
     };
   }, []);
 
-  // Atualizar posição do usuário (GPS) no mapa com radar
+  // Monitorar geolocalização do usuário (sem abrir popup automático invasivo)
   useEffect(() => {
     if (!mapInstanceRef.current || !userCoords) return;
 
@@ -86,7 +87,7 @@ export default function LiveMap({
     } else {
       const userIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
             <div style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background: rgba(56, 189, 248, 0.45); animation: markerPulse 2s infinite;"></div>
             <div style="width: 26px; height: 26px; border-radius: 50%; background: #0284C7; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">🧭</div>
           </div>
@@ -97,7 +98,7 @@ export default function LiveMap({
       });
 
       userMarkerRef.current = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1000 })
-        .bindPopup('<strong>📍 Você está aqui (A Pé)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão GPS Ativa</span>')
+        .bindPopup('<strong>📍 Sua Localização (GPS)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão em tempo real</span>')
         .addTo(map);
     }
 
@@ -105,16 +106,16 @@ export default function LiveMap({
       userAccuracyCircleRef.current.setLatLng(userCoords);
     } else {
       userAccuracyCircleRef.current = L.circle(userCoords, {
-        radius: 45,
+        radius: 40,
         color: '#0284C7',
         fillColor: '#38BDF8',
-        fillOpacity: 0.15,
+        fillOpacity: 0.12,
         weight: 1
       }).addTo(map);
     }
   }, [userCoords]);
 
-  // Atualizar traçado no mapa com destaque especial para a caminhada a pé do pedestre
+  // Atualizar traçado no mapa com curvas perfeitas de ruas
   useEffect(() => {
     if (!routePolylinesGroupRef.current || !mapInstanceRef.current) return;
 
@@ -164,12 +165,12 @@ export default function LiveMap({
       const busGlow = L.polyline(activeRoute.polyline.transit, {
         color: '#E30613',
         weight: 9,
-        opacity: 0.3
+        opacity: 0.35
       });
       const busLine = L.polyline(activeRoute.polyline.transit, {
         color: '#E30613',
         weight: 5,
-        opacity: 0.95
+        opacity: 0.98
       });
       routePolylinesGroupRef.current.addLayer(busGlow);
       routePolylinesGroupRef.current.addLayer(busLine);
@@ -178,17 +179,17 @@ export default function LiveMap({
       // Marcador de Embarque no Ônibus
       const boardIcon = L.divIcon({
         html: `
-          <div style="background: #E30613; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 14px;">
+          <div style="background: #E30613; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 15px;">
             🚏
           </div>
         `,
         className: 'bus-board-marker',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
 
       const boardMarker = L.marker([activeRoute.departureStop.py, activeRoute.departureStop.px], { icon: boardIcon })
-        .bindPopup(`<strong>Ponto de Embarque: ${activeRoute.departureStop.np}</strong><br/>${activeRoute.nextBusEtaMinutes >= 0 ? `Ônibus chega em <strong>${activeRoute.nextBusEtaMinutes} min</strong>` : 'Sem previsão em tempo real para esta linha agora'}`);
+        .bindPopup(`<strong>Embarque: ${activeRoute.departureStop.np}</strong><br/>${activeRoute.nextBusEtaMinutes >= 0 ? `Ônibus chega em <strong>${activeRoute.nextBusEtaMinutes} min</strong>` : 'Sem previsão em tempo real para esta linha agora'}`);
       routePolylinesGroupRef.current.addLayer(boardMarker);
     }
 
@@ -207,13 +208,13 @@ export default function LiveMap({
     // 4. Marcador de Destino Final
     const destIcon = L.divIcon({
       html: `
-        <div style="background: #10B981; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 15px;">
+        <div style="background: #10B981; color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.6); font-size: 16px;">
           🏁
         </div>
       `,
       className: 'dest-marker',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
     });
 
     const destMarker = L.marker([activeRoute.destination.lat, activeRoute.destination.lng], {
@@ -222,13 +223,13 @@ export default function LiveMap({
 
     routePolylinesGroupRef.current.addLayer(destMarker);
 
-    // Ajustar zoom
+    // Ajustar zoom e visualização ampla
     if (allCoords.length > 0) {
-      map.fitBounds(L.latLngBounds(allCoords), { padding: [70, 70], maxZoom: 16 });
+      map.fitBounds(L.latLngBounds(allCoords), { padding: [60, 60], maxZoom: 16 });
     }
   }, [activeRoute]);
 
-  // Atualizar marcadores de Ônibus no mapa com Destino explícito
+  // Atualizar marcadores de Ônibus no mapa
   useEffect(() => {
     if (!busMarkersGroupRef.current || !mapInstanceRef.current) return;
 
@@ -270,7 +271,7 @@ export default function LiveMap({
           
           <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
             <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : '1703-10'}</strong></div>
-            <div style="background: rgba(227, 6, 19, 0.15); border-left: 3px solid #E30613; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
+            <div style="background: #1E293B; border-left: 3px solid #E30613; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
               <span style="font-size: 10px; color: #FCA5A5; font-weight: 700; display: block;">DESTINO LETREIRO:</span>
               <strong style="color: #FFFFFF; font-size: 12px;">${destinoText}</strong>
             </div>
@@ -358,80 +359,6 @@ export default function LiveMap({
       {/* Container Leaflet */}
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
 
-      {/* Card Flutuante de Rota com Caminhada Detalhada */}
-      {activeRoute && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '76px',
-            left: '12px',
-            right: '12px',
-            maxWidth: '460px',
-            margin: '0 auto',
-            zIndex: 990,
-            background: 'rgba(15, 23, 42, 0.95)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(56, 189, 248, 0.35)',
-            borderRadius: '14px',
-            padding: '12px 14px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            animation: 'fadeIn 0.3s ease'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  background: '#0284C7',
-                  color: '#fff',
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px'
-                }}
-              >
-                🚶
-              </div>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
-                Rota a Pé + Ônibus
-              </span>
-            </div>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#38BDF8' }}>
-              ~{activeRoute.totalDurationMinutes} min total
-            </span>
-          </div>
-
-          {/* Métricas a Pé & Ônibus no Ponto */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'rgba(0,0,0,0.3)',
-              borderRadius: '8px',
-              padding: '8px 10px',
-              fontSize: '11px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#94A3B8' }}>
-              <Footprints size={14} color="#38BDF8" />
-              <span>A pé: <strong style={{ color: '#38BDF8' }}>{activeRoute.totalWalkDurationMinutes} min</strong> ({activeRoute.totalWalkDistanceMeters}m)</span>
-            </div>
-            <div style={{ color: '#FCA5A5', fontWeight: 700 }}>
-              {activeRoute.nextBusEtaMinutes >= 0
-                ? <>Ônibus chega em: <strong style={{ color: '#E30613' }}>{activeRoute.nextBusEtaMinutes} min</strong></>
-                : <span style={{ color: '#94A3B8' }}>Sem previsão em tempo real</span>}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Botões de Ação Flutuantes */}
       <div
         style={{
@@ -470,16 +397,16 @@ export default function LiveMap({
           bottom: '76px',
           left: '16px',
           zIndex: 990,
-          background: 'rgba(15, 23, 42, 0.94)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: '#0F172A',
+          border: '1px solid #334155',
           padding: '6px 14px',
           borderRadius: '9999px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           fontSize: '11px',
-          color: 'var(--text-secondary)'
+          color: '#CBD5E1',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
         }}
       >
         <span
@@ -492,7 +419,7 @@ export default function LiveMap({
           }}
         />
         <span>
-          <strong>Destino:</strong> {selectedLine ? (selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp) : 'SHOPPING CENTER NORTE'} · {veiculos.length} veículos
+          <strong>Linha:</strong> {selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : '1703-10'} · {veiculos.length} veículos transmitindo GPS
         </span>
       </div>
     </div>
