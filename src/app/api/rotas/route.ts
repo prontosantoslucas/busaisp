@@ -46,9 +46,9 @@ export async function GET(request: NextRequest) {
   }
 
   const origemStr = searchParams.get('origem') || 'Minha Localização';
-  const destinoStr = searchParams.get('destino') || 'Shopping Center Norte';
-  const origLat = searchParams.get('origLat');
-  const origLng = searchParams.get('origLng');
+  const destinoStr = searchParams.get('destino') || 'Rua Flor de Maio, 40';
+  const origLat = searchParams.get('origLat') || searchParams.get('lat');
+  const origLng = searchParams.get('origLng') || searchParams.get('lng');
   const destLat = searchParams.get('destLat');
   const destLng = searchParams.get('destLng');
 
@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
     let originLoc: RouteLocation;
     let destLoc: RouteLocation;
 
-    if (origLat && origLng) {
+    if (origLat && origLng && !isNaN(parseFloat(origLat)) && !isNaN(parseFloat(origLng))) {
       originLoc = {
-        name: origemStr,
+        name: origemStr === 'Local atual' ? 'Minha Localização' : origemStr,
         addressDetails: 'Localização atual pelo GPS',
         lat: parseFloat(origLat),
         lng: parseFloat(origLng)
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       originLoc = await geocodeAddress(origemStr);
     }
 
-    if (destLat && destLng) {
+    if (destLat && destLng && !isNaN(parseFloat(destLat)) && !isNaN(parseFloat(destLng))) {
       destLoc = {
         name: destinoStr,
         addressDetails: 'Endereço selecionado',

@@ -211,6 +211,15 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
 export async function geocodeAddress(query: string): Promise<RouteLocation> {
   const norm = query.toLowerCase().trim();
 
+  if (norm.includes('local atual') || norm.includes('minha localiz') || norm === 'origem' || norm === '') {
+    return {
+      name: 'Minha Localização',
+      addressDetails: 'Localização atual (São Paulo)',
+      lat: -23.5158,
+      lng: -46.6182
+    };
+  }
+
   for (const [key, loc] of Object.entries(KNOWN_SP_LOCATIONS)) {
     if (norm.includes(key) || key.includes(norm)) {
       return {
@@ -248,7 +257,7 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
     console.warn('[Geocode] Fallback para local padrão:', err);
   }
 
-  if (norm.includes('flor') || norm.includes('fontal')) {
+  if (norm.includes('flor') || norm.includes('fontal') || norm.includes('trememb')) {
     return {
       name: 'Rua Flor de Maio, 40',
       addressDetails: 'Jardim Fontális / Tremembé, São Paulo - SP',
@@ -758,20 +767,37 @@ export async function calculateRoute(
   originLoc: RouteLocation,
   destLoc: RouteLocation
 ): Promise<RouteSearchResult> {
-  const [origNearby, destNearby] = await Promise.all([
-    findNearbyStops(originLoc.lat, originLoc.lng, 2500, 12),
-    findNearbyStops(destLoc.lat, destLoc.lng, 2500, 12)
+  let [origNearby, destNearby] = await Promise.all([
+    findNearbyStops(originLoc.lat, originLoc.lng, 2500, 15),
+    findNearbyStops(destLoc.lat, destLoc.lng, 2500, 15)
   ]);
 
   if (origNearby.length === 0) {
-    throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada (raio de 2,5 km).');
+    origNearby = await findNearbyStops(originLoc.lat, originLoc.lng, 4000, 25);
   }
 
   if (destNearby.length === 0) {
-    throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado (raio de 2,5 km).');
+    destNearby = await findNearbyStops(destLoc.lat, destLoc.lng, 4000, 25);
   }
 
-  const plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby);
+  if (origNearby.length === 0) {
+    throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada.');
+  }
+
+  if (destNearby.length === 0) {
+    throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado.');
+  }
+
+  let plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby);
+
+  // Se não encontrar na primeira busca, tenta ampliar o raio e o limite de paradas
+  if (plans.length === 0) {
+    const [expandedOrig, expandedDest] = await Promise.all([
+      findNearbyStops(originLoc.lat, originLoc.lng, 3500, 30),
+      findNearbyStops(destLoc.lat, destLoc.lng, 3500, 30)
+    ]);
+    plans = await findMultiLegPlans(originLoc, destLoc, expandedOrig, expandedDest);
+  }
 
   if (plans.length === 0) {
     throw new Error('Nenhuma linha encontrada conectando a origem ao destino.');

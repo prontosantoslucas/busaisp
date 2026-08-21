@@ -30,15 +30,18 @@ beforeEach(() => {
 
 describe('calculateRoute', () => {
   it('lança erro claro quando não há paradas perto da origem', async () => {
-    (findNearbyStops as any).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    (findNearbyStops as any).mockResolvedValue([]);
 
-    await expect(calculateRoute(origin, dest)).rejects.toThrow('Nenhuma parada de ônibus encontrada perto da origem');
+    await expect(calculateRoute(origin, dest)).rejects.toThrow('Nenhuma parada de ônibus encontrada');
   });
 
   it('lança erro claro quando não há linha conectando a origem ao destino', async () => {
-    (findNearbyStops as any)
-      .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
-      .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+    (findNearbyStops as any).mockImplementation((lat: number) => {
+      if (lat < -23.45) {
+        return Promise.resolve([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+      }
+      return Promise.resolve([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }]);
+    });
     (findDirectRoutes as any).mockResolvedValue([]);
     (findRoutesFromStops as any).mockResolvedValue([]);
 

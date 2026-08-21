@@ -130,7 +130,9 @@ export default function HomePage() {
         origem: origToUse === 'Local atual' ? 'Minha Localização' : origToUse,
         destino: destToUse,
         lat: String(origCoords[0]),
-        lng: String(origCoords[1])
+        lng: String(origCoords[1]),
+        origLat: String(origCoords[0]),
+        origLng: String(origCoords[1])
       });
 
       const res = await fetch(`/api/rotas?${params.toString()}`);
