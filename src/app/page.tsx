@@ -114,7 +114,8 @@ export default function HomePage() {
   const loadVeiculos = useCallback(async (linha: SPTransLinha) => {
     setIsLoadingVehicles(true);
     try {
-      const res = await fetch(`/api/onibus?tipo=posicao&codigo=${linha.cl}`);
+      const letreiroQuery = encodeURIComponent(`${linha.lt}-${linha.tl}`);
+      const res = await fetch(`/api/onibus?tipo=posicao&codigo=${linha.cl}&letreiro=${letreiroQuery}`);
       const json = await res.json();
       if (json.success && json.data?.vs) {
         setVeiculos(json.data.vs);

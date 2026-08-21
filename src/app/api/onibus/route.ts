@@ -57,11 +57,23 @@ export async function GET(request: NextRequest) {
     // 4. Posição dos Ônibus da Linha
     if (tipo === 'posicao' || tipo === 'posicao_linha') {
       const codNum = codigo ? parseInt(codigo, 10) : 1001;
-      const { posicao, isMock } = await buscarPosicaoLinha(codNum);
+      const letreiroParam = searchParams.get('letreiro') || searchParams.get('linha') || undefined;
+      const { posicao, isMock } = await buscarPosicaoLinha(codNum, letreiroParam);
       return NextResponse.json({
         success: true,
         data: posicao,
         isMock,
+        timestamp
+      });
+    }
+
+    // 5. Velocidade nos Corredores e Vias
+    if (tipo === 'velocidade' || tipo === 'velocidade_corredor') {
+      const { buscarVelocidadeCorredores } = await import('@/lib/sptrans');
+      const res = await buscarVelocidadeCorredores();
+      return NextResponse.json({
+        success: true,
+        data: res.data,
         timestamp
       });
     }

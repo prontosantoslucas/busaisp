@@ -245,8 +245,9 @@ export async function buscarParadas(termosBusca: string): Promise<{ paradas: SPT
   return { paradas: [], isMock: false };
 }
 
-export async function buscarPosicaoLinha(codigoLinha: number): Promise<{ posicao: SPTransPosicaoLinha | null; isMock: boolean }> {
-  const { data } = await fetchSPTrans<SPTransPosicaoLinha>(
+export async function buscarPosicaoLinha(codigoLinha: number, letreiro?: string): Promise<{ posicao: SPTransPosicaoLinha | null; isMock: boolean }> {
+  // 1. Tenta buscar direto pelo código numérico informado
+  let { data } = await fetchSPTrans<SPTransPosicaoLinha>(
     `/Posicao/Linha?codigoLinha=${codigoLinha}`
   );
 
@@ -254,7 +255,47 @@ export async function buscarPosicaoLinha(codigoLinha: number): Promise<{ posicao
     return { posicao: data, isMock: false };
   }
 
+  // 2. Se não encontrou ou o código não é o 'cl' interno da SPTrans, busca os 'cl' reais da linha
+  const termoParaBuscar = letreiro || String(codigoLinha);
+  if (termoParaBuscar && termoParaBuscar.length >= 3) {
+    const { linhas } = await buscarLinhas(termoParaBuscar);
+    if (linhas && linhas.length > 0) {
+      const allVehicles: any[] = [];
+      let lastHr = '';
+
+      for (const l of linhas) {
+        const res = await fetchSPTrans<SPTransPosicaoLinha>(`/Posicao/Linha?codigoLinha=${l.cl}`);
+        if (res.data && res.data.vs && res.data.vs.length > 0) {
+          lastHr = res.data.hr;
+          res.data.vs.forEach((v) => {
+            if (!allVehicles.some(existing => existing.p === v.p)) {
+              allVehicles.push(v);
+            }
+          });
+        }
+      }
+
+      if (allVehicles.length > 0) {
+        return {
+          posicao: {
+            hr: lastHr || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            vs: allVehicles
+          },
+          isMock: false
+        };
+      }
+    }
+  }
+
   return { posicao: null, isMock: false };
+}
+
+export async function buscarVelocidadeCorredores(): Promise<{ data: any; isMock: boolean }> {
+  return await fetchSPTrans<any>('/Velocidade/Corredor');
+}
+
+export async function buscarVelocidadeOutrasVias(): Promise<{ data: any; isMock: boolean }> {
+  return await fetchSPTrans<any>('/Velocidade/OutrasVias');
 }
 
 export async function buscarPrevisaoParada(codigoParada: number): Promise<{ previsao: SPTransPrevisaoResponse | null; isMock: boolean }> {
@@ -286,3 +327,4 @@ export async function buscarPrevisaoLinha(codigoLinha: number): Promise<{ previs
 
   return { previsao: null, isMock: false };
 }
+
