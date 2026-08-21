@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StationItem, SP_ALL_STATIONS } from '@/lib/stationsData';
+import { RailsResponse, RailLine } from '@/types/trilhos';
 import {
   MapPin,
   Search,
@@ -10,6 +11,8 @@ import {
   Navigation,
   CheckCircle2,
   AlertTriangle,
+  XCircle,
+  RefreshCw,
   Layers,
   ChevronRight
 } from 'lucide-react';
@@ -25,8 +28,70 @@ export default function StationsExplorerPanel({
   onRouteToStation,
   selectedStationId
 }: StationsExplorerPanelProps) {
+  const [subView, setSubView] = useState<'ESTACOES' | 'STATUS'>('STATUS');
   const [filterType, setFilterType] = useState<'ALL' | 'METRO' | 'CPTM' | 'TERMINAL_BUS'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Status dos Trilhos Real
+  const [railsData, setRailsData] = useState<RailsResponse | null>(null);
+  const [isLoadingRails, setIsLoadingRails] = useState(true);
+  const [selectedRailFilter, setSelectedRailFilter] = useState<string>('TODAS');
+  const [selectedLineDetail, setSelectedLineDetail] = useState<RailLine | null>(null);
+
+  const fetchRails = async () => {
+    setIsLoadingRails(true);
+    try {
+      const res = await fetch('/api/trilhos/status');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setRailsData(json.data);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar status dos trilhos:', e);
+    } finally {
+      setIsLoadingRails(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRails();
+    const interval = setInterval(fetchRails, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'NORMAL':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+            <CheckCircle2 size={13} />
+            <span>Normal</span>
+          </span>
+        );
+      case 'VELOCIDADE_REDUZIDA':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+            <AlertTriangle size={13} />
+            <span>Velocidade Reduzida</span>
+          </span>
+        );
+      case 'OPERACAO_PARCIAL':
+      case 'PARALISADA':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+            <XCircle size={13} />
+            <span>Paralisada / Parcial</span>
+          </span>
+        );
+      default:
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+            <CheckCircle2 size={13} />
+            <span>{status}</span>
+          </span>
+        );
+    }
+  };
 
   const filteredStations = SP_ALL_STATIONS.filter(st => {
     if (filterType !== 'ALL' && st.type !== filterType) return false;
@@ -42,15 +107,24 @@ export default function StationsExplorerPanel({
     return true;
   });
 
+  const railLines = railsData?.lines || [];
+  const filteredRailLines = railLines.filter((l) => {
+    if (selectedRailFilter === 'TODAS') return true;
+    if (selectedRailFilter === 'METRO') return l.operator === 'METRO';
+    if (selectedRailFilter === 'CPTM') return l.operator === 'CPTM';
+    if (selectedRailFilter === 'CONCESSIONARIAS') return l.operator === 'VIAQUATRO' || l.operator === 'VIAMOBILIDADE';
+    return true;
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Header do Painel */}
+      {/* Top Toggle: Status da Operação vs Estações no Mapa */}
       <div
         style={{
           background: '#1C1E24',
           border: '1px solid #2D313C',
           borderRadius: '16px',
-          padding: '16px 18px',
+          padding: '14px 16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
@@ -76,197 +150,396 @@ export default function StationsExplorerPanel({
             </div>
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
-                Estações e Terminais (SP)
+                Estações e Status dos Serviços
               </h2>
               <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0 }}>
-                Metrô · Trem CPTM · Terminais de Ônibus
+                Metrô · CPTM · ViaMobilidade · Terminais SPTrans
               </p>
             </div>
           </div>
 
-          <span
+          <button
+            onClick={fetchRails}
             style={{
-              background: '#2D313C',
-              color: '#D1D5DB',
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '4px 8px',
-              borderRadius: '6px'
+              background: '#262932',
+              border: '1px solid #323642',
+              borderRadius: '8px',
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              cursor: 'pointer'
+            }}
+            title="Atualizar Status dos Serviços"
+          >
+            <RefreshCw size={15} className={isLoadingRails ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        {/* Abas Alternadoras Superiores: Status das Linhas / Estações no Mapa */}
+        <div style={{ display: 'flex', gap: '8px', background: '#121316', padding: '4px', borderRadius: '10px' }}>
+          <button
+            onClick={() => setSubView('STATUS')}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: subView === 'STATUS' ? '#2563EB' : 'transparent',
+              color: subView === 'STATUS' ? '#FFFFFF' : '#9CA3AF',
+              fontWeight: 800,
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
             }}
           >
-            {filteredStations.length} locais
-          </span>
-        </div>
+            <TrainTrack size={15} />
+            <span>Status das Linhas</span>
+          </button>
 
-        {/* Input de Busca de Estações */}
-        <div
-          style={{
-            background: '#262932',
-            border: '1px solid #323642',
-            borderRadius: '10px',
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-        >
-          <Search size={16} color="#9CA3AF" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nome, linha ou endereço..."
+          <button
+            onClick={() => setSubView('ESTACOES')}
             style={{
-              background: 'transparent',
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px',
               border: 'none',
-              color: '#FFFFFF',
-              fontSize: '13px',
-              fontWeight: 500,
-              outline: 'none',
-              width: '100%'
+              background: subView === 'ESTACOES' ? '#FF6600' : 'transparent',
+              color: subView === 'ESTACOES' ? '#FFFFFF' : '#9CA3AF',
+              fontWeight: 800,
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
             }}
-          />
-        </div>
-
-        {/* Filtros em Pílulas */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-          {[
-            { id: 'ALL', label: 'Todas' },
-            { id: 'METRO', label: '🚇 Metrô' },
-            { id: 'CPTM', label: '🚆 Trem CPTM' },
-            { id: 'TERMINAL_BUS', label: '🚏 Terminais SPTrans' }
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilterType(f.id as any)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: filterType === f.id ? '#FF6600' : '#2D313C',
-                color: filterType === f.id ? '#FFFFFF' : '#9CA3AF',
-                fontWeight: 700,
-                fontSize: '12px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+          >
+            <MapPin size={15} />
+            <span>Estações no Mapa</span>
+          </button>
         </div>
       </div>
 
-      {/* Lista de Estações e Endereços */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {filteredStations.map((station) => {
-          const isSelected = selectedStationId === station.id;
-
-          return (
+      {/* ================= VISTA 1: STATUS DAS LINHAS (METRÔ / CPTM) ================= */}
+      {subView === 'STATUS' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Card Resumo de Operação */}
+          {railsData && (
             <div
-              key={station.id}
-              onClick={() => onSelectStation(station)}
               style={{
-                background: isSelected ? '#262932' : '#1C1E24',
-                border: isSelected ? '1.5px solid #FF6600' : '1px solid #2D313C',
+                background: '#1C1E24',
+                border: '1px solid #2D313C',
                 borderRadius: '14px',
-                padding: '14px 16px',
+                padding: '12px 16px',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '12px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background:
-                        station.type === 'METRO'
-                          ? '#003399'
-                          : station.type === 'CPTM'
-                          ? '#A61327'
-                          : '#E30613',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff'
-                    }}
-                  >
-                    {station.type === 'TERMINAL_BUS' ? <Bus size={16} /> : <TrainTrack size={16} />}
+              <div style={{ color: '#D1D5DB' }}>
+                Total: <strong style={{ color: '#fff' }}>{railsData.summary.total} Linhas Monitoradas</strong>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10B981', fontWeight: 700 }}>
+                  <CheckCircle2 size={14} />
+                  <span>{railsData.summary.normal} normais</span>
+                </div>
+                {railsData.summary.withIssues > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#F59E0B', fontWeight: 700 }}>
+                    <AlertTriangle size={14} />
+                    <span>{railsData.summary.withIssues} com lentidão</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Filtros de Operadora */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {[
+              { id: 'TODAS', label: 'Todas' },
+              { id: 'METRO', label: 'Metrô SP' },
+              { id: 'CPTM', label: 'CPTM' },
+              { id: 'CONCESSIONARIAS', label: 'ViaQuatro / ViaMobilidade' }
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setSelectedRailFilter(f.id)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: selectedRailFilter === f.id ? '#2563EB' : '#262932',
+                  color: selectedRailFilter === f.id ? '#FFFFFF' : '#9CA3AF',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Lista de Linhas com Status Oficial */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredRailLines.map((line) => {
+              const isSelected = selectedLineDetail?.id === line.id;
+
+              return (
+                <div
+                  key={line.id}
+                  onClick={() => setSelectedLineDetail(isSelected ? null : line)}
+                  style={{
+                    background: '#1C1E24',
+                    border: '1px solid #2D313C',
+                    borderRadius: '14px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    borderLeft: `4px solid ${line.hexColor}`,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          background: line.hexColor,
+                          color: line.hexColor === '#FFF000' || line.hexColor === '#A7A8AA' ? '#111' : '#fff',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          fontWeight: 900,
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {line.number}
+                      </div>
+
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#FFFFFF' }}>
+                          {line.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                          {line.operator} · Atualizado: {line.updatedAt}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>{getStatusBadge(line.status)}</div>
                   </div>
 
-                  <div>
-                    <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
-                      {station.name}
-                    </h3>
-                    <div style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                      <MapPin size={12} />
-                      <span>{station.address}</span>
+                  {(isSelected || line.status !== 'NORMAL') && line.description && (
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: line.status === 'NORMAL' ? '#94A3B8' : '#FDE68A',
+                        background: line.status === 'NORMAL' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(245, 158, 11, 0.15)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        marginTop: '4px',
+                        lineHeight: 1.4
+                      }}
+                    >
+                      {line.description}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ================= VISTA 2: ESTAÇÕES E ENDEREÇOS NO MAPA ================= */}
+      {subView === 'ESTACOES' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Input de Busca de Estações */}
+          <div
+            style={{
+              background: '#1C1E24',
+              border: '1px solid #2D313C',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}
+          >
+            <Search size={16} color="#9CA3AF" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nome, linha ou endereço..."
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 500,
+                outline: 'none',
+                width: '100%'
+              }}
+            />
+          </div>
+
+          {/* Filtros em Pílulas */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {[
+              { id: 'ALL', label: 'Todas' },
+              { id: 'METRO', label: '🚇 Metrô' },
+              { id: 'CPTM', label: '🚆 Trem CPTM' },
+              { id: 'TERMINAL_BUS', label: '🚏 Terminais SPTrans' }
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFilterType(f.id as any)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: filterType === f.id ? '#FF6600' : '#262932',
+                  color: filterType === f.id ? '#FFFFFF' : '#9CA3AF',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Lista de Estações e Endereços */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredStations.map((station) => {
+              const isSelected = selectedStationId === station.id;
+
+              return (
+                <div
+                  key={station.id}
+                  onClick={() => onSelectStation(station)}
+                  style={{
+                    background: isSelected ? '#262932' : '#1C1E24',
+                    border: isSelected ? '1.5px solid #FF6600' : '1px solid #2D313C',
+                    borderRadius: '14px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background:
+                            station.type === 'METRO'
+                              ? '#003399'
+                              : station.type === 'CPTM'
+                              ? '#A61327'
+                              : '#E30613',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff'
+                        }}
+                      >
+                        {station.type === 'TERMINAL_BUS' ? <Bus size={16} /> : <TrainTrack size={16} />}
+                      </div>
+
+                      <div>
+                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                          {station.name}
+                        </h3>
+                        <div style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                          <MapPin size={12} />
+                          <span>{station.address}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRouteToStation(station);
+                      }}
+                      style={{
+                        background: '#2563EB',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        color: '#FFFFFF',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                      title="Traçar Rota"
+                    >
+                      <Navigation size={12} />
+                      <span>Traçar Rota</span>
+                    </button>
+                  </div>
+
+                  {/* Bairro & Linhas Atendidas */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #2D313C', paddingTop: '8px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                      {station.neighborhood}
+                    </span>
+
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {station.lines.map((line, lIdx) => (
+                        <span
+                          key={lIdx}
+                          style={{
+                            background: line.color,
+                            color: line.color === '#FFF000' || line.color === '#A7A8AA' ? '#000' : '#fff',
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          {line.name}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRouteToStation(station);
-                  }}
-                  style={{
-                    background: '#2563EB',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '6px 10px',
-                    color: '#FFFFFF',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Traçar Rota"
-                >
-                  <Navigation size={12} />
-                  <span>Traçar Rota</span>
-                </button>
-              </div>
-
-              {/* Bairro & Linhas Atendidas */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #2D313C', paddingTop: '8px', marginTop: '2px' }}>
-                <span style={{ fontSize: '11px', color: '#9CA3AF' }}>
-                  {station.neighborhood}
-                </span>
-
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {station.lines.map((line, lIdx) => (
-                    <span
-                      key={lIdx}
-                      style={{
-                        background: line.color,
-                        color: line.color === '#FFF000' || line.color === '#A7A8AA' ? '#000' : '#fff',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        padding: '2px 6px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      {line.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
