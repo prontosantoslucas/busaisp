@@ -19,11 +19,15 @@ import {
   Sparkles,
   ArrowLeftRight,
   Share2,
-  CheckCircle2
+  CheckCircle2,
+  ListFilter
 } from 'lucide-react';
 
 interface MoovitRouteDetailProps {
   route: RoutePlan;
+  routes?: RoutePlan[];
+  selectedRouteIndex?: number;
+  onSelectRouteIndex?: (idx: number) => void;
   onBack: () => void;
   onStartLiveNavigation: () => void;
   onOpenDeparturesModal: () => void;
@@ -33,6 +37,9 @@ interface MoovitRouteDetailProps {
 
 export default function MoovitRouteDetail({
   route,
+  routes = [],
+  selectedRouteIndex = 0,
+  onSelectRouteIndex,
   onBack,
   onStartLiveNavigation,
   onOpenDeparturesModal,
@@ -48,7 +55,7 @@ export default function MoovitRouteDetail({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Top Bar: ⬅ Direções (Screenshot 3) */}
+      {/* Top Bar: ⬅ Direções + Botão de Alterar Rota */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
@@ -63,7 +70,7 @@ export default function MoovitRouteDetail({
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            title="Voltar às rotas"
+            title="Voltar à lista de rotas"
           >
             <ArrowLeft size={22} />
           </button>
@@ -72,27 +79,91 @@ export default function MoovitRouteDetail({
           </span>
         </div>
 
-        <button
-          onClick={onToggleFavorite}
-          style={{
-            background: '#262932',
-            border: '1px solid #323642',
-            borderRadius: '50%',
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: isFavorited ? '#FBBF24' : '#9CA3AF'
-          }}
-          title="Favoritar rota"
-        >
-          <Star size={18} fill={isFavorited ? '#FBBF24' : 'none'} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={onBack}
+            style={{
+              background: '#1E293B',
+              border: '1px solid #334155',
+              borderRadius: '9999px',
+              padding: '6px 12px',
+              color: '#38BDF8',
+              fontSize: '11px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              cursor: 'pointer'
+            }}
+            title="Ver todas as rotas encontradas"
+          >
+            <ListFilter size={13} />
+            <span>Alterar Rota ({routes.length || 1})</span>
+          </button>
+
+          <button
+            onClick={onToggleFavorite}
+            style={{
+              background: '#262932',
+              border: '1px solid #323642',
+              borderRadius: '50%',
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: isFavorited ? '#FBBF24' : '#9CA3AF'
+            }}
+            title="Favoritar rota"
+          >
+            <Star size={17} fill={isFavorited ? '#FBBF24' : 'none'} />
+          </button>
+        </div>
       </div>
 
-      {/* Resumo da Rota (Screenshot 3) */}
+      {/* Seletor Rápido de Rotas Alternativas (Alternar Rota Diretamente) */}
+      {routes.length > 1 && onSelectRouteIndex && (
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+          {routes.map((r, i) => {
+            const isSelected = i === selectedRouteIndex;
+            return (
+              <button
+                key={r.id || i}
+                onClick={() => onSelectRouteIndex(i)}
+                style={{
+                  background: isSelected ? '#2563EB' : '#1C1E24',
+                  border: `1px solid ${isSelected ? '#60A5FA' : '#2D313C'}`,
+                  borderRadius: '9999px',
+                  padding: '6px 12px',
+                  color: '#FFFFFF',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: isSelected ? '0 0 10px rgba(37, 99, 235, 0.4)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span>{r.recommendedLine.lt}</span>
+                <span style={{ color: isSelected ? '#DBEAFE' : '#9CA3AF', fontWeight: 500 }}>
+                  · ~{r.totalDurationMinutes} min
+                </span>
+                {r.transferCount > 0 && (
+                  <span style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.3)', color: '#FBBF24', padding: '1px 4px', borderRadius: '4px' }}>
+                    {r.transferCount} bald.
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Resumo da Rota Selecionada (Screenshot 3) */}
       <div
         style={{
           background: '#1C1E24',

@@ -330,6 +330,9 @@ export default function HomePage() {
           {activeTab === 'DIRECOES' && screenMode === 'DETAIL' && activeRoute && (
             <MoovitRouteDetail
               route={activeRoute}
+              routes={routes}
+              selectedRouteIndex={selectedRouteIndex}
+              onSelectRouteIndex={(idx) => handleSelectRouteFromList(idx)}
               onBack={() => setScreenMode('RESULTS')}
               onStartLiveNavigation={() => setIsMapFullscreen(true)}
               onOpenDeparturesModal={() => setIsDeparturesModalOpen(true)}
