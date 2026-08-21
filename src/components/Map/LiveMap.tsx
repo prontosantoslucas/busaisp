@@ -18,7 +18,7 @@ interface LiveMapProps {
   userCoords?: [number, number] | null;
 }
 
-// Centro padrão: Região da Linha 1703-10 (Zona Norte / Center Norte / Jd. Hebron)
+// Centro padrão: Região da Linha 1703-10 (Zona Norte / Center Norte / Jd. Fontális)
 const DEFAULT_CENTER: [number, number] = [-23.5000, -46.6050];
 const DEFAULT_ZOOM = 13;
 
@@ -144,7 +144,6 @@ export default function LiveMap({
 
     // 2. Trajeto do ônibus (linha sólida vermelha com brilho)
     if (activeRoute.polyline.transit.length > 0) {
-      // Glow exterior
       const busGlow = L.polyline(activeRoute.polyline.transit, {
         color: '#E30613',
         weight: 8,
@@ -196,7 +195,7 @@ export default function LiveMap({
     }
   }, [activeRoute]);
 
-  // Atualizar marcadores de Ônibus no mapa com selos de precisão
+  // Atualizar marcadores de Ônibus no mapa com Destino explícito (Shopping Center Norte / Jd. Fontális)
   useEffect(() => {
     if (!busMarkersGroupRef.current || !mapInstanceRef.current) return;
 
@@ -208,6 +207,8 @@ export default function LiveMap({
 
     veiculos.forEach((v) => {
       const heading = v.heading || 0;
+      const destinoText = v.destination || (selectedLine ? (selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp) : 'SHOPPING CENTER NORTE');
+
       const htmlIcon = `
         <div class="bus-marker-container">
           <div class="bus-marker-pulse"></div>
@@ -228,16 +229,19 @@ export default function LiveMap({
       const marker = L.marker([v.py, v.px], { icon: customIcon });
 
       const popupContent = `
-        <div style="font-family: inherit; min-width: 190px; padding: 6px;">
+        <div style="font-family: inherit; min-width: 200px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <strong style="color: #E30613; font-size: 14px;">Ônibus #${v.p}</strong>
             ${v.a ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">♿ ACESSÍVEL</span>' : ''}
           </div>
           
           <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
-            <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : 'Em Operação'}</strong></div>
-            <div>Sentido: <strong style="color: #fff;">${selectedLine ? (selectedLine.sl === 1 ? selectedLine.tp : selectedLine.ts) : 'Principal'}</strong></div>
-            <div style="display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 11px; margin-top: 4px;">
+            <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : '1703-10'}</strong></div>
+            <div style="background: rgba(227, 6, 19, 0.15); border-left: 3px solid #E30613; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
+              <span style="font-size: 10px; color: #FCA5A5; font-weight: 700; display: block;">DESTINO LETREIRO:</span>
+              <strong style="color: #FFFFFF; font-size: 12px;">${destinoText}</strong>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 11px; margin-top: 2px;">
               <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10B981;"></span>
               <strong>Sinal GPS em Tempo Real</strong>
             </div>
@@ -352,17 +356,17 @@ export default function LiveMap({
         </button>
       </div>
 
-      {/* Legenda de Precisão Flutuante */}
+      {/* Legenda de Destino e Frota Flutuante */}
       <div
         style={{
           position: 'absolute',
           bottom: '76px',
           left: '16px',
           zIndex: 990,
-          background: 'rgba(15, 23, 42, 0.92)',
+          background: 'rgba(15, 23, 42, 0.94)',
           backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: '6px 12px',
+          padding: '6px 14px',
           borderRadius: '9999px',
           display: 'flex',
           alignItems: 'center',
@@ -381,7 +385,7 @@ export default function LiveMap({
           }}
         />
         <span>
-          <strong>GPS Ativo:</strong> {veiculos.length > 0 ? `${veiculos.length} ônibus monitorados` : 'Selecione uma linha'}
+          <strong>Destino:</strong> {selectedLine ? (selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp) : 'SHOPPING CENTER NORTE'} · {veiculos.length} veículos
         </span>
       </div>
     </div>

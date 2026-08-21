@@ -3,11 +3,11 @@
 export interface SPTransLinha {
   cl: number;          // Código identificador da linha (codigoLinha)
   lc: boolean;         // Linha circular
-  lt: string;          // Letreiro numérico (ex: "8000")
+  lt: string;          // Letreiro numérico (ex: "1703")
   tl: number;          // Tipo de linha (ex: 10)
   sl: number;          // Sentido da linha (1 = TP para TS, 2 = TS para TP)
-  tp: string;          // Denominação do terminal principal
-  ts: string;          // Denominação do terminal secundário
+  tp: string;          // Denominação do terminal principal (ex: "JD. FONTALIS")
+  ts: string;          // Denominação do terminal secundário (ex: "SHOPPING CENTER NORTE")
 }
 
 export interface SPTransParada {
@@ -19,13 +19,15 @@ export interface SPTransParada {
 }
 
 export interface SPTransVeiculo {
-  p: string;           // Prefixo do veículo (ex: "12345")
+  p: string;           // Prefixo do veículo (ex: "21045")
   a: boolean;          // Acessível para pessoas com deficiência ♿
   ta: string;          // Timestamp do envio da posição (UTC/Local)
   py: number;          // Latitude atual
   px: number;          // Longitude atual
   heading?: number;    // Direção estimada em graus (0-360)
   speed?: number;      // Velocidade estimada (km/h)
+  destination?: string; // Destino do veículo de acordo com o sentido (ex: "SHOPPING CENTER NORTE" ou "JD. FONTÁLIS")
+  direction?: number;   // 1 ou 2
 }
 
 export interface SPTransPosicaoLinha {
@@ -40,14 +42,15 @@ export interface SPTransPrevisaoVeiculo {
   ta: string;          // Hora da última transmissão
   py: number;          // Latitude
   px: number;          // Longitude
+  destination?: string; // Destino da viagem
 }
 
 export interface SPTransPrevisaoLinha {
   cl: number;          // Código da linha
-  c: string;           // Letreiro completo (ex: "8000-10")
+  c: string;           // Letreiro completo (ex: "1703-10")
   sl: number;          // Sentido
-  lt0: string;         // Destino letreiro principal
-  lt1: string;         // Destino secundário
+  lt0: string;         // Destino letreiro principal (ex: "SHOPPING CENTER NORTE")
+  lt1: string;         // Destino secundário (ex: "JD. FONTÁLIS")
   qv: number;          // Quantidade de veículos
   vs: SPTransPrevisaoVeiculo[]; // Veículos previstos
 }
@@ -62,8 +65,8 @@ export interface SPTransPrevisaoParada {
 
 export interface SPTransPrevisaoResponse {
   hr: string;          // Horário da consulta
-  p?: SPTransPrevisaoParada; // Resposta quando consultado por Parada
-  l?: SPTransPrevisaoLinha[]; // Resposta quando consultado por Linha
+  p?: SPTransPrevisaoParada;
+  l?: SPTransPrevisaoLinha[];
 }
 
 export interface SearchResult {
