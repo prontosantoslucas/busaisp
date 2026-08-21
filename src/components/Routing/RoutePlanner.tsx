@@ -45,7 +45,7 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
 
   // Auto-calcular rota padrão inicial ao abrir o app
   useEffect(() => {
-    handleCalculate('Shopping Center Norte');
+    handleCalculate('Shopping Center Norte', undefined, { silent: true });
   }, []);
 
   const handleDestinoChange = (text: string) => {
@@ -89,7 +89,11 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
     setDestino(temp);
   };
 
-  const handleCalculate = async (destOverride?: string, destLocationOverride?: RouteLocation) => {
+  const handleCalculate = async (
+    destOverride?: string,
+    destLocationOverride?: RouteLocation,
+    options?: { silent?: boolean }
+  ) => {
     const targetDest = destOverride || destino;
     if (!targetDest) return;
 
@@ -125,12 +129,18 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
         }
       } else {
         setRouteResult(null);
-        setCalculationError(json.error || 'Não foi possível calcular uma rota para esse endereço.');
+        if (options?.silent) {
+          console.warn('Cálculo inicial de rota falhou silenciosamente:', json.error);
+        } else {
+          setCalculationError(json.error || 'Não foi possível calcular uma rota para esse endereço.');
+        }
       }
     } catch (e) {
       console.error('Erro ao calcular rota:', e);
       setRouteResult(null);
-      setCalculationError('Erro de conexão ao calcular a rota. Tente novamente.');
+      if (!options?.silent) {
+        setCalculationError('Erro de conexão ao calcular a rota. Tente novamente.');
+      }
     } finally {
       setIsCalculating(false);
     }
