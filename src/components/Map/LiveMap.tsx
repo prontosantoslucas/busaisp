@@ -176,6 +176,25 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(busLine);
       allCoords.push(...activeRoute.polyline.transit);
 
+      // Círculos de cada parada intermediária ao longo do traçado (Foto 3)
+      if (activeRoute.allRouteStops && activeRoute.allRouteStops.length > 0) {
+        activeRoute.allRouteStops.forEach((stop, sIdx) => {
+          const isFirst = sIdx === 0;
+          const isLast = sIdx === activeRoute.allRouteStops.length - 1;
+          if (isFirst || isLast) return;
+
+          const stopCircle = L.circleMarker([stop.lat, stop.lng], {
+            radius: 5,
+            fillColor: '#FFFFFF',
+            fillOpacity: 0.95,
+            color: '#0F172A',
+            weight: 2
+          });
+          stopCircle.bindTooltip(stop.name, { direction: 'top', offset: [0, -4] });
+          routePolylinesGroupRef.current?.addLayer(stopCircle);
+        });
+      }
+
       // Marcador de Embarque no Ônibus
       const boardIcon = L.divIcon({
         html: `

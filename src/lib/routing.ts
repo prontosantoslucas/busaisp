@@ -27,6 +27,10 @@ export interface RouteStep {
   estimatedSteps?: number;
   busLine?: string;
   busDestination?: string;
+  boardStopName?: string;
+  alightStopName?: string;
+  stopCount?: number;
+  intermediateStops?: { name: string; lat: number; lng: number }[];
   stopName?: string;
   stopAddress?: string;
   nextBusEtaMinutes?: number;
@@ -63,6 +67,7 @@ export interface RoutePlan {
   recommendedLine: SPTransLinha;
   transferCount: number;
   transferPoints: TransferPoint[];
+  allRouteStops: { name: string; lat: number; lng: number }[];
   nextBusEtaMinutes: number;
   departureEtas: number[];
   nextBusVehiclePrefix?: string;
@@ -95,6 +100,8 @@ export interface DiscoveredLeg {
   originStopId?: string;
   destStopId?: string;
   pathCoordinates?: [number, number][];
+  detailedStops?: { stopId: string; name: string; lat: number; lng: number; sequence: number }[];
+  stopCount?: number;
   etaMinutes: number;
   departureEtas?: number[];
   vehiclePrefix: string;
@@ -340,6 +347,9 @@ export async function buildMultiLegPlan(
       ? leg.departureEtas
       : (hasRealTimeEta ? [leg.etaMinutes, leg.etaMinutes + 12, leg.etaMinutes + 25] : [8, 20, 35]);
 
+    const stopCount = leg.stopCount || (leg.detailedStops && leg.detailedStops.length > 0 ? leg.detailedStops.length - 1 : 18);
+    const intermediateStops = leg.detailedStops ? leg.detailedStops.map(s => ({ name: s.name, lat: s.lat, lng: s.lng })) : [];
+
     steps.push({
       type: 'BUS',
       instruction: `Embarque na linha ${leg.line.lt}-${leg.line.tl} em direção a ${leg.line.ts}`,
@@ -348,6 +358,10 @@ export async function buildMultiLegPlan(
       distanceMeters: transitDistanceMeters,
       busLine: `${leg.line.lt}-${leg.line.tl}`,
       busDestination: leg.line.ts,
+      boardStopName: leg.boardStop.np,
+      alightStopName: leg.alightStop.np,
+      stopCount: stopCount,
+      intermediateStops: intermediateStops,
       nextBusEtaMinutes: hasRealTimeEta ? leg.etaMinutes : undefined,
       departureEtas: etas,
       accuracyLevel: hasRealTimeEta ? 'HIGH' : 'ESTIMATED',
@@ -492,6 +506,13 @@ export async function buildMultiLegPlan(
     getSnappedRoutePolyline(rawWalkToDest, 'walking')
   ]);
 
+  const allRouteStops: { name: string; lat: number; lng: number }[] = [];
+  legs.forEach((l) => {
+    if (l.detailedStops && l.detailedStops.length > 0) {
+      l.detailedStops.forEach((s) => allRouteStops.push({ name: s.name, lat: s.lat, lng: s.lng }));
+    }
+  });
+
   return {
     id: `route_${legs.map(l => l.line.lt).join('_')}_${Date.now()}`,
     origin: originLoc,
@@ -508,6 +529,7 @@ export async function buildMultiLegPlan(
     recommendedLine: firstLeg.line,
     transferCount,
     transferPoints,
+    allRouteStops,
     nextBusEtaMinutes: hasFirstLegEta ? firstLeg.etaMinutes : -1,
     departureEtas,
     nextBusVehiclePrefix: firstLeg.vehiclePrefix || undefined,
@@ -657,12 +679,19 @@ async function findMultiLegPlans(
       const alightStop = gtfsStopToParada(destStopInfo);
       const { eta, departureEtas, prefix } = await resolveLegEta(boardStop, line);
 
-      // Traçado real das paradas da linha
+      // Traçado e lista detalhada das paradas da linha
       const pathCoordinates = await getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId);
+      const detailedStops = pathCoordinates.map((c, sIdx) => ({
+        stopId: `${route.tripId}_${sIdx}`,
+        name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
+        lat: c[0],
+        lng: c[1],
+        sequence: sIdx + 1
+      }));
 
       const legs: DiscoveredLeg[] = [
         ...originEntry.legs,
-        { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
+        { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
       ];
       const plan = await buildMultiLegPlan(originLoc, destLoc, legs);
       plans.push(plan);
@@ -696,10 +725,17 @@ async function findMultiLegPlans(
       const { eta, departureEtas, prefix } = await resolveLegEta(boardStop, line);
 
       const pathCoordinates = await getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId);
+      const detailedStops = pathCoordinates.map((c, sIdx) => ({
+        stopId: `${route.tripId}_${sIdx}`,
+        name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
+        lat: c[0],
+        lng: c[1],
+        sequence: sIdx + 1
+      }));
 
       const legs: DiscoveredLeg[] = [
         ...originEntry.legs,
-        { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
+        { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
       ];
       visited.add(route.destStopId);
       nextFrontierByStopId.set(route.destStopId, {

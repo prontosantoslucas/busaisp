@@ -14,7 +14,8 @@ import {
   Globe,
   Bus,
   Clock,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 
 interface MoovitRouteResultsProps {
@@ -50,13 +51,9 @@ export default function MoovitRouteResults({
 }: MoovitRouteResultsProps) {
   const [filterSort, setFilterSort] = useState<'duration' | 'walk' | 'transfers'>('duration');
 
-  // Separar rotas de Bilhete Único (SPTrans) e Outras
-  const buRoutes = routes.filter((r) => r.fareType === 'BILHETE_UNICO' || r.transferCount <= 1);
-  const otherRoutes = routes.filter((r) => !buRoutes.includes(r));
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Top Header com Inputs de Origem / Destino (Screenshot 2) */}
+      {/* Top Header com Inputs de Origem / Destino (Screenshot 1 do novo print) */}
       <div
         style={{
           background: '#1C1E24',
@@ -88,7 +85,7 @@ export default function MoovitRouteResults({
           </button>
 
           {/* Form de Endereços */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Origem */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#262932', borderRadius: '8px', padding: '6px 12px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #9CA3AF', display: 'inline-block' }} />
@@ -96,7 +93,7 @@ export default function MoovitRouteResults({
                 type="text"
                 value={origem}
                 onChange={(e) => onOrigemChange(e.target.value)}
-                placeholder="Local atual"
+                placeholder="Minha Localização"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -117,7 +114,7 @@ export default function MoovitRouteResults({
                 value={destino}
                 onChange={(e) => onDestinoChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onCalculate()}
-                placeholder="Para onde você quer ir?"
+                placeholder="Tremembé, São Paulo, 02363"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -131,7 +128,7 @@ export default function MoovitRouteResults({
             </div>
           </div>
 
-          {/* Botões Laterais: Inverter e Adicionar */}
+          {/* Botões Laterais */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <button
               onClick={onSwap}
@@ -172,11 +169,11 @@ export default function MoovitRouteResults({
           </div>
         </div>
 
-        {/* Pílulas de Opções: Sair agora & Ver Mapa (Screenshot 2) */}
+        {/* Pílulas de Opções */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
           <button className="moovit-pill">
             <Clock size={14} color="#9CA3AF" />
-            <span>Sair agora ▾</span>
+            <span>Sair Agora ▾</span>
           </button>
 
           <button
@@ -189,7 +186,7 @@ export default function MoovitRouteResults({
         </div>
       </div>
 
-      {/* Pílulas de Filtros e Ordenação (Screenshot 2) */}
+      {/* Pílulas de Filtros e Ordenação */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         <button
           onClick={() => setFilterSort('duration')}
@@ -216,12 +213,8 @@ export default function MoovitRouteResults({
         </button>
       </div>
 
-      {/* Seção: Rotas apenas com Bilhete Único (Screenshot 2) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#9CA3AF', paddingLeft: '4px' }}>
-          Rotas apenas com Bilhete Único (SPTrans)
-        </div>
-
+      {/* Lista de Rotas Encontradas (Foto 1) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {isCalculating && (
           <div style={{ background: '#1C1E24', borderRadius: '14px', padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
             <div className="animate-spin" style={{ margin: '0 auto 8px auto', width: '24px', height: '24px', border: '3px solid #FF6600', borderTopColor: 'transparent', borderRadius: '50%' }} />
@@ -237,81 +230,75 @@ export default function MoovitRouteResults({
 
         {!isCalculating && routes.map((route, idx) => {
           const isSelected = idx === selectedRouteIndex;
-          const walkSteps = route.steps.filter((s) => s.type === 'WALK');
-          const busSteps = route.steps.filter((s) => s.type === 'BUS');
 
           return (
             <div
               key={route.id || idx}
               onClick={() => onSelectRoute(idx)}
               className={`moovit-card ${isSelected ? 'selected' : ''}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                padding: '16px',
+                borderLeft: isSelected ? '4px solid #38BDF8' : '1px solid #2D313C'
+              }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-                {/* Lado Esquerdo: Duração e Horários */}
-                <div style={{ minWidth: '70px' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 900, color: '#FFFFFF', lineHeight: 1.1 }}>
-                    {Math.floor(route.totalDurationMinutes / 60) > 0
-                      ? `${Math.floor(route.totalDurationMinutes / 60)} h ${route.totalDurationMinutes % 60} min`
-                      : `${route.totalDurationMinutes} min`}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <span>{route.departureHour}</span>
-                    <span>⇣</span>
-                    <span>{route.arrivalHour}</span>
-                  </div>
+              {/* Linha Superior: Cadeia Visual + Duração Total com Seta (Foto 1) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                {/* Cadeia de Trajeto: 🚶 13 min > [ 🚌 1703-10 ] > [ 🚌 2029-10 ] > 🚶 3 min */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+                  {route.steps.map((step, sIdx) => (
+                    <React.Fragment key={sIdx}>
+                      {step.type === 'WALK' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '12px', fontWeight: 700, color: '#D1D5DB' }}>
+                          <Footprints size={14} color="#38BDF8" />
+                          <span>{step.durationMinutes} min</span>
+                        </div>
+                      )}
+
+                      {step.type === 'BUS' && (
+                        <div
+                          style={{
+                            background: '#1E3A8A',
+                            border: '1px solid #3B82F6',
+                            color: '#FFFFFF',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Bus size={13} />
+                          <span>{step.busLine}</span>
+                        </div>
+                      )}
+
+                      {sIdx < route.steps.length - 2 && (
+                        <ChevronRight size={12} color="#6B7280" />
+                      )}
+                    </React.Fragment>
+                  ))}
                 </div>
 
-                {/* Lado Direito: Cadeia Visual de Transporte */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* Visual Chain: 🚶 13 > [🚌 1703-10] > 🚶 8 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    {route.steps.map((step, sIdx) => (
-                      <React.Fragment key={sIdx}>
-                        {step.type === 'WALK' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '12px', fontWeight: 700, color: '#D1D5DB' }}>
-                            <Footprints size={14} color="#38BDF8" />
-                            <span>{step.durationMinutes}</span>
-                          </div>
-                        )}
-
-                        {step.type === 'BUS' && (
-                          <div
-                            style={{
-                              background: '#1E3A8A',
-                              border: '1px solid #3B82F6',
-                              color: '#FFFFFF',
-                              padding: '2px 7px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            <Bus size={13} />
-                            <span>{step.busLine}</span>
-                          </div>
-                        )}
-
-                        {sIdx < route.steps.length - 2 && (
-                          <ChevronRight size={12} color="#6B7280" />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-
-                  {/* Subtítulo: Sai em ⏱️ 14, 22, 30 min de Av. Zaki Narchi • R$ 5,30 */}
-                  <div style={{ fontSize: '12px', color: '#9CA3AF', lineHeight: 1.4 }}>
-                    <span>Sai em ⏱️ <strong style={{ color: '#FFFFFF' }}>{route.departureEtas.join(', ')} min</strong> de {route.departureStop.np} • <strong style={{ color: '#34D399' }}>{route.farePrice}</strong></span>
-                  </div>
-
-                  {/* Badge Ecológico: 🌍 CO2e: 156 g */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#10B981' }}>
-                    <Globe size={12} />
-                    <span>CO2e: {route.carbonGrams} g</span>
-                  </div>
+                {/* Duração Total e Seta (ex: 51 min ➔) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '70px', justifyContent: 'flex-end' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#FFFFFF' }}>
+                    {route.totalDurationMinutes} min
+                  </span>
+                  <ArrowRight size={18} color="#38BDF8" />
                 </div>
+              </div>
+
+              {/* Linha Inferior: Horário e Ponto de Embarque (Foto 1) */}
+              <div style={{ fontSize: '12px', color: '#9CA3AF', lineHeight: 1.4 }}>
+                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>às {route.departureHour}</span>
+                <span style={{ display: 'block', color: '#CBD5E1', marginTop: '2px' }}>
+                  Embarque em <strong>{route.departureStop.np}</strong> {route.departureStop.ed ? `- ${route.departureStop.ed}` : ''}
+                </span>
               </div>
             </div>
           );

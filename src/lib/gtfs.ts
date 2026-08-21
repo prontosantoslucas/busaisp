@@ -118,18 +118,26 @@ export async function findRoutesFromStops(
   }));
 }
 
+export interface TripStopDetail {
+  stopId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  sequence: number;
+}
+
 /**
- * Busca a sequência real de paradas no banco GTFS para desenhar a rota fiel nas ruas
+ * Busca a sequência detalhada de paradas de um trip com nomes e coordenadas
  */
-export async function getTripStopCoordinates(
+export async function getTripDetailedStops(
   tripId: string,
   originStopId?: string,
   destStopId?: string
-): Promise<[number, number][]> {
+): Promise<TripStopDetail[]> {
   try {
     const { data, error } = await supabase
       .from('gtfs_stop_times')
-      .select('stop_sequence, stop_id, gtfs_stops(lat, lng)')
+      .select('stop_sequence, stop_id, gtfs_stops(name, lat, lng)')
       .eq('trip_id', tripId)
       .order('stop_sequence', { ascending: true });
 
@@ -150,9 +158,27 @@ export async function getTripStopCoordinates(
     const sliced = data.slice(startIndex, endIndex + 1);
     return sliced
       .filter((r: any) => r.gtfs_stops?.lat && r.gtfs_stops?.lng)
-      .map((r: any) => [r.gtfs_stops.lat, r.gtfs_stops.lng] as [number, number]);
+      .map((r: any) => ({
+        stopId: r.stop_id,
+        name: r.gtfs_stops.name || `Parada #${r.stop_id}`,
+        lat: r.gtfs_stops.lat,
+        lng: r.gtfs_stops.lng,
+        sequence: r.stop_sequence
+      }));
   } catch (err) {
-    console.warn('[GTFS] Erro ao buscar sequência de paradas do trip:', err);
+    console.warn('[GTFS] Erro ao buscar paradas detalhadas do trip:', err);
     return [];
   }
+}
+
+/**
+ * Busca a sequência de coordenadas do trip para desenho no mapa
+ */
+export async function getTripStopCoordinates(
+  tripId: string,
+  originStopId?: string,
+  destStopId?: string
+): Promise<[number, number][]> {
+  const stops = await getTripDetailedStops(tripId, originStopId, destStopId);
+  return stops.map(s => [s.lat, s.lng]);
 }

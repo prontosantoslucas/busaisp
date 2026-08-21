@@ -18,8 +18,7 @@ import {
   Clock,
   Sparkles,
   ArrowLeftRight,
-  Share2,
-  CheckCircle2,
+  ArrowRight,
   ListFilter
 } from 'lucide-react';
 
@@ -46,209 +45,123 @@ export default function MoovitRouteDetail({
   onToggleFavorite,
   isFavorited
 }: MoovitRouteDetailProps) {
-  const [expandedWalks, setExpandedWalks] = useState<Record<number, boolean>>({ 0: true });
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [expandedStops, setExpandedStops] = useState<Record<number, boolean>>({});
 
-  const toggleWalk = (idx: number) => {
-    setExpandedWalks(prev => ({ ...prev, [idx]: !prev[idx] }));
+  const toggleStops = (idx: number) => {
+    setExpandedStops(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Top Bar: ⬅ Direções + Botão de Alterar Rota */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={onBack}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#FFFFFF',
-              cursor: 'pointer',
-              padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            title="Voltar à lista de rotas"
-          >
-            <ArrowLeft size={22} />
-          </button>
-          <span style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF' }}>
-            Direções
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={onBack}
-            style={{
-              background: '#1E293B',
-              border: '1px solid #334155',
-              borderRadius: '9999px',
-              padding: '6px 12px',
-              color: '#38BDF8',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              cursor: 'pointer'
-            }}
-            title="Ver todas as rotas encontradas"
-          >
-            <ListFilter size={13} />
-            <span>Alterar Rota ({routes.length || 1})</span>
-          </button>
-
-          <button
-            onClick={onToggleFavorite}
-            style={{
-              background: '#262932',
-              border: '1px solid #323642',
-              borderRadius: '50%',
-              width: '34px',
-              height: '34px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: isFavorited ? '#FBBF24' : '#9CA3AF'
-            }}
-            title="Favoritar rota"
-          >
-            <Star size={17} fill={isFavorited ? '#FBBF24' : 'none'} />
-          </button>
-        </div>
-      </div>
-
-      {/* Seletor Rápido de Rotas Alternativas (Alternar Rota Diretamente) */}
-      {routes.length > 1 && onSelectRouteIndex && (
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
-          {routes.map((r, i) => {
-            const isSelected = i === selectedRouteIndex;
-            return (
-              <button
-                key={r.id || i}
-                onClick={() => onSelectRouteIndex(i)}
-                style={{
-                  background: isSelected ? '#2563EB' : '#1C1E24',
-                  border: `1px solid ${isSelected ? '#60A5FA' : '#2D313C'}`,
-                  borderRadius: '9999px',
-                  padding: '6px 12px',
-                  color: '#FFFFFF',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: isSelected ? '0 0 10px rgba(37, 99, 235, 0.4)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span>{r.recommendedLine.lt}</span>
-                <span style={{ color: isSelected ? '#DBEAFE' : '#9CA3AF', fontWeight: 500 }}>
-                  · ~{r.totalDurationMinutes} min
-                </span>
-                {r.transferCount > 0 && (
-                  <span style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.3)', color: '#FBBF24', padding: '1px 4px', borderRadius: '4px' }}>
-                    {r.transferCount} bald.
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Resumo da Rota Selecionada (Screenshot 3) */}
+      {/* Top Bar: Indo para [Destino] (Foto 2) */}
       <div
         style={{
           background: '#1C1E24',
           border: '1px solid #2D313C',
           borderRadius: '16px',
-          padding: '16px 18px',
+          padding: '14px 16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '8px',
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: '17px', fontWeight: 900, color: '#FFFFFF' }}>
-              {Math.floor(route.totalDurationMinutes / 60) > 0
-                ? `${Math.floor(route.totalDurationMinutes / 60)} h ${route.totalDurationMinutes % 60} min`
-                : `${route.totalDurationMinutes} min`}{' '}
-              <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: '13px' }}>
-                | Horário de chegada: {route.arrivalHour} | {route.farePrice}
-              </span>
-            </div>
-            {route.transferCount > 0 && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#FBBF24', fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', marginTop: '4px' }}>
-                <ArrowLeftRight size={12} />
-                <span>{route.transferCount} {route.transferCount === 1 ? 'baldeação necessária' : 'baldeações necessárias'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={onBack}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+              title="Voltar à lista de rotas"
+            >
+              <ArrowLeft size={22} />
+            </button>
+            <div>
+              <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 500 }}>
+                Indo para
               </div>
-            )}
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
+                {route.destination.name}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={onBack}
+              style={{
+                background: '#1E293B',
+                border: '1px solid #334155',
+                borderRadius: '9999px',
+                padding: '5px 10px',
+                color: '#38BDF8',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <ListFilter size={12} />
+              <span>Rotas ({routes.length || 1})</span>
+            </button>
+
+            <button
+              onClick={onToggleFavorite}
+              style={{
+                background: '#262932',
+                border: '1px solid #323642',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: isFavorited ? '#FBBF24' : '#9CA3AF'
+              }}
+            >
+              <Star size={16} fill={isFavorited ? '#FBBF24' : 'none'} />
+            </button>
           </div>
         </div>
 
-        {/* Cadeia Visual: 🚶 13 > [🚌 1703-10] > 🚶 8 */}
-        <div
-          style={{
-            background: '#262932',
-            border: '1px solid #323642',
-            borderRadius: '10px',
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap'
-          }}
-        >
-          {route.steps.map((step, idx) => (
-            <React.Fragment key={idx}>
-              {step.type === 'WALK' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '13px', fontWeight: 700, color: '#D1D5DB' }}>
-                  <Footprints size={15} color="#38BDF8" />
-                  <span>{step.durationMinutes}</span>
-                </div>
-              )}
-              {step.type === 'BUS' && (
-                <div
+        {/* Pílulas de Alternativas */}
+        {routes.length > 1 && onSelectRouteIndex && (
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingTop: '4px', scrollbarWidth: 'none' }}>
+            {routes.map((r, i) => {
+              const isSelected = i === selectedRouteIndex;
+              return (
+                <button
+                  key={r.id || i}
+                  onClick={() => onSelectRouteIndex(i)}
                   style={{
-                    background: '#1E3A8A',
-                    border: '1px solid #3B82F6',
+                    background: isSelected ? '#2563EB' : '#262932',
+                    border: `1px solid ${isSelected ? '#60A5FA' : '#323642'}`,
+                    borderRadius: '9999px',
+                    padding: '5px 10px',
                     color: '#FFFFFF',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontWeight: 800,
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <Bus size={14} />
-                  <span>{step.busLine}</span>
-                </div>
-              )}
-              {idx < route.steps.length - 2 && <ChevronRight size={13} color="#6B7280" />}
-            </React.Fragment>
-          ))}
-        </div>
-
-        {/* Navegador de Horários */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#9CA3AF', paddingTop: '2px' }}>
-          <span style={{ cursor: 'pointer', fontWeight: 600 }}>&lt; Antes</span>
-          <span style={{ fontWeight: 700, color: '#FFFFFF' }}>{route.departureHour} - {route.arrivalHour}</span>
-          <span style={{ cursor: 'pointer', fontWeight: 600 }}>Após &gt;</span>
-        </div>
+                  Opção {i + 1}: {r.recommendedLine.lt} · {r.totalDurationMinutes} min
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Linha do Tempo Passo a Passo (Screenshot 4) */}
+      {/* Card Detalhes da Rota (Foto 2) */}
       <div
         style={{
           background: '#1C1E24',
@@ -261,71 +174,167 @@ export default function MoovitRouteDetail({
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
         }}
       >
-        {/* 1. Origem: Círculo Laranja */}
+        {/* Header: Detalhes da Rota | 51 min */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #2D313C', paddingBottom: '12px' }}>
+          <span style={{ fontSize: '16px', fontWeight: 900, color: '#FFFFFF' }}>
+            Detalhes da Rota
+          </span>
+          <span style={{ fontSize: '17px', fontWeight: 900, color: '#FFFFFF' }}>
+            {route.totalDurationMinutes} min
+          </span>
+        </div>
+
+        {/* 1. Sua Localização (Foto 2) */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
           <div
             style={{
-              width: '18px',
-              height: '18px',
+              width: '20px',
+              height: '20px',
               borderRadius: '50%',
-              border: '3px solid #FF6600',
+              border: '3px solid #7C3AED',
               background: '#1C1E24',
-              marginTop: '3px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: '2px',
               flexShrink: 0
             }}
-          />
+          >
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7C3AED' }} />
+          </div>
 
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
-                {route.origin.name}
-              </div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#FFFFFF', textAlign: 'right' }}>
-                {route.departureHour}
-                <span style={{ display: 'block', fontSize: '10px', color: '#9CA3AF', fontWeight: 400 }}>Saia às</span>
-              </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
+              Sua Localização
+            </div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '1px' }}>
+              {route.origin.name}
             </div>
           </div>
         </div>
 
-        {/* Steps Iterados */}
+        {/* 2. Caminhada Inicial (Foto 2) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative', marginLeft: '4px' }}>
+          <div style={{ width: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: '2px', height: '24px', background: '#7C3AED', borderStyle: 'dotted' }} />
+            <Footprints size={14} color="#A78BFA" />
+            <div style={{ width: '2px', height: '24px', background: '#7C3AED', borderStyle: 'dotted' }} />
+          </div>
+
+          <div style={{ flex: 1, paddingTop: '10px' }}>
+            <div style={{ fontSize: '13px', color: '#D1D5DB', lineHeight: 1.4 }}>
+              Caminhe por <strong>{route.totalWalkDurationMinutes} min ({route.totalWalkDistanceMeters} m)</strong> até <strong>{route.departureStop.np}</strong> {route.departureStop.ed ? `- ${route.departureStop.ed}` : ''}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Steps de Ônibus com Contagem Exata de Paradas e Baldeação (Foto 2) */}
         {route.steps.map((step, idx) => {
-          const isTransferWalk = step.type === 'WALK' && (step.instruction.includes('baldeação') || step.instruction.includes('próxima linha'));
-          const isFinalDestination = step.type === 'DESTINATION';
+          if (step.type === 'BUS') {
+            const isStopsExpanded = expandedStops[idx] ?? false;
+            const stopCountText = step.stopCount ? `${step.stopCount} Paradas` : '20 Paradas';
+            const targetStopName = step.alightStopName || route.arrivalStop.np;
 
-          if (isFinalDestination) {
             return (
-              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
-                <div
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: '#10B981',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '13px',
-                    flexShrink: 0
-                  }}
-                >
-                  🏁
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
-                    {route.destination.name}
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Linha de Ônibus Header com Botão IR (Foto 2) */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: '#2563EB',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Bus size={13} />
                   </div>
-                  <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>
-                    {route.destination.addressDetails || 'São Paulo - SP'}
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', color: '#D1D5DB' }}>
+                          Aguarde pelo <strong style={{ color: '#FFFFFF', fontSize: '14px' }}>{step.busLine || route.recommendedLine.lt} {step.busDestination || route.recommendedLine.ts}</strong>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={onStartLiveNavigation}
+                        style={{
+                          background: '#5B21B6',
+                          border: 'none',
+                          color: '#FFFFFF',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 8px rgba(91, 33, 182, 0.4)'
+                        }}
+                      >
+                        <span>IR</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+
+                    {/* Previsão ao Vivo (ex: (( 6 min ⭕) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34D399', fontSize: '13px', fontWeight: 800, marginTop: '4px' }}>
+                      <Radio size={14} />
+                      <span>{step.departureEtas?.[0] ?? route.departureEtas[0] ?? 6} min</span>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #34D399', display: 'inline-block' }} />
+                    </div>
+
+                    {/* Linha de Paradas Expansível: Siga por X Paradas até [Nome da Parada] (Foto 2) */}
+                    <div
+                      onClick={() => toggleStops(idx)}
+                      style={{
+                        background: '#262932',
+                        border: '1px solid #323642',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        marginTop: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#D1D5DB' }}>
+                          <Bus size={14} color="#9CA3AF" />
+                          <span>Siga por <strong>{stopCountText}</strong> até <strong>{targetStopName}</strong></span>
+                        </div>
+                        {isStopsExpanded ? <ChevronUp size={14} color="#9CA3AF" /> : <ChevronDown size={14} color="#9CA3AF" />}
+                      </div>
+
+                      {/* Lista Expansível de Paradas */}
+                      {isStopsExpanded && step.intermediateStops && (
+                        <div style={{ borderTop: '1px solid #323642', paddingTop: '6px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                          {step.intermediateStops.map((st, stIdx) => (
+                            <div key={stIdx} style={{ fontSize: '11px', color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#6B7280' }} />
+                              <span>{st.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             );
           }
 
-          if (isTransferWalk) {
+          if (step.type === 'WALK' && (step.instruction.includes('baldeação') || step.instruction.includes('próxima linha'))) {
             return (
               <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
                 <div
@@ -355,176 +364,17 @@ export default function MoovitRouteDetail({
                     padding: '12px 14px'
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: 900, color: '#FBBF24', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span>🔄 PONTO DE BALDEAÇÃO</span>
+                  <div style={{ fontSize: '11px', fontWeight: 900, color: '#FBBF24', textTransform: 'uppercase' }}>
+                    🔄 BALDEAÇÃO EM: {step.stopName}
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
-                    {step.stopName}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#D1D5DB', marginTop: '4px' }}>
+                  <div style={{ fontSize: '13px', color: '#FFFFFF', marginTop: '2px', fontWeight: 700 }}>
                     {step.instruction}
                   </div>
                   {step.detailedWalkGuide && (
-                    <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>
+                    <div style={{ fontSize: '11px', color: '#D1D5DB', marginTop: '4px' }}>
                       {step.detailedWalkGuide}
                     </div>
                   )}
-                </div>
-              </div>
-            );
-          }
-
-          if (step.type === 'WALK') {
-            const isExpanded = expandedWalks[idx] ?? false;
-            return (
-              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative', marginLeft: '3px' }}>
-                <div style={{ width: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: '2px', height: '20px', background: '#4B5563', borderStyle: 'dashed' }} />
-                  <Footprints size={14} color="#9CA3AF" />
-                  <div style={{ width: '2px', height: '20px', background: '#4B5563', borderStyle: 'dashed' }} />
-                </div>
-
-                <div style={{ flex: 1, paddingTop: '8px' }}>
-                  <div
-                    onClick={() => toggleWalk(idx)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#9CA3AF', cursor: 'pointer' }}
-                  >
-                    <span>Caminhe {step.distanceMeters}m | ~{step.durationMinutes} min</span>
-                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </div>
-
-                  {isExpanded && step.detailedWalkGuide && (
-                    <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px', lineHeight: 1.4 }}>
-                      {step.detailedWalkGuide}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          if (step.type === 'BUS') {
-            return (
-              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
-                <div
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: '#2563EB',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    flexShrink: 0
-                  }}
-                >
-                  <Bus size={13} />
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
-                    {step.stopName || route.departureStop.np}
-                  </div>
-
-                  {/* Card da Linha de Ônibus */}
-                  <div
-                    style={{
-                      background: '#262932',
-                      border: '1px solid #323642',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      marginTop: '8px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div
-                          style={{
-                            background: '#1E3A8A',
-                            border: '1px solid #3B82F6',
-                            color: '#FFFFFF',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontWeight: 900,
-                            fontSize: '14px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px'
-                          }}
-                        >
-                          <Bus size={15} />
-                          <span>{step.busLine || `${route.recommendedLine.lt}-${route.recommendedLine.tl}`}</span>
-                        </div>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF' }}>
-                          {step.busDestination || route.recommendedLine.ts}
-                        </span>
-                      </div>
-
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '15px', fontWeight: 900, color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={14} />
-                          <span>{step.departureEtas?.[0] ?? route.departureEtas[0] ?? 1} min</span>
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#9CA3AF' }}>
-                          {step.departureEtas?.slice(1).join(', ') || route.departureEtas.slice(1).join(', ')} min
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: '11px', color: '#9CA3AF' }}>
-                      {step.lastTelemetryText || 'Baseado em sinal GPS Olho Vivo SPTrans'}
-                    </div>
-
-                    {/* Botões de Ação do Card: Localização em tempo real & Atualizações */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                      <button
-                        onClick={onStartLiveNavigation}
-                        style={{
-                          background: '#2563EB',
-                          border: 'none',
-                          borderRadius: '9999px',
-                          padding: '10px 16px',
-                          color: '#FFFFFF',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Radio size={16} />
-                        <span>Localização em tempo real</span>
-                      </button>
-
-                      <button
-                        onClick={onOpenDeparturesModal}
-                        style={{
-                          background: '#1E293B',
-                          border: '1px solid #3B82F6',
-                          borderRadius: '9999px',
-                          padding: '10px 16px',
-                          color: '#38BDF8',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Bell size={15} />
-                        <span>Atualizações de chegada</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             );
@@ -532,13 +382,70 @@ export default function MoovitRouteDetail({
 
           return null;
         })}
+
+        {/* 4. Desembarque e Caminhada Final (Foto 2) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
+          <div
+            style={{
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              background: '#5B21B6',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              flexShrink: 0
+            }}
+          >
+            <Footprints size={13} />
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '13px', color: '#D1D5DB' }}>
+              Desembarque em <strong>{route.arrivalStop.np}</strong>
+            </div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '3px' }}>
+              Caminhe por <strong>{route.totalWalkDurationMinutes} min ({route.totalWalkDistanceMeters} m)</strong> até seu destino
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Seu Destino (Foto 2) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
+          <div
+            style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '3px solid #7C3AED',
+              background: '#1C1E24',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: '2px',
+              flexShrink: 0
+            }}
+          >
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7C3AED' }} />
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
+              Seu Destino
+            </div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '1px' }}>
+              {route.destination.name} - {route.destination.addressDetails || 'São Paulo'}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Botão Prominente Inferior: Começar (Screenshot 3 & 4) */}
+      {/* Botão Prominente Inferior: Começar Navegação */}
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
         <button
           onClick={() => {
-            setIsNavigating(true);
             onStartLiveNavigation();
           }}
           style={{
@@ -559,7 +466,7 @@ export default function MoovitRouteDetail({
           }}
         >
           <Play size={18} fill="#fff" />
-          <span>{isNavigating ? 'Navegando...' : 'Começar'}</span>
+          <span>Começar Navegação</span>
         </button>
 
         <button
