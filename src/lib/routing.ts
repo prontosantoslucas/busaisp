@@ -1,6 +1,6 @@
-import { SPTransLinha, SPTransParada, SPTransVeiculo } from '@/types/sptrans';
-import { MOCK_LINHAS, MOCK_PARADAS } from '@/lib/mockData';
+import { SPTransLinha, SPTransParada } from '@/types/sptrans';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
+import { findNearbyStops, findDirectRoutes, NearbyStop, DirectRoute } from '@/lib/gtfs';
 
 export interface RouteLocation {
   name: string;
@@ -252,6 +252,8 @@ function buildPlanForLine(
   busEtaMinutes: number,
   vehiclePrefix: string
 ): RoutePlan {
+  const hasRealTimeEta = busEtaMinutes >= 0;
+
   const walkToStopMeters = Math.max(120, getDistanceMeters(originLoc.lat, originLoc.lng, origStop.py, origStop.px));
   const walkToStopMinutes = Math.max(2, Math.round(walkToStopMeters / 75));
   const walkToStopSteps = Math.round(walkToStopMeters / 0.75);
@@ -267,11 +269,15 @@ function buildPlanForLine(
   const totalWalkDurationMinutes = walkToStopMinutes + walkToDestMinutes;
   const totalEstimatedSteps = walkToStopSteps + walkToDestSteps;
 
-  const totalDurationMinutes = walkToStopMinutes + Math.max(0, busEtaMinutes - walkToStopMinutes) + transitMinutes + walkToDestMinutes;
+  const totalDurationMinutes = hasRealTimeEta
+    ? walkToStopMinutes + Math.max(0, busEtaMinutes - walkToStopMinutes) + transitMinutes + walkToDestMinutes
+    : walkToStopMinutes + transitMinutes + walkToDestMinutes;
   const totalDistanceMeters = walkToStopMeters + transitDistanceMeters + walkToDestMeters;
 
   let departureSuggestion = '';
-  if (busEtaMinutes <= walkToStopMinutes + 1) {
+  if (!hasRealTimeEta) {
+    departureSuggestion = `🚶 Caminhe até ${origStop.np} (${walkToStopMinutes} min). Sem previsão em tempo real para a linha ${line.lt} agora — confira o horário no ponto.`;
+  } else if (busEtaMinutes <= walkToStopMinutes + 1) {
     departureSuggestion = `⚡ Saia a pé agora! Você leva ${walkToStopMinutes} min até o ponto e o ônibus #${vehiclePrefix} chega em ${busEtaMinutes} min.`;
   } else {
     const waitTime = busEtaMinutes - walkToStopMinutes;
@@ -318,9 +324,9 @@ function buildPlanForLine(
       distanceMeters: transitDistanceMeters,
       busLine: `${line.lt}-${line.tl}`,
       busDestination: line.ts,
-      nextBusEtaMinutes: busEtaMinutes,
-      accuracyLevel: 'HIGH',
-      lastTelemetryText: 'Sinal GPS em tempo real'
+      nextBusEtaMinutes: hasRealTimeEta ? busEtaMinutes : undefined,
+      accuracyLevel: hasRealTimeEta ? 'HIGH' : 'ESTIMATED',
+      lastTelemetryText: hasRealTimeEta ? 'Sinal GPS em tempo real' : 'Sem sinal GPS em tempo real disponível'
     },
     {
       type: 'WALK',
@@ -351,11 +357,11 @@ function buildPlanForLine(
     departureStop: origStop,
     arrivalStop: destStop,
     recommendedLine: line,
-    nextBusEtaMinutes: busEtaMinutes,
-    nextBusVehiclePrefix: vehiclePrefix,
+    nextBusEtaMinutes: hasRealTimeEta ? busEtaMinutes : -1,
+    nextBusVehiclePrefix: vehiclePrefix || undefined,
     departureSuggestion,
-    accuracyLevel: 'HIGH',
-    lastTelemetryText: 'Sinal GPS em tempo real (Alta Precisão)',
+    accuracyLevel: hasRealTimeEta ? 'HIGH' : 'ESTIMATED',
+    lastTelemetryText: hasRealTimeEta ? 'Sinal GPS em tempo real (Alta Precisão)' : 'Sem sinal GPS em tempo real disponível para esta linha',
     steps,
     polyline: {
       walkToStop: walkToStopPath,
@@ -365,67 +371,109 @@ function buildPlanForLine(
   };
 }
 
+function stopIdToCodigoParada(stopId: string): number {
+  const n = Number(stopId);
+  if (!Number.isFinite(n)) {
+    throw new Error(`stop_id do GTFS não é numérico e não pode ser usado como código de parada da Olho Vivo: ${stopId}`);
+  }
+  return n;
+}
+
+function gtfsStopToParada(stop: NearbyStop): SPTransParada {
+  return {
+    cp: stopIdToCodigoParada(stop.stopId),
+    np: stop.name,
+    ed: '',
+    py: stop.lat,
+    px: stop.lng
+  };
+}
+
+function directRouteToLinha(route: DirectRoute): SPTransLinha {
+  const numericCl = Number(route.routeId.replace(/\D/g, '')) || 0;
+  const [ladoA, ladoB] = (route.routeLongName || '').split(/[-–]/).map(s => s.trim());
+
+  return {
+    cl: numericCl,
+    lc: false,
+    lt: route.routeShortName || route.routeId,
+    tl: 10,
+    sl: 1,
+    tp: ladoA || '',
+    ts: route.tripHeadsign || ladoB || ''
+  };
+}
+
+async function resolveRealTimeEta(codigoParada: number, letreiro: string): Promise<{ eta: number; prefix: string }> {
+  const { previsao } = await buscarPrevisaoParada(codigoParada);
+  const linhaPrevisao = previsao?.p?.l.find(l => l.c.startsWith(letreiro));
+  const proximoVeiculo = linhaPrevisao?.vs[0];
+
+  if (!proximoVeiculo) {
+    return { eta: -1, prefix: '' };
+  }
+
+  const [horas, minutos] = proximoVeiculo.t.split(':').map(Number);
+  const agora = new Date();
+  let etaMinutos = (horas * 60 + minutos) - (agora.getHours() * 60 + agora.getMinutes());
+  if (etaMinutos < 0) etaMinutos += 24 * 60;
+
+  return { eta: etaMinutos, prefix: proximoVeiculo.p };
+}
+
 /**
- * Motor de Roteirização Multimodal que busca TODAS as linhas da região
+ * Motor de Roteirização Multimodal — busca paradas e linhas reais (GTFS)
+ * perto da origem e do destino. Apenas viagens diretas (sem baldeação);
+ * rotas com troca de ônibus ficam para uma fase futura do roteiro.
  */
 export async function calculateRoute(
   originLoc: RouteLocation,
   destLoc: RouteLocation
 ): Promise<RouteSearchResult> {
-  // 1. Encontrar todas as paradas próximas da Origem e Destino
-  const sortedOrigStops = [...MOCK_PARADAS].sort(
-    (a, b) => getDistanceMeters(originLoc.lat, originLoc.lng, a.py, a.px) - getDistanceMeters(originLoc.lat, originLoc.lng, b.py, b.px)
+  const origNearby = await findNearbyStops(originLoc.lat, originLoc.lng);
+  if (origNearby.length === 0) {
+    throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada.');
+  }
+
+  const destNearby = await findNearbyStops(destLoc.lat, destLoc.lng);
+  if (destNearby.length === 0) {
+    throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado.');
+  }
+
+  const directRoutes = await findDirectRoutes(
+    origNearby.map(s => s.stopId),
+    destNearby.map(s => s.stopId)
   );
 
-  const sortedDestStops = [...MOCK_PARADAS].sort(
-    (a, b) => getDistanceMeters(destLoc.lat, destLoc.lng, a.py, a.px) - getDistanceMeters(destLoc.lat, destLoc.lng, b.py, b.px)
+  if (directRoutes.length === 0) {
+    throw new Error('Nenhuma linha direta encontrada conectando a origem ao destino. Rotas com baldeação ainda não são suportadas.');
+  }
+
+  const stopById = new Map<string, NearbyStop>(
+    [...origNearby, ...destNearby].map(stop => [stop.stopId, stop])
   );
 
-  const nearestOrigStop = sortedOrigStops[0] || MOCK_PARADAS[1];
-  const nearestDestStop = sortedDestStops.find(s => s.cp !== nearestOrigStop.cp) || sortedDestStops[0] || MOCK_PARADAS[0];
+  const plans = await Promise.all(
+    directRoutes.map(async (route) => {
+      const origStopInfo = stopById.get(route.originStopId);
+      const destStopInfo = stopById.get(route.destStopId);
+      if (!origStopInfo || !destStopInfo) return null;
 
-  // 2. Linhas candidatas que atendem o corredor
-  const candidateLines: Array<{ line: SPTransLinha; eta: number; prefix: string; origStop: SPTransParada; destStop: SPTransParada }> = [
-    {
-      line: MOCK_LINHAS[0], // 1703-10 (Jd. Fontális ↔ Center Norte)
-      eta: 3,
-      prefix: "21045",
-      origStop: nearestOrigStop,
-      destStop: nearestDestStop
-    },
-    {
-      line: MOCK_LINHAS[3] || MOCK_LINHAS[0], // 1764-10 (Jd. Corisco ↔ Metrô Santana)
-      eta: 7,
-      prefix: "23100",
-      origStop: nearestOrigStop,
-      destStop: MOCK_PARADAS.find(p => p.np.includes('SANTANA') || p.np.includes('TUCURUVI')) || nearestDestStop
-    },
-    {
-      line: MOCK_LINHAS[4] || MOCK_LINHAS[1], // 1722-10 (Jd. Marina ↔ Shopping Center Norte)
-      eta: 11,
-      prefix: "24010",
-      origStop: sortedOrigStops[1] || nearestOrigStop,
-      destStop: nearestDestStop
-    },
-    {
-      line: MOCK_LINHAS[2] || MOCK_LINHAS[1], // 172N-10 (Shopping Center Norte ↔ Metrô Santana)
-      eta: 14,
-      prefix: "22010",
-      origStop: sortedOrigStops[1] || nearestOrigStop,
-      destStop: nearestDestStop
-    }
-  ];
+      const origStop = gtfsStopToParada(origStopInfo);
+      const destStop = gtfsStopToParada(destStopInfo);
+      const line = directRouteToLinha(route);
 
-  // 3. Gerar planos de rotas para cada linha
-  const allRoutes = candidateLines.map(c =>
-    buildPlanForLine(originLoc, destLoc, c.line, c.origStop, c.destStop, c.eta, c.prefix)
+      const { eta, prefix } = await resolveRealTimeEta(origStop.cp, line.lt);
+
+      return buildPlanForLine(originLoc, destLoc, line, origStop, destStop, eta, prefix);
+    })
   );
 
-  // Ordenar pela rota mais rápida
-  allRoutes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
+  const validPlans = plans.filter((plan): plan is RoutePlan => plan !== null);
+  validPlans.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
 
   return {
-    primaryRoute: allRoutes[0],
-    alternatives: allRoutes
+    primaryRoute: validPlans[0],
+    alternatives: validPlans
   };
 }
