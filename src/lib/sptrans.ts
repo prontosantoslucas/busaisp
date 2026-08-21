@@ -67,38 +67,47 @@ async function setCachedCookie(cookie: string, ttlSeconds = 3000): Promise<void>
 }
 
 /**
- * Autentica na SPTrans e obtém o cookie apiCredentials
+ * Autentica na SPTrans e obtém o cookie apiCredentials.
+ * Suporta múltiplos tokens separados por vírgula/ponto-e-vírgula com fallback automático.
  */
 export async function authenticateSPTrans(): Promise<string | null> {
-  const token = process.env.SPTRANS_TOKEN || '141b3042e326eb358232f861c79898110e70799ccab530c5ed5dc3e369dab8fc';
+  const rawTokens = process.env.SPTRANS_TOKEN || process.env.SPTRANS_TOKENS || '5de9fc36b0ff889e05799342083c62196686943815652be98ffb739386cd8d17,141b3042e326eb358232f861c79898110e70799ccab530c5ed5dc3e369dab8fc';
+
+  const tokens = rawTokens
+    .split(/[,;\n\s]+/)
+    .map(t => t.trim())
+    .filter(t => t.length > 10);
 
   const cached = await getCachedCookie();
   if (cached) {
     return cached;
   }
 
-  try {
-    const authUrl = `${SPTRANS_BASE_URL}/Login/Autenticar?token=${encodeURIComponent(token.trim())}`;
-    const res = await fetch(authUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) BusaISP/1.0'
-      },
-      cache: 'no-store'
-    });
+  for (const token of tokens) {
+    try {
+      const authUrl = `${SPTRANS_BASE_URL}/Login/Autenticar?token=${encodeURIComponent(token)}`;
+      const res = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Length': '0',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) BusaISP/1.0'
+        },
+        cache: 'no-store'
+      });
 
-    const isAuthed = await res.json();
-    if (isAuthed === true || isAuthed === 'true') {
-      const setCookieHeader = res.headers.get('set-cookie');
-      if (setCookieHeader) {
-        const cookie = setCookieHeader.split(';')[0];
-        await setCachedCookie(cookie, 3000); // 50 minutos
-        return cookie;
+      const isAuthed = await res.json();
+      if (isAuthed === true || isAuthed === 'true') {
+        const setCookieHeader = res.headers.get('set-cookie');
+        if (setCookieHeader) {
+          const cookie = setCookieHeader.split(';')[0];
+          await setCachedCookie(cookie, 3000); // 50 minutos
+          return cookie;
+        }
       }
+    } catch (err) {
+      console.warn(`[SPTrans] Falha ao autenticar com token ${token.slice(0, 8)}...:`, err);
     }
-  } catch (err) {
-    console.error('[SPTrans] Erro na requisição de autenticação:', err);
   }
 
   return null;
