@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { RoutePlan } from '@/lib/routing';
 import {
   ArrowLeft,
@@ -11,11 +11,13 @@ import {
   Footprints,
   ArrowLeftRight,
   ChevronRight,
-  Globe,
   Bus,
   Clock,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Calendar,
+  Check,
+  X
 } from 'lucide-react';
 
 interface MoovitRouteResultsProps {
@@ -34,6 +36,8 @@ interface MoovitRouteResultsProps {
   isCalculating: boolean;
 }
 
+type TimeMode = 'NOW' | 'DEPART_AT' | 'ARRIVE_BY';
+
 export default function MoovitRouteResults({
   origem,
   destino,
@@ -50,10 +54,65 @@ export default function MoovitRouteResults({
   isCalculating
 }: MoovitRouteResultsProps) {
   const [filterSort, setFilterSort] = useState<'duration' | 'walk' | 'transfers'>('duration');
+  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
+  const [timeMode, setTimeMode] = useState<TimeMode>('NOW');
+  const [customTime, setCustomTime] = useState<string>(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+
+  // Ordenação Real dos Resultados
+  const sortedRoutes = useMemo(() => {
+    const list = [...routes];
+    if (filterSort === 'duration') {
+      list.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes || a.transferCount - b.transferCount);
+    } else if (filterSort === 'walk') {
+      list.sort((a, b) => a.totalWalkDistanceMeters - b.totalWalkDistanceMeters || a.totalDurationMinutes - b.totalDurationMinutes);
+    } else if (filterSort === 'transfers') {
+      list.sort((a, b) => a.transferCount - b.transferCount || a.totalDurationMinutes - b.totalDurationMinutes);
+    }
+    return list;
+  }, [routes, filterSort]);
+
+  // Formatação de Horários com base na seleção de Saída/Chegada
+  const formatRouteTimes = (route: RoutePlan) => {
+    if (timeMode === 'NOW') {
+      return {
+        departureHour: route.departureHour,
+        arrivalHour: route.arrivalHour
+      };
+    }
+
+    const [hours, minutes] = customTime.split(':').map(Number);
+    if (timeMode === 'DEPART_AT') {
+      const depDate = new Date();
+      depDate.setHours(hours, minutes, 0, 0);
+      const arrDate = new Date(depDate.getTime() + route.totalDurationMinutes * 60000);
+      return {
+        departureHour: `${String(depDate.getHours()).padStart(2, '0')}:${String(depDate.getMinutes()).padStart(2, '0')}`,
+        arrivalHour: `${String(arrDate.getHours()).padStart(2, '0')}:${String(arrDate.getMinutes()).padStart(2, '0')}`
+      };
+    } else {
+      // ARRIVE_BY
+      const arrDate = new Date();
+      arrDate.setHours(hours, minutes, 0, 0);
+      const depDate = new Date(arrDate.getTime() - route.totalDurationMinutes * 60000);
+      return {
+        departureHour: `${String(depDate.getHours()).padStart(2, '0')}:${String(depDate.getMinutes()).padStart(2, '0')}`,
+        arrivalHour: `${String(arrDate.getHours()).padStart(2, '0')}:${String(arrDate.getMinutes()).padStart(2, '0')}`
+      };
+    }
+  };
+
+  const getTimeButtonLabel = () => {
+    if (timeMode === 'NOW') return 'Sair Agora ▾';
+    if (timeMode === 'DEPART_AT') return `Partida: ${customTime} ▾`;
+    return `Chegada: ${customTime} ▾`;
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Top Header com Inputs de Origem / Destino (Screenshot 1 do novo print) */}
+      {/* Top Header com Inputs de Origem / Destino */}
       <div
         style={{
           background: '#1C1E24',
@@ -114,7 +173,7 @@ export default function MoovitRouteResults({
                 value={destino}
                 onChange={(e) => onDestinoChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onCalculate()}
-                placeholder="Tremembé, São Paulo, 02363"
+                placeholder="Para onde você quer ir?"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -170,10 +229,18 @@ export default function MoovitRouteResults({
         </div>
 
         {/* Pílulas de Opções */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
-          <button className="moovit-pill">
-            <Clock size={14} color="#9CA3AF" />
-            <span>Sair Agora ▾</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px', position: 'relative' }}>
+          <button
+            onClick={() => setIsTimeModalOpen(!isTimeModalOpen)}
+            className="moovit-pill"
+            style={{
+              background: timeMode !== 'NOW' ? '#2563EB' : '#262932',
+              color: '#FFFFFF',
+              borderColor: timeMode !== 'NOW' ? '#3B82F6' : '#323642'
+            }}
+          >
+            <Clock size={14} color={timeMode !== 'NOW' ? '#FFFFFF' : '#9CA3AF'} />
+            <span>{getTimeButtonLabel()}</span>
           </button>
 
           <button
@@ -184,13 +251,113 @@ export default function MoovitRouteResults({
             <span>{isMapVisible ? 'Esconder Mapa' : 'Ver Mapa'}</span>
           </button>
         </div>
+
+        {/* Menu Dropdown de Seleção de Horário */}
+        {isTimeModalOpen && (
+          <div
+            style={{
+              background: '#262932',
+              border: '1px solid #3B82F6',
+              borderRadius: '12px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              marginTop: '6px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              animation: 'fadeIn 0.15s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
+                Horário da Viagem
+              </span>
+              <button
+                onClick={() => setIsTimeModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[
+                { id: 'NOW' as TimeMode, label: 'Sair Agora' },
+                { id: 'DEPART_AT' as TimeMode, label: 'Partida em' },
+                { id: 'ARRIVE_BY' as TimeMode, label: 'Chegar até' }
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setTimeMode(m.id)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: timeMode === m.id ? '#FF6600' : '#1C1E24',
+                    color: '#FFFFFF',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {timeMode !== 'NOW' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1C1E24', padding: '8px 12px', borderRadius: '8px' }}>
+                <Clock size={16} color="#38BDF8" />
+                <input
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '15px',
+                    fontWeight: 800,
+                    outline: 'none',
+                    width: '100%'
+                  }}
+                />
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setIsTimeModalOpen(false);
+                onCalculate();
+              }}
+              style={{
+                background: '#2563EB',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Aplicar Horário
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Pílulas de Filtros e Ordenação */}
+      {/* Pílulas de Filtros e Ordenação 100% Funcionais */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         <button
           onClick={() => setFilterSort('duration')}
           className={`moovit-pill ${filterSort === 'duration' ? 'active' : ''}`}
+          style={{
+            background: filterSort === 'duration' ? '#FF6600' : '#1C1E24',
+            color: '#FFFFFF',
+            borderColor: filterSort === 'duration' ? '#FF6600' : '#2D313C'
+          }}
         >
           <SlidersHorizontal size={13} />
           <span>Ordenar: Mais Rápido</span>
@@ -199,6 +366,11 @@ export default function MoovitRouteResults({
         <button
           onClick={() => setFilterSort('walk')}
           className={`moovit-pill ${filterSort === 'walk' ? 'active' : ''}`}
+          style={{
+            background: filterSort === 'walk' ? '#FF6600' : '#1C1E24',
+            color: '#FFFFFF',
+            borderColor: filterSort === 'walk' ? '#FF6600' : '#2D313C'
+          }}
         >
           <Footprints size={13} />
           <span>Menos passos</span>
@@ -207,13 +379,18 @@ export default function MoovitRouteResults({
         <button
           onClick={() => setFilterSort('transfers')}
           className={`moovit-pill ${filterSort === 'transfers' ? 'active' : ''}`}
+          style={{
+            background: filterSort === 'transfers' ? '#FF6600' : '#1C1E24',
+            color: '#FFFFFF',
+            borderColor: filterSort === 'transfers' ? '#FF6600' : '#2D313C'
+          }}
         >
           <ArrowLeftRight size={13} />
           <span>Menos trocas</span>
         </button>
       </div>
 
-      {/* Lista de Rotas Encontradas (Foto 1) */}
+      {/* Lista de Rotas Encontradas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {isCalculating && (
           <div style={{ background: '#1C1E24', borderRadius: '14px', padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
@@ -222,14 +399,15 @@ export default function MoovitRouteResults({
           </div>
         )}
 
-        {!isCalculating && routes.length === 0 && (
+        {!isCalculating && sortedRoutes.length === 0 && (
           <div style={{ background: '#1C1E24', borderRadius: '14px', padding: '20px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
             Nenhuma rota encontrada para os endereços informados.
           </div>
         )}
 
-        {!isCalculating && routes.map((route, idx) => {
+        {!isCalculating && sortedRoutes.map((route, idx) => {
           const isSelected = idx === selectedRouteIndex;
+          const { departureHour, arrivalHour } = formatRouteTimes(route);
 
           return (
             <div
@@ -241,12 +419,13 @@ export default function MoovitRouteResults({
                 flexDirection: 'column',
                 gap: '10px',
                 padding: '16px',
-                borderLeft: isSelected ? '4px solid #38BDF8' : '1px solid #2D313C'
+                borderLeft: isSelected ? '4px solid #38BDF8' : '1px solid #2D313C',
+                cursor: 'pointer'
               }}
             >
-              {/* Linha Superior: Cadeia Visual + Duração Total com Seta (Foto 1) */}
+              {/* Linha Superior: Cadeia Visual + Duração Total com Seta */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                {/* Cadeia de Trajeto: 🚶 13 min > [ 🚌 1703-10 ] > [ 🚌 2029-10 ] > 🚶 3 min */}
+                {/* Cadeia de Trajeto */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
                   {route.steps.map((step, sIdx) => (
                     <React.Fragment key={sIdx}>
@@ -284,7 +463,7 @@ export default function MoovitRouteResults({
                   ))}
                 </div>
 
-                {/* Duração Total e Seta (ex: 51 min ➔) */}
+                {/* Duração Total e Seta */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '70px', justifyContent: 'flex-end' }}>
                   <span style={{ fontSize: '16px', fontWeight: 900, color: '#FFFFFF' }}>
                     {route.totalDurationMinutes} min
@@ -293,9 +472,11 @@ export default function MoovitRouteResults({
                 </div>
               </div>
 
-              {/* Linha Inferior: Horário e Ponto de Embarque (Foto 1) */}
+              {/* Linha Inferior: Horário e Ponto de Embarque */}
               <div style={{ fontSize: '12px', color: '#9CA3AF', lineHeight: 1.4 }}>
-                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>às {route.departureHour}</span>
+                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>
+                  às {departureHour} (chega às {arrivalHour})
+                </span>
                 <span style={{ display: 'block', color: '#CBD5E1', marginTop: '2px' }}>
                   Embarque em <strong>{route.departureStop.np}</strong> {route.departureStop.ed ? `- ${route.departureStop.ed}` : ''}
                 </span>

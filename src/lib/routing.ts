@@ -652,10 +652,14 @@ async function resolveLegEta(boardStop: SPTransParada, line: SPTransLinha): Prom
   }
 }
 
+function isNightLine(lineCode: string): boolean {
+  return lineCode.toUpperCase().startsWith('N');
+}
+
 /**
- * Busca em ondas rápida (BFS por rodadas com limite de 5 alternativas):
- * Rodada 1 = conexões diretas (0 baldeações)
- * Rodada 2..3 = conexões com baldeação
+ * Busca em ondas inteligente:
+ * Rodada 1 = conexões diretas (0 baldeações) - prioridade máxima
+ * Rodada 2 = conexões com 1 baldeação (caso não haja direto ou para alternativas)
  */
 async function findMultiLegPlans(
   originLoc: RouteLocation,
@@ -670,11 +674,25 @@ async function findMultiLegPlans(
   let frontier: FrontierEntry[] = origNearby.map(stop => ({ stop, legs: [] }));
   const plans: RoutePlan[] = [];
 
+  const currentHour = new Date().getHours();
+  const isNightTime = currentHour >= 0 && currentHour < 5;
+
   for (let round = 1; round <= MAX_TRANSFER_ROUNDS && frontier.length > 0 && plans.length < MAX_ALTERNATIVES; round++) {
     const frontierByStopId = new Map(frontier.map(f => [f.stop.stopId, f]));
     const frontierStopIds = Array.from(frontierByStopId.keys());
 
-    const directRoutes = await findDirectRoutes(frontierStopIds, destStopIds, 15);
+    const directRoutes = await findDirectRoutes(frontierStopIds, destStopIds, 25);
+
+    // Ordenar directRoutes para preferir linhas diurnas se não for de madrugada
+    directRoutes.sort((a, b) => {
+      const aNight = isNightLine(a.routeShortName || a.routeId);
+      const bNight = isNightLine(b.routeShortName || b.routeId);
+      if (!isNightTime) {
+        if (!aNight && bNight) return -1;
+        if (aNight && !bNight) return 1;
+      }
+      return 0;
+    });
 
     for (const route of directRoutes) {
       const originEntry = frontierByStopId.get(route.originStopId);
@@ -683,6 +701,9 @@ async function findMultiLegPlans(
 
       const line = directRouteToLinha(route);
       if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
+
+      // Se já temos rotas diurnas e estamos de dia, pular linhas noturnas
+      if (!isNightTime && isNightLine(line.lt) && plans.length >= 2) continue;
 
       const boardStop = gtfsStopToParada(originEntry.stop);
       const alightStop = gtfsStopToParada(destStopInfo);
@@ -708,6 +729,8 @@ async function findMultiLegPlans(
       if (plans.length >= MAX_ALTERNATIVES) break;
     }
 
+    // Se já encontramos 3 ou mais rotas diretas (0 baldeações), não precisa buscar 2 e 3 baldeações
+    if (plans.length >= 3 && round === 1) break;
     if (plans.length >= MAX_ALTERNATIVES || round === MAX_TRANSFER_ROUNDS) break;
 
     const expansion = await findRoutesFromStops(frontierStopIds, 120);
@@ -722,6 +745,9 @@ async function findMultiLegPlans(
 
       const line = directRouteToLinha(route);
       if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
+
+      // Evitar acumular mais de 1 baldeação se não for estritamente necessário
+      if (originEntry.legs.length >= 2) continue;
 
       const boardStop = gtfsStopToParada(originEntry.stop);
       const alightStop: SPTransParada = {
