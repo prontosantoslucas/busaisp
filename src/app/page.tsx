@@ -142,6 +142,7 @@ export default function HomePage() {
         setRoutes(alts);
         setSelectedRouteIndex(0);
         setSelectedLine(alts[0].recommendedLine);
+        loadVeiculos(alts[0].recommendedLine);
       }
     } catch (e) {
       console.error('Erro ao calcular rotas:', e);
@@ -155,6 +156,7 @@ export default function HomePage() {
     const sel = routes[idx];
     if (sel) {
       setSelectedLine(sel.recommendedLine);
+      loadVeiculos(sel.recommendedLine);
     }
     setScreenMode('DETAIL');
   };

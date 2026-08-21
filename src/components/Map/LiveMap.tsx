@@ -241,14 +241,15 @@ export default function LiveMap({
 
     veiculos.forEach((v) => {
       const heading = v.heading || 0;
-      const destinoText = v.destination || (selectedLine ? (selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp) : 'SHOPPING CENTER NORTE');
+      const destinoText = v.destination || (selectedLine ? (selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp) : 'DESTINO');
+      const isRouteLine = activeRoute && (selectedLine?.lt === activeRoute.recommendedLine.lt || v.p === activeRoute.nextBusVehiclePrefix);
 
       const htmlIcon = `
         <div class="bus-marker-container">
-          <div class="bus-marker-pulse"></div>
-          <div class="bus-marker-icon" style="transform: rotate(${heading}deg);">
+          <div class="bus-marker-pulse" style="${isRouteLine ? 'background: rgba(16, 185, 129, 0.45); width: 48px; height: 48px;' : ''}"></div>
+          <div class="bus-marker-icon" style="transform: rotate(${heading}deg); ${isRouteLine ? 'background: #10B981; border: 2px solid #FFFFFF; box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);' : ''}">
             <div class="bus-marker-arrow"></div>
-            <span style="transform: rotate(-${heading}deg);">${v.p.slice(-3)}</span>
+            <span style="transform: rotate(-${heading}deg); font-weight: 900;">${v.p.slice(-3)}</span>
           </div>
         </div>
       `;
@@ -260,24 +261,31 @@ export default function LiveMap({
         iconAnchor: [22, 22]
       });
 
-      const marker = L.marker([v.py, v.px], { icon: customIcon });
+      const marker = L.marker([v.py, v.px], { icon: customIcon, zIndexOffset: isRouteLine ? 500 : 100 });
 
       const popupContent = `
-        <div style="font-family: inherit; min-width: 200px; padding: 6px;">
+        <div style="font-family: inherit; min-width: 210px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <strong style="color: #E30613; font-size: 14px;">Ônibus #${v.p}</strong>
+            <strong style="color: ${isRouteLine ? '#10B981' : '#E30613'}; font-size: 14px;">
+              ${isRouteLine ? '🟢 Ônibus a Caminho' : 'Ônibus'} #${v.p}
+            </strong>
             ${v.a ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">♿ ACESSÍVEL</span>' : ''}
           </div>
           
           <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
-            <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : '1703-10'}</strong></div>
-            <div style="background: #1E293B; border-left: 3px solid #E30613; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
+            <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : 'SPTrans'}</strong></div>
+            <div style="background: #1E293B; border-left: 3px solid ${isRouteLine ? '#10B981' : '#E30613'}; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
               <span style="font-size: 10px; color: #FCA5A5; font-weight: 700; display: block;">DESTINO LETREIRO:</span>
               <strong style="color: #FFFFFF; font-size: 12px;">${destinoText}</strong>
             </div>
+            ${activeRoute ? `
+              <div style="background: rgba(16, 185, 129, 0.15); color: #34D399; padding: 4px 6px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+                ⏱️ Previsão no ponto (${activeRoute.departureStop.np}): ~${activeRoute.nextBusEtaMinutes >= 0 ? `${activeRoute.nextBusEtaMinutes} min` : 'a caminho'}
+              </div>
+            ` : ''}
             <div style="display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 11px; margin-top: 2px;">
               <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10B981;"></span>
-              <strong>Sinal GPS em Tempo Real</strong>
+              <strong>Sinal GPS Olho Vivo em Tempo Real</strong>
             </div>
             <div style="font-size: 10px; color: #64748B;">Última telemetria: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
           </div>
@@ -289,10 +297,11 @@ export default function LiveMap({
       bounds.push([v.py, v.px]);
     });
 
-    if (bounds.length > 0 && selectedLine && !activeRoute && mapInstanceRef.current) {
-      const boundsWithUser = userCoords ? [...bounds, userCoords] : bounds;
-      const leafletBounds = L.latLngBounds(boundsWithUser);
-      mapInstanceRef.current.fitBounds(leafletBounds, { padding: [50, 50], maxZoom: 15 });
+    if (bounds.length > 0 && mapInstanceRef.current) {
+      if (!activeRoute) {
+        const boundsWithUser = userCoords ? [...bounds, userCoords] : bounds;
+        mapInstanceRef.current.fitBounds(L.latLngBounds(boundsWithUser), { padding: [50, 50], maxZoom: 15 });
+      }
     }
   }, [veiculos, selectedLine, activeRoute, userCoords]);
 
