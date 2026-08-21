@@ -33,6 +33,12 @@ $$;
 
 grant execute on function public.nearby_stops(double precision, double precision, integer, integer) to anon, authenticated;
 
+-- A versão anterior tinha 3 parâmetros (sem route_types); "create or replace"
+-- não substitui uma função quando a lista de parâmetros muda, ele cria uma
+-- segunda versão sobreposta. Removemos a versão antiga explicitamente antes
+-- de criar a nova, para evitar ambiguidade de overload no PostgREST.
+drop function if exists public.direct_routes_between(text[], text[], integer);
+
 create or replace function public.direct_routes_between(
   origin_stop_ids text[],
   dest_stop_ids text[],
