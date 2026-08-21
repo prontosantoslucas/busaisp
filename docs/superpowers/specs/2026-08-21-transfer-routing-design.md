@@ -4,7 +4,19 @@
 
 A Fase 1 (já em produção) trouxe paradas e linhas reais de toda São Paulo para o planejador de rotas, mas só encontra viagens **diretas** (uma única linha de ônibus, sem troca). Na prática, boa parte dos trajetos reais em SP exige pelo menos uma troca de ônibus — a busca atual falha honestamente nesses casos ("Nenhuma linha direta encontrada..."), o que é correto, mas incompleto.
 
-Esta fase adiciona busca de viagens com **qualquer número de trocas necessário para alcançar o destino**, sempre ordenadas da que exige menos trocas para a que exige mais, dentro de um limite de segurança para manter a busca rápida e previsível (a mesma lógica usada por qualquer app de rotas real — nenhum deles busca literalmente "sem limite algum").
+Esta fase adiciona busca de viagens com **qualquer número de trocas necessário para alcançar o destino**, dentro de um limite de segurança para manter a busca rápida e previsível (a mesma lógica usada por qualquer app de rotas real — nenhum deles busca literalmente "sem limite algum").
+
+## Raio de busca e ordenação
+
+**Raio de busca de paradas: 2,5 km** (era 600 m na Fase 1). Isso permite considerar rotas em que vale a pena descer mais longe e caminhar um trecho maior até o destino, em vez de forçar uma baldeação só para chegar mais perto.
+
+**Ordenação das alternativas** (decidido explicitamente com o usuário):
+
+1. **Tempo total estimado** (que já inclui o tempo de caminhada e a espera pelo ônibus) — critério principal.
+2. **Distância total a pé** — desempate.
+3. **Número de baldeações** — desempate final.
+
+Ou seja: a alternativa que leva menos tempo no total aparece primeiro, mesmo que envolva uma troca a mais ou uma caminhada um pouco maior. Entre duas alternativas de tempo equivalente, a que exige menos caminhada ganha. Isso é o mesmo comportamento de Moovit/Google Maps, e substitui a ordenação "menos baldeações primeiro" considerada inicialmente.
 
 ## Fora de escopo (mantém a simplificação já aceita na Fase 1)
 
@@ -48,10 +60,13 @@ Para cada rodada `k` (começando em 1), mantemos uma "fronteira" de paradas alca
 - Continua até: (a) atingir o limite de segurança de rodadas, (b) já ter alternativas suficientes acumuladas, ou (c) a fronteira ficar vazia (sem novas paradas para explorar).
 
 **Limites de segurança** (parâmetros configuráveis, com valores padrão pensados para SP):
+
 - Máximo de 4 rodadas (ou seja, até 3 trocas de ônibus).
 - Máximo de ~40 paradas novas por rodada na fronteira (evita explosão combinatória em rodadas avançadas).
-- Máximo de 10 alternativas totais retornadas (já ordenadas por número de trocas, depois por tempo total estimado dentro do mesmo número de trocas — igual à Fase 1).
+- Máximo de 10 alternativas totais retornadas, ordenadas conforme a seção "Raio de busca e ordenação" acima (tempo total → caminhada → baldeações).
 - Uma perna não pode continuar na mesma `route_id` da perna anterior (isso não seria uma troca real, seria só continuar no mesmo ônibus).
+
+Importante: como a ordenação final é por tempo total (não por número de trocas), a busca **não** pode parar na primeira rodada que encontrar resultados — uma rota com 1 baldeação pode perfeitamente ser mais rápida que uma direta que exige caminhar 2 km. A busca continua expandindo rodadas até o limite de segurança ou até acumular alternativas suficientes, e só então ordena o conjunto todo.
 
 ### 3. Reconstrução do trajeto completo
 
