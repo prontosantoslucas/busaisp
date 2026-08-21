@@ -6,7 +6,7 @@ import {
 } from '@/types/sptrans';
 import { supabase } from '@/lib/supabase';
 
-const SPTRANS_BASE_URL = 'http://api.olhovivo.sptrans.com.br/v2.1';
+const SPTRANS_BASE_URL = 'https://api.olhovivo.sptrans.com.br/v2.1';
 
 let inMemoryCookie: string | null = null;
 let inMemoryCookieExpiresAt = 0;
