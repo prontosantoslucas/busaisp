@@ -285,14 +285,15 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 9999;
   padding: 8px 16px max(10px, var(--safe-bottom)) 16px;
-  background: rgba(11, 15, 23, 0.92);
+  background: rgba(11, 15, 23, 0.95);
   backdrop-filter: var(--backdrop-blur);
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-around;
   align-items: center;
+  pointer-events: auto;
 }
 
 .tab-btn {
