@@ -26,9 +26,9 @@ as $$
     s.lng,
     ST_Distance(s.geog, ST_SetSRID(ST_MakePoint(in_lng, in_lat), 4326)::geography) as distance_meters
   from public.gtfs_stops s
-  where ST_DWithin(s.geog, ST_SetSRID(ST_MakePoint(in_lng, in_lat), 4326)::geography, radius_meters)
+  where ST_DWithin(s.geog, ST_SetSRID(ST_MakePoint(in_lng, in_lat), 4326)::geography, least(radius_meters, 3000))
   order by distance_meters asc
-  limit max_results;
+  limit least(max_results, 50);
 $$;
 
 grant execute on function public.nearby_stops(double precision, double precision, integer, integer) to anon, authenticated;
@@ -52,6 +52,7 @@ returns table (
 language sql
 stable
 as $$
+  -- Nota: viagens circulares (mesma parada visitada 2x) podem gerar mais de uma linha por trip_id aqui.
   select distinct
     r.route_id,
     r.short_name as route_short_name,
@@ -71,7 +72,7 @@ as $$
   where o.stop_id = any(origin_stop_ids)
     and d.stop_id = any(dest_stop_ids)
   order by o.departure_time_seconds asc
-  limit max_results;
+  limit least(max_results, 50);
 $$;
 
 grant execute on function public.direct_routes_between(text[], text[], integer) to anon, authenticated;
