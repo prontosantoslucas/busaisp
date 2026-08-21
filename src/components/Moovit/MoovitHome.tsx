@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { FavoriteItem } from '@/lib/supabase';
 import {
   Search,
   Menu,
@@ -10,58 +11,72 @@ import {
   Bus,
   Clock,
   Radio,
-  CreditCard,
   MapPin,
-  Flame
+  Star
 } from 'lucide-react';
 
 interface MoovitHomeProps {
   onSearchClick: () => void;
   onSelectDestination: (dest: string) => void;
   onOpenSettings: () => void;
+  favorites?: FavoriteItem[];
 }
 
 export default function MoovitHome({
   onSearchClick,
   onSelectDestination,
-  onOpenSettings
+  onOpenSettings,
+  favorites = []
 }: MoovitHomeProps) {
   const [frequentIndex, setFrequentIndex] = useState(0);
 
-  const FREQUENT_DESTINATIONS = [
+  // Destinos Reais do Usuário / Populares de SP
+  const userFavoritesList = favorites.map(f => ({
+    title: f.title,
+    destinationName: f.details?.ed || f.title,
+    durationText: 'Tempo real',
+    arrivalText: f.label || 'Favorito',
+    walkBefore: 5,
+    busLine: f.type === 'linha' ? f.title.split(' ')[0] : 'SPTrans',
+    walkAfter: 4,
+    departureText: `Destino salvo em favoritos: ${f.title}`
+  }));
+
+  const POPULAR_DESTINATIONS = [
     {
       title: 'Para Casa (Jd. Fontális)',
       destinationName: 'Rua Flor de Maio, 40',
       durationText: '1 h 14 min',
-      arrivalText: 'Chega às 16:36',
+      arrivalText: 'Chegada estimada',
       walkBefore: 13,
       busLine: '1703-10',
       walkAfter: 8,
-      departureText: 'Sai em ⏱️ 1, 21, 42 min de Av. Zaki Narchi, 1234'
+      departureText: 'Conexão via Av. Zaki Narchi para Jd. Fontális'
     },
     {
       title: 'Shopping Center Norte',
       destinationName: 'Shopping Center Norte',
       durationText: '22 min',
-      arrivalText: 'Chega às 15:45',
+      arrivalText: 'Chegada estimada',
       walkBefore: 5,
       busLine: '2012-10',
       walkAfter: 4,
-      departureText: 'Sai em ⏱️ 4, 16, 28 min de Metrô Santana'
+      departureText: 'Conexão direta Metrô Santana / Center Norte'
     },
     {
       title: 'Avenida Paulista',
       destinationName: 'Avenida Paulista, 1578',
       durationText: '48 min',
-      arrivalText: 'Chega às 16:10',
+      arrivalText: 'Chegada estimada',
       walkBefore: 6,
       busLine: '106A-10',
       walkAfter: 3,
-      departureText: 'Sai em ⏱️ 7, 19, 31 min de Av. Cruzeiro do Sul'
+      departureText: 'Conexão via Av. Cruzeiro do Sul'
     }
   ];
 
-  const currentFrequent = FREQUENT_DESTINATIONS[frequentIndex];
+  const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : POPULAR_DESTINATIONS;
+  const currentFrequent = activeDestinationsList[frequentIndex % activeDestinationsList.length];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
@@ -124,7 +139,7 @@ export default function MoovitHome({
         </button>
       </div>
 
-      {/* Card: Meu Destino Frequente (Screenshot 1) */}
+      {/* Card: Meu Destino Frequente / Favorito */}
       <div
         style={{
           background: '#1C1E24',
@@ -139,7 +154,7 @@ export default function MoovitHome({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#9CA3AF' }}>
-            Meu destino frequente
+            {userFavoritesList.length > 0 ? 'Meus Favoritos Salvos' : 'Destino Frequente'}
           </span>
           <div
             style={{
@@ -217,7 +232,7 @@ export default function MoovitHome({
           </div>
         </div>
 
-        {/* Dicas Inteligentes / Partidas ao Vivo */}
+        {/* Dicas Inteligentes */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9CA3AF' }}>
           <Sparkles size={14} color="#C084FC" />
           <span style={{ color: '#C084FC', fontWeight: 700 }}>Dicas inteligentes</span>
@@ -227,22 +242,40 @@ export default function MoovitHome({
         </div>
 
         {/* Carrossel Indicators */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>
-          {FREQUENT_DESTINATIONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setFrequentIndex(i)}
-              style={{
-                width: i === frequentIndex ? '16px' : '6px',
-                height: '6px',
-                borderRadius: '9999px',
-                background: i === frequentIndex ? '#FF6600' : '#4B5563',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            />
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {activeDestinationsList.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setFrequentIndex(i)}
+                style={{
+                  width: i === (frequentIndex % activeDestinationsList.length) ? '16px' : '6px',
+                  height: '6px',
+                  borderRadius: '9999px',
+                  background: i === (frequentIndex % activeDestinationsList.length) ? '#FF6600' : '#4B5563',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => onSelectDestination(currentFrequent.destinationName)}
+            style={{
+              background: '#2563EB',
+              border: 'none',
+              color: '#fff',
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Ver Rota
+          </button>
         </div>
       </div>
 
@@ -277,7 +310,7 @@ export default function MoovitHome({
               Bilhete Único e GPS Ao Vivo
             </div>
             <div style={{ fontSize: '11px', color: '#9CA3AF' }}>
-              Integração de 3h e horários em tempo real
+              Integração de 3h e telemetria oficial Olho Vivo
             </div>
           </div>
         </div>

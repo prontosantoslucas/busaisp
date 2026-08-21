@@ -301,6 +301,7 @@ export default function HomePage() {
                 handleCalculateRoutes(dest);
               }}
               onOpenSettings={() => setIsTokenModalOpen(true)}
+              favorites={favorites}
             />
           )}
 
