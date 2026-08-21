@@ -35,6 +35,18 @@ export interface RouteStep {
   lastTelemetryText?: string;
 }
 
+export interface TransferPoint {
+  stopName: string;
+  stopAddress?: string;
+  lat: number;
+  lng: number;
+  fromLine: string;
+  toLine: string;
+  toDestination: string;
+  walkMeters?: number;
+  walkMinutes?: number;
+}
+
 export interface RoutePlan {
   id: string;
   origin: RouteLocation;
@@ -50,6 +62,7 @@ export interface RoutePlan {
   arrivalStop: SPTransParada;
   recommendedLine: SPTransLinha;
   transferCount: number;
+  transferPoints: TransferPoint[];
   nextBusEtaMinutes: number;
   departureEtas: number[];
   nextBusVehiclePrefix?: string;
@@ -390,6 +403,26 @@ export async function buildMultiLegPlan(
     }
   }
 
+  const transferPoints: TransferPoint[] = [];
+  for (let i = 0; i < legs.length - 1; i++) {
+    const currentLeg = legs[i];
+    const nextLeg = legs[i + 1];
+    const transferMeters = getDistanceMeters(currentLeg.alightStop.py, currentLeg.alightStop.px, nextLeg.boardStop.py, nextLeg.boardStop.px);
+    const transferMinutes = Math.max(1, Math.round(transferMeters / 80));
+
+    transferPoints.push({
+      stopName: nextLeg.boardStop.np,
+      stopAddress: nextLeg.boardStop.ed || nextLeg.boardStop.np,
+      lat: nextLeg.boardStop.py,
+      lng: nextLeg.boardStop.px,
+      fromLine: `${currentLeg.line.lt}-${currentLeg.line.tl}`,
+      toLine: `${nextLeg.line.lt}-${nextLeg.line.tl}`,
+      toDestination: nextLeg.line.ts,
+      walkMeters: transferMeters,
+      walkMinutes: transferMinutes
+    });
+  }
+
   const walkToDestMeters = Math.max(50, getDistanceMeters(destLoc.lat, destLoc.lng, lastLeg.alightStop.py, lastLeg.alightStop.px));
   const walkToDestMinutes = Math.max(1, Math.round(walkToDestMeters / 80));
   const walkToDestSteps = Math.round(walkToDestMeters / 0.75);
@@ -474,6 +507,7 @@ export async function buildMultiLegPlan(
     arrivalStop: lastLeg.alightStop,
     recommendedLine: firstLeg.line,
     transferCount,
+    transferPoints,
     nextBusEtaMinutes: hasFirstLegEta ? firstLeg.etaMinutes : -1,
     departureEtas,
     nextBusVehiclePrefix: firstLeg.vehiclePrefix || undefined,

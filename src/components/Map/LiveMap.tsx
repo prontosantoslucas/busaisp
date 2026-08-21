@@ -193,7 +193,46 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(boardMarker);
     }
 
-    // 3. Caminhada final a pé até o destino
+    // 3. Marcadores de Baldeação (se houver)
+    if (activeRoute.transferPoints && activeRoute.transferPoints.length > 0) {
+      activeRoute.transferPoints.forEach((tp) => {
+        const transferHtml = `
+          <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <div style="position: absolute; inset: 0; border-radius: 50%; background: rgba(245, 158, 11, 0.45); animation: markerPulse 2s infinite;"></div>
+            <div style="position: relative; width: 34px; height: 34px; border-radius: 50%; background: #F59E0B; color: #000000; display: flex; align-items: center; justify-content: center; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 14px rgba(0,0,0,0.7); font-size: 16px; font-weight: 900;">
+              🔄
+            </div>
+          </div>
+        `;
+        const transferIcon = L.divIcon({
+          html: transferHtml,
+          className: 'custom-transfer-marker',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+
+        const transferMarker = L.marker([tp.lat, tp.lng], { icon: transferIcon, zIndexOffset: 950 });
+        transferMarker.bindPopup(`
+          <div style="font-family: inherit; min-width: 230px; padding: 6px;">
+            <div style="background: #F59E0B; color: #000000; font-size: 11px; font-weight: 900; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">
+              🔄 PONTO DE BALDEAÇÃO
+            </div>
+            <strong style="color: #FFFFFF; font-size: 13px; display: block; margin-bottom: 4px;">
+              ${tp.stopName}
+            </strong>
+            <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
+              <div>Desça do ônibus: <strong style="color: #F87171;">${tp.fromLine}</strong></div>
+              <div>Pegue o próximo: <strong style="color: #34D399;">${tp.toLine}</strong> (sentido ${tp.toDestination})</div>
+              ${tp.walkMeters && tp.walkMeters > 30 ? `<div style="background: #1E293B; padding: 4px 6px; border-radius: 4px;">Caminhada entre paradas: <strong style="color: #38BDF8;">${tp.walkMeters}m (~${tp.walkMinutes} min)</strong></div>` : ''}
+            </div>
+          </div>
+        `);
+        routePolylinesGroupRef.current?.addLayer(transferMarker);
+        allCoords.push([tp.lat, tp.lng]);
+      });
+    }
+
+    // 4. Caminhada final a pé até o destino
     if (activeRoute.polyline.walkToDest.length > 0) {
       const walkDestLine = L.polyline(activeRoute.polyline.walkToDest, {
         color: '#10B981',
