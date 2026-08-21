@@ -1,25 +1,28 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --moovit-bg: #121316;
-  --moovit-surface: #1C1E24;
-  --moovit-surface-elevated: #262932;
-  --moovit-surface-hover: #323642;
-  --moovit-border: #2D313C;
-  --moovit-border-light: rgba(255, 255, 255, 0.1);
+  /* Identidade BusaÍ SP: preto quase puro com leve tom quente + vermelho
+     da frota SPTrans como cor de marca (em vez do azul/cinza-neutro
+     característico de apps de referência como o Moovit). */
+  --moovit-bg: #0A0909;
+  --moovit-surface: #161213;
+  --moovit-surface-elevated: #211B1C;
+  --moovit-surface-hover: #2C2426;
+  --moovit-border: #332A2B;
+  --moovit-border-light: rgba(255, 255, 255, 0.08);
 
-  --moovit-orange: #FF6600;
-  --moovit-orange-dark: #CC5200;
-  --moovit-blue: #2563EB;
-  --moovit-blue-light: #38BDF8;
+  --moovit-orange: #F5A623;
+  --moovit-orange-dark: #C77F0F;
+  --moovit-blue: #E30613;
+  --moovit-blue-light: #FF3B30;
   --moovit-green: #10B981;
   --moovit-green-bright: #00D084;
   --moovit-purple: #9333EA;
   --moovit-sptrans-red: #E30613;
 
   --moovit-text: #FFFFFF;
-  --moovit-text-secondary: #9CA3AF;
-  --moovit-text-muted: #6B7280;
+  --moovit-text-secondary: #A89A9A;
+  --moovit-text-muted: #78696A;
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);

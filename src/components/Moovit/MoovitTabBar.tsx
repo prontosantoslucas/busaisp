@@ -74,7 +74,7 @@ export default function MoovitTabBar({
               padding: '6px 0',
               background: 'none',
               border: 'none',
-              color: isActive ? '#38BDF8' : '#6B7280',
+              color: isActive ? 'var(--moovit-sptrans-red)' : '#6B7280',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
