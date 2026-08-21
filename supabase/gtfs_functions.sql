@@ -71,6 +71,7 @@ as $$
   join public.gtfs_routes r on r.route_id = t.route_id
   where o.stop_id = any(origin_stop_ids)
     and d.stop_id = any(dest_stop_ids)
+    and r.route_type = 3
   order by o.departure_time_seconds asc
   limit least(max_results, 50);
 $$;
