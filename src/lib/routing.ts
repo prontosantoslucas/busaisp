@@ -404,9 +404,20 @@ function directRouteToLinha(route: DirectRoute): SPTransLinha {
   };
 }
 
-async function resolveRealTimeEta(codigoParada: number, letreiro: string): Promise<{ eta: number; prefix: string }> {
-  const { previsao } = await buscarPrevisaoParada(codigoParada);
-  const linhaPrevisao = previsao?.p?.l.find(l => l.c.startsWith(letreiro));
+async function resolveRealTimeEta(
+  codigoParada: number,
+  letreiro: string,
+  destinoEsperado: string
+): Promise<{ eta: number; prefix: string }> {
+  const { previsao, isMock } = await buscarPrevisaoParada(codigoParada);
+
+  if (isMock) {
+    return { eta: -1, prefix: '' };
+  }
+
+  const candidatas = previsao?.p?.l.filter(l => l.c.startsWith(`${letreiro}-`)) || [];
+  const linhaPrevisao =
+    candidatas.find(l => l.lt0 === destinoEsperado || l.lt1 === destinoEsperado) || candidatas[0];
   const proximoVeiculo = linhaPrevisao?.vs[0];
 
   if (!proximoVeiculo) {
@@ -463,7 +474,15 @@ export async function calculateRoute(
       const destStop = gtfsStopToParada(destStopInfo);
       const line = directRouteToLinha(route);
 
-      const { eta, prefix } = await resolveRealTimeEta(origStop.cp, line.lt);
+      let eta = -1;
+      let prefix = '';
+      try {
+        const resolved = await resolveRealTimeEta(origStop.cp, line.lt, line.ts);
+        eta = resolved.eta;
+        prefix = resolved.prefix;
+      } catch (err) {
+        console.warn(`[Routing] Falha ao buscar previsão em tempo real para a linha ${line.lt}:`, err);
+      }
 
       return buildPlanForLine(originLoc, destLoc, line, origStop, destStop, eta, prefix);
     })

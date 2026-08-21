@@ -107,4 +107,54 @@ describe('calculateRoute', () => {
 
     await expect(calculateRoute(origin, dest)).rejects.toThrow('não é numérico');
   });
+
+  it('ordena as alternativas pela duração total quando há mais de uma linha direta', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '1703-10', routeShortName: '1703', routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE',
+        tripId: 'trip_1', tripHeadsign: 'SHOPPING CENTER NORTE',
+        originStopId: '340015353', originDepartureSeconds: 0, destStopId: '340015350', destArrivalSeconds: 0
+      },
+      {
+        routeId: '1764-10', routeShortName: '1764', routeLongName: 'JD. CORISCO - METRO SANTANA',
+        tripId: 'trip_2', tripHeadsign: 'METRO SANTANA',
+        originStopId: '340015353', originDepartureSeconds: 0, destStopId: '340015350', destArrivalSeconds: 0
+      }
+    ]);
+    (buscarPrevisaoParada as any).mockResolvedValue({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    expect(result.alternatives).toHaveLength(2);
+    expect(result.primaryRoute.totalDurationMinutes).toBeLessThanOrEqual(result.alternatives[1].totalDurationMinutes);
+  });
+
+  it('mantém as demais alternativas quando a previsão em tempo real falha para uma delas', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '1703-10', routeShortName: '1703', routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE',
+        tripId: 'trip_1', tripHeadsign: 'SHOPPING CENTER NORTE',
+        originStopId: '340015353', originDepartureSeconds: 0, destStopId: '340015350', destArrivalSeconds: 0
+      },
+      {
+        routeId: '1764-10', routeShortName: '1764', routeLongName: 'JD. CORISCO - METRO SANTANA',
+        tripId: 'trip_2', tripHeadsign: 'METRO SANTANA',
+        originStopId: '340015353', originDepartureSeconds: 0, destStopId: '340015350', destArrivalSeconds: 0
+      }
+    ]);
+    (buscarPrevisaoParada as any)
+      .mockRejectedValueOnce(new Error('falha de rede simulada'))
+      .mockResolvedValueOnce({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    expect(result.alternatives).toHaveLength(2);
+    expect(result.alternatives.every(plan => plan.nextBusEtaMinutes === -1)).toBe(true);
+  });
 });
