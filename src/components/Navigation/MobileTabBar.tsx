@@ -6,17 +6,26 @@ import { Map, Clock, Train, Star, Navigation } from 'lucide-react';
 export type TabType = 'ROTAS' | 'MAPA' | 'PREVISOES' | 'TRILHOS' | 'FAVORITOS';
 export type ActiveTabType = TabType;
 
-interface MobileTabBarProps {
+export interface MobileTabBarProps {
   activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
+  onTabChange?: (tab: TabType) => void;
+  onChangeTab?: (tab: TabType) => void;
+  onOpenSearch?: () => void;
   favoritesCount?: number;
 }
 
 export default function MobileTabBar({
   activeTab,
   onTabChange,
+  onChangeTab,
+  onOpenSearch,
   favoritesCount = 0
 }: MobileTabBarProps) {
+  const handleSelect = (tab: TabType) => {
+    if (onTabChange) onTabChange(tab);
+    if (onChangeTab) onChangeTab(tab);
+  };
+
   const tabs = [
     {
       id: 'ROTAS' as TabType,
@@ -54,7 +63,7 @@ export default function MobileTabBar({
         return (
           <button
             key={tab.id}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => handleSelect(tab.id)}
             className={`tab-btn ${isActive ? 'active' : ''}`}
             aria-label={tab.label}
           >
