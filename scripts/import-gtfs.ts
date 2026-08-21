@@ -151,25 +151,28 @@ async function main() {
 
     await client.query('COMMIT');
     console.log('Importação concluída com sucesso.');
+
+    const sizeResult = await client.query(`
+      select relname as table_name, pg_size_pretty(pg_total_relation_size(relid)) as size
+      from pg_catalog.pg_statio_user_tables
+      where relname like 'gtfs_%'
+      order by pg_total_relation_size(relid) desc
+    `);
+    console.log('Tamanho das tabelas GTFS no banco:');
+    for (const row of sizeResult.rows) {
+      console.log(`  ${row.table_name}: ${row.size}`);
+    }
   } catch (err) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // A conexão pode já ter caído; o erro original abaixo é o que importa.
+    }
     console.error('Importação falhou, nenhuma alteração foi salva:', err);
-    await client.end();
     throw err;
+  } finally {
+    await client.end();
   }
-
-  const sizeResult = await client.query(`
-    select relname as table_name, pg_size_pretty(pg_total_relation_size(relid)) as size
-    from pg_catalog.pg_statio_user_tables
-    where relname like 'gtfs_%'
-    order by pg_total_relation_size(relid) desc
-  `);
-  console.log('Tamanho das tabelas GTFS no banco:');
-  for (const row of sizeResult.rows) {
-    console.log(`  ${row.table_name}: ${row.size}`);
-  }
-
-  await client.end();
 }
 
 main().catch((err) => {
