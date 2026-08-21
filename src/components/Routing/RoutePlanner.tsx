@@ -406,13 +406,14 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       {activeRoute && (
         <div
           style={{
-            background: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
+            background: '#064E3B',
+            border: '1px solid #10B981',
             borderRadius: '12px',
             padding: '12px 14px',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '10px'
+            gap: '10px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
           }}
         >
           <CheckCircle2 size={20} color="#10B981" style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -431,13 +432,14 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       {calculationError && !activeRoute && (
         <div
           style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
+            background: '#7F1D1D',
+            border: '1px solid #EF4444',
             borderRadius: '12px',
             padding: '12px 14px',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '10px'
+            gap: '10px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
           }}
         >
           <AlertCircle size={20} color="#EF4444" style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -455,7 +457,7 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       {/* SELETOR DE TODAS AS LINHAS DISPONÍVEIS NA REGIÃO */}
       {routeResult && routeResult.alternatives.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
             <Layers size={16} color="#38BDF8" />
             <span>Linhas Disponíveis na Região ({routeResult.alternatives.length} opções):</span>
           </div>
@@ -468,19 +470,17 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                   key={alt.id}
                   onClick={() => setSelectedAlternativeIndex(idx)}
                   style={{
-                    background: isSelected
-                      ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.22), rgba(227, 6, 19, 0.15))'
-                      : 'rgba(23, 32, 51, 0.7)',
+                    background: isSelected ? '#1E293B' : '#0F172A',
                     border: isSelected
                       ? '2px solid #38BDF8'
-                      : '1px solid var(--border-color)',
+                      : '1px solid #334155',
                     borderRadius: '14px',
                     padding: '14px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    boxShadow: isSelected ? '0 4px 20px rgba(56, 189, 248, 0.25)' : 'none',
+                    boxShadow: isSelected ? '0 6px 20px rgba(0,0,0,0.8)' : '0 4px 12px rgba(0,0,0,0.6)',
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -504,9 +504,9 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                       {alt.transferCount > 0 && (
                         <div
                           style={{
-                            background: 'rgba(251, 191, 36, 0.18)',
-                            color: '#FBBF24',
-                            border: '1px solid rgba(251, 191, 36, 0.35)',
+                            background: '#78350F',
+                            color: '#FDE68A',
+                            border: '1px solid #D97706',
                             padding: '4px 8px',
                             borderRadius: '8px',
                             fontSize: '10px',
@@ -523,7 +523,7 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                       <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
                         Destino: {alt.recommendedLine.ts}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <span>🚶 {alt.totalWalkDurationMinutes} min a pé ({alt.totalWalkDistanceMeters}m)</span>
                         <span>•</span>
                         <span>⏱️ Total: ~{alt.totalDurationMinutes} min</span>
@@ -533,9 +533,9 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '3px',
-                              background: alt.trafficStatus === 'INTENSO' ? 'rgba(239, 68, 68, 0.18)' : alt.trafficStatus === 'MODERADO' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(16, 185, 129, 0.18)',
+                              background: alt.trafficStatus === 'INTENSO' ? '#7F1D1D' : alt.trafficStatus === 'MODERADO' ? '#78350F' : '#064E3B',
                               color: alt.trafficStatus === 'INTENSO' ? '#FCA5A5' : alt.trafficStatus === 'MODERADO' ? '#FDE68A' : '#6EE7B7',
-                              border: `1px solid ${alt.trafficStatus === 'INTENSO' ? 'rgba(239, 68, 68, 0.3)' : alt.trafficStatus === 'MODERADO' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                              border: `1px solid ${alt.trafficStatus === 'INTENSO' ? '#DC2626' : alt.trafficStatus === 'MODERADO' ? '#D97706' : '#059669'}`,
                               padding: '1px 6px',
                               borderRadius: '6px',
                               fontSize: '9px',
@@ -589,8 +589,8 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
           {/* Banner de Saída a Pé */}
           <div
             style={{
-              background: 'rgba(2, 132, 199, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
+              background: '#075985',
+              border: '1px solid #38BDF8',
               borderRadius: '12px',
               padding: '12px 14px',
               display: 'flex',
