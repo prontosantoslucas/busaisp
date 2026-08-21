@@ -4,6 +4,7 @@ import React from 'react';
 import { Map, Clock, Train, Star, Navigation } from 'lucide-react';
 
 export type TabType = 'ROTAS' | 'MAPA' | 'PREVISOES' | 'TRILHOS' | 'FAVORITOS';
+export type ActiveTabType = TabType;
 
 interface MobileTabBarProps {
   activeTab: TabType;
