@@ -36,7 +36,8 @@ grant execute on function public.nearby_stops(double precision, double precision
 create or replace function public.direct_routes_between(
   origin_stop_ids text[],
   dest_stop_ids text[],
-  max_results integer default 10
+  max_results integer default 10,
+  route_types integer[] default array[3]
 )
 returns table (
   route_id text,
@@ -71,9 +72,9 @@ as $$
   join public.gtfs_routes r on r.route_id = t.route_id
   where o.stop_id = any(origin_stop_ids)
     and d.stop_id = any(dest_stop_ids)
-    and r.route_type = 3
+    and r.route_type = any(route_types)
   order by o.departure_time_seconds asc
   limit least(max_results, 50);
 $$;
 
-grant execute on function public.direct_routes_between(text[], text[], integer) to anon, authenticated;
+grant execute on function public.direct_routes_between(text[], text[], integer, integer[]) to anon, authenticated;
