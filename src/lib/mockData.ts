@@ -3,6 +3,24 @@ import { RailLine, RailsResponse } from '@/types/trilhos';
 
 export const MOCK_LINHAS: SPTransLinha[] = [
   {
+    cl: 1703,
+    lc: false,
+    lt: "1703",
+    tl: 10,
+    sl: 1,
+    tp: "JD. HEBRON",
+    ts: "SHOPPING CENTER NORTE"
+  },
+  {
+    cl: 1704,
+    lc: false,
+    lt: "1703",
+    tl: 10,
+    sl: 2,
+    tp: "SHOPPING CENTER NORTE",
+    ts: "JD. HEBRON"
+  },
+  {
     cl: 1001,
     lc: false,
     lt: "8000",
@@ -12,15 +30,6 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     ts: "PCA. RAMOS DE AZEVEDO"
   },
   {
-    cl: 1002,
-    lc: false,
-    lt: "8000",
-    tl: 10,
-    sl: 2,
-    tp: "PCA. RAMOS DE AZEVEDO",
-    ts: "TERM. LAPA"
-  },
-  {
     cl: 2001,
     lc: false,
     lt: "8700",
@@ -28,15 +37,6 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     sl: 1,
     tp: "TERM. CAMPO LIMPO",
     ts: "PCA. RAMOS DE AZEVEDO"
-  },
-  {
-    cl: 2002,
-    lc: false,
-    lt: "8700",
-    tl: 10,
-    sl: 2,
-    tp: "PCA. RAMOS DE AZEVEDO",
-    ts: "TERM. CAMPO LIMPO"
   },
   {
     cl: 3001,
@@ -73,19 +73,38 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     sl: 1,
     tp: "METRO TUCURUVI",
     ts: "TERM. PINHEIROS"
-  },
-  {
-    cl: 7001,
-    lc: false,
-    lt: "856R",
-    tl: 10,
-    sl: 1,
-    tp: "LAPA",
-    ts: "SOCORRO"
   }
 ];
 
 export const MOCK_PARADAS: SPTransParada[] = [
+  {
+    cp: 340015350,
+    np: "PARADA SHOPPING CENTER NORTE",
+    ed: "TRAV. SIMIS, S/N - VILA GUILHERME",
+    py: -23.5152,
+    px: -46.6190
+  },
+  {
+    cp: 340015351,
+    np: "PARADA AV. JARDIM JAPÃO, 1200",
+    ed: "AV. JARDIM JAPAO, 1200 - JD. BRASIL",
+    py: -23.4930,
+    px: -46.5920
+  },
+  {
+    cp: 340015352,
+    np: "PARADA AV. ROLAND GARROS, 850",
+    ed: "AV. ROLAND GARROS, 850 - JD. BRASIL",
+    py: -23.4855,
+    px: -46.5860
+  },
+  {
+    cp: 340015353,
+    np: "TERMINAL JD. HEBRON",
+    ed: "R. DAS VERBENAS, S/N - JD. HEBRON",
+    py: -23.4760,
+    px: -46.5790
+  },
   {
     cp: 340015339,
     np: "PARADA TRIANON MASP (B/C)",
@@ -101,86 +120,38 @@ export const MOCK_PARADAS: SPTransParada[] = [
     px: -46.6450
   },
   {
-    cp: 340015341,
-    np: "PARADA CONSOLAÇÃO (B/C)",
-    ed: "AV. PAULISTA, 2181 - CERQUEIRA CESAR",
-    py: -23.5574,
-    px: -46.6625
-  },
-  {
     cp: 340015342,
     np: "PARADA FARIA LIMA (C/B)",
     ed: "AV. BRIG. FARIA LIMA, 1800 - PINHEIROS",
     py: -23.5742,
     px: -46.6895
-  },
-  {
-    cp: 340015343,
-    np: "TERMINAL BANDEIRA - PLATAFORMA A",
-    ed: "PCA DA BANDEIRA, S/N - CENTRO",
-    py: -23.5492,
-    px: -46.6402
-  },
-  {
-    cp: 340015344,
-    np: "PARADA HOSPITAL DAS CLÍNICAS",
-    ed: "AV. DR. ARNALDO, 455 - CERQUEIRA CESAR",
-    py: -23.5552,
-    px: -46.6711
-  },
-  {
-    cp: 340015345,
-    np: "PARADA REBOUÇAS / OSCAR FREIRE",
-    ed: "AV. REBOUÇAS, 1020 - PINHEIROS",
-    py: -23.5638,
-    px: -46.6765
   }
 ];
 
-// Helper to generate dynamic moving bus positions along real SP coordinates
 export function getMockVeiculos(codigoLinha: number): SPTransVeiculo[] {
   const time = Date.now() / 1000;
-  // Offset slight movement based on time
-  const drift = (Math.sin(time / 20) * 0.003);
-  const drift2 = (Math.cos(time / 25) * 0.003);
+  const drift = (Math.sin(time / 15) * 0.002);
+  const drift2 = (Math.cos(time / 18) * 0.002);
 
   const baseCoordinates: Record<number, Array<{ py: number; px: number; prefix: string; accessible: boolean; heading: number }>> = {
-    1001: [ // 8000-10 Lapa
+    1703: [ // 1703-10 Jd. Hebron ➡️ Shopping Center Norte
+      { py: -23.5135 + drift, px: -46.6180 + drift2, prefix: "21045", accessible: true, heading: 195 },
+      { py: -23.4980 + drift2, px: -46.6010 + drift, prefix: "21102", accessible: true, heading: 210 },
+      { py: -23.4880 + drift, px: -46.5890 + drift2, prefix: "21230", accessible: true, heading: 200 },
+      { py: -23.4790 + drift2, px: -46.5810 + drift, prefix: "21340", accessible: false, heading: 185 }
+    ],
+    1704: [ // 1703-10 Shopping Center Norte ➡️ Jd. Hebron
+      { py: -23.4820 + drift, px: -46.5830 + drift2, prefix: "21401", accessible: true, heading: 25 },
+      { py: -23.4940 + drift2, px: -46.5960 + drift, prefix: "21488", accessible: true, heading: 30 },
+      { py: -23.5090 + drift, px: -46.6140 + drift2, prefix: "21550", accessible: true, heading: 15 }
+    ],
+    1001: [
       { py: -23.5250 + drift, px: -46.6980 + drift2, prefix: "81023", accessible: true, heading: 110 },
-      { py: -23.5380 + drift2, px: -46.6750 + drift, prefix: "81045", accessible: true, heading: 125 },
-      { py: -23.5450 + drift, px: -46.6550 + drift2, prefix: "81102", accessible: false, heading: 95 },
-      { py: -23.5470 + drift2, px: -46.6380 + drift, prefix: "81210", accessible: true, heading: 85 }
-    ],
-    2001: [ // 8700-10 Campo Limpo
-      { py: -23.5780 + drift, px: -46.6920 + drift2, prefix: "72101", accessible: true, heading: 45 },
-      { py: -23.5640 + drift2, px: -46.6770 + drift, prefix: "72144", accessible: true, heading: 50 },
-      { py: -23.5560 + drift, px: -46.6610 + drift2, prefix: "72288", accessible: true, heading: 60 },
-      { py: -23.5480 + drift2, px: -46.6430 + drift, prefix: "72305", accessible: false, heading: 30 }
-    ],
-    3001: [ // 6450-10 Capelinha / Bandeira
-      { py: -23.6450 + drift, px: -46.7400 + drift2, prefix: "63012", accessible: true, heading: 25 },
-      { py: -23.6050 + drift2, px: -46.6950 + drift, prefix: "63155", accessible: true, heading: 35 },
-      { py: -23.5680 + drift, px: -46.6500 + drift2, prefix: "63200", accessible: true, heading: 15 },
-      { py: -23.5500 + drift2, px: -46.6410 + drift, prefix: "63340", accessible: false, heading: 10 }
-    ],
-    4001: [ // 702U-10 USP / Pq D Pedro
-      { py: -23.5610 + drift, px: -46.7280 + drift2, prefix: "71010", accessible: true, heading: 85 },
-      { py: -23.5640 + drift2, px: -46.6850 + drift, prefix: "71025", accessible: true, heading: 75 },
-      { py: -23.5590 + drift, px: -46.6630 + drift2, prefix: "71089", accessible: true, heading: 90 },
-      { py: -23.5470 + drift2, px: -46.6320 + drift, prefix: "71150", accessible: true, heading: 95 }
-    ],
-    5001: [ // 917H Pirituba / Vila Mariana
-      { py: -23.5615 + drift, px: -46.6559 + drift2, prefix: "91001", accessible: true, heading: 135 },
-      { py: -23.5780 + drift2, px: -46.6410 + drift, prefix: "91024", accessible: true, heading: 140 },
-      { py: -23.5900 + drift, px: -46.6380 + drift2, prefix: "91090", accessible: false, heading: 155 }
+      { py: -23.5380 + drift2, px: -46.6750 + drift, prefix: "81045", accessible: true, heading: 125 }
     ]
   };
 
-  const selected = baseCoordinates[codigoLinha] || [
-    { py: -23.5615 + drift, px: -46.6559 + drift2, prefix: "55012", accessible: true, heading: 90 },
-    { py: -23.5574 + drift2, px: -46.6625 + drift, prefix: "55034", accessible: true, heading: 110 }
-  ];
-
+  const selected = baseCoordinates[codigoLinha] || baseCoordinates[1703];
   const now = new Date();
   const timeStr = now.toISOString();
 
@@ -191,7 +162,7 @@ export function getMockVeiculos(codigoLinha: number): SPTransVeiculo[] {
     py: item.py,
     px: item.px,
     heading: (item.heading + idx * 5) % 360,
-    speed: Math.round(18 + Math.random() * 15)
+    speed: Math.round(20 + Math.random() * 12)
   }));
 }
 
@@ -214,72 +185,36 @@ export function getMockPrevisaoParada(codigoParada: number): SPTransPrevisaoResp
       px: parada.px,
       l: [
         {
-          cl: 1001,
-          c: "8000-10",
+          cl: 1703,
+          c: "1703-10",
           sl: 1,
-          lt0: "PCA. RAMOS DE AZEVEDO",
-          lt1: "TERM. LAPA",
-          qv: 2,
+          lt0: "SHOPPING CENTER NORTE",
+          lt1: "JD. HEBRON",
+          qv: 3,
           vs: [
             {
-              p: "81045",
-              t: addMinutes(4),
+              p: "21045",
+              t: addMinutes(3),
               a: true,
               ta: hrStr,
-              py: parada.py + 0.004,
-              px: parada.px - 0.005
+              py: parada.py + 0.003,
+              px: parada.px - 0.004
             },
             {
-              p: "81023",
-              t: addMinutes(14),
-              a: true,
-              ta: hrStr,
-              py: parada.py + 0.012,
-              px: parada.px - 0.015
-            }
-          ]
-        },
-        {
-          cl: 2001,
-          c: "8700-10",
-          sl: 1,
-          lt0: "PCA. RAMOS DE AZEVEDO",
-          lt1: "TERM. CAMPO LIMPO",
-          qv: 2,
-          vs: [
-            {
-              p: "72144",
-              t: addMinutes(7),
-              a: true,
-              ta: hrStr,
-              py: parada.py + 0.006,
-              px: parada.px - 0.008
-            },
-            {
-              p: "72101",
-              t: addMinutes(19),
-              a: false,
-              ta: hrStr,
-              py: parada.py + 0.018,
-              px: parada.px - 0.022
-            }
-          ]
-        },
-        {
-          cl: 5001,
-          c: "917H-10",
-          sl: 1,
-          lt0: "METRO VILA MARIANA",
-          lt1: "TERM. PIRITUBA",
-          qv: 1,
-          vs: [
-            {
-              p: "91001",
+              p: "21102",
               t: addMinutes(11),
               a: true,
               ta: hrStr,
-              py: parada.py - 0.008,
-              px: parada.px + 0.010
+              py: parada.py + 0.009,
+              px: parada.px - 0.012
+            },
+            {
+              p: "21230",
+              t: addMinutes(22),
+              a: true,
+              ta: hrStr,
+              py: parada.py + 0.018,
+              px: parada.px - 0.024
             }
           ]
         }
@@ -320,10 +255,10 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     colorName: "Vermelha",
     hexColor: "#EE1D23",
     operator: "METRO",
-    status: "VELOCIDADE_REDUZIDA",
-    statusText: "Velocidade Reduzida",
-    description: "Maior tempo de parada nas estações devido a grande fluxo de passageiros.",
-    updatedAt: "Há 4 min"
+    status: "NORMAL",
+    statusText: "Operação Normal",
+    description: "Circulação de trens regular entre Palmeiras-Barra Funda e Corinthians-Itaquera.",
+    updatedAt: "Agora"
   },
   {
     id: "4",
@@ -334,7 +269,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "VIAQUATRO",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Trens sem condutor operando com intervalo médio de 110 segundos.",
+    description: "Trens sem condutor operando com intervalo regular.",
     updatedAt: "Agora"
   },
   {
@@ -358,7 +293,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "CPTM",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Trens circulando com velocidade normal no Serviço 710.",
+    description: "Serviço 710 operando normalmente.",
     updatedAt: "Agora"
   },
   {
@@ -382,7 +317,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "VIAMOBILIDADE",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Circulação regular entre Osasco e Bruno Covas/Mendes-Vila Natal.",
+    description: "Circulação regular entre Osasco e Mendes-Vila Natal.",
     updatedAt: "Agora"
   },
   {
@@ -394,7 +329,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "CPTM",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Trens operando normalmente no Serviço 710 até Rio Grande da Serra.",
+    description: "Serviço 710 operando normalmente.",
     updatedAt: "Agora"
   },
   {
@@ -406,7 +341,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "CPTM",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Expresso Leste operando normalmente entre Luz e Estudantes.",
+    description: "Expresso Leste operando normalmente.",
     updatedAt: "Agora"
   },
   {
@@ -442,7 +377,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "METRO",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Monotrilho operando normalmente entre Vila Prudente e Jardim Colonial.",
+    description: "Monotrilho operando normalmente.",
     updatedAt: "Agora"
   }
 ];
@@ -457,6 +392,6 @@ export function getMockRailsResponse(): RailsResponse {
       withIssues: issues
     },
     lastChecked: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    source: "Direto dos Trens / CCM SP"
+    source: "CCM SP / Metrô e CPTM"
   };
 }

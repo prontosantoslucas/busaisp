@@ -18,9 +18,9 @@ interface LiveMapProps {
   userCoords?: [number, number] | null;
 }
 
-// Centro padrão: Avenida Paulista, São Paulo
-const DEFAULT_CENTER: [number, number] = [-23.5615, -46.6559];
-const DEFAULT_ZOOM = 14;
+// Centro padrão: Região da Linha 1703-10 (Zona Norte / Center Norte / Jd. Hebron)
+const DEFAULT_CENTER: [number, number] = [-23.5000, -46.6050];
+const DEFAULT_ZOOM = 13;
 
 export default function LiveMap({
   selectedLine,

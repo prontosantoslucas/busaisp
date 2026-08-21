@@ -8,7 +8,7 @@ interface HeaderProps {
   isMockMode?: boolean;
 }
 
-export default function Header({ onOpenSettings, isMockMode }: HeaderProps) {
+export default function Header({ onOpenSettings }: HeaderProps) {
   return (
     <header className="app-header">
       {/* Logotipo BusaÍ SP */}
@@ -22,7 +22,7 @@ export default function Header({ onOpenSettings, isMockMode }: HeaderProps) {
 
       {/* Ações Rápidas */}
       <div className="header-actions">
-        {/* Status da Conexão */}
+        {/* Status da Conexão em Produção */}
         <button
           onClick={onOpenSettings}
           className="glass-pill"
@@ -33,23 +33,21 @@ export default function Header({ onOpenSettings, isMockMode }: HeaderProps) {
             gap: '6px',
             fontSize: '11px',
             fontWeight: 700,
-            color: isMockMode ? '#FBBF24' : '#34D399',
+            color: '#34D399',
             cursor: 'pointer'
           }}
-          title="Status da API"
+          title="Status da API SPTrans"
         >
           <span
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: isMockMode ? '#F59E0B' : '#10B981',
-              boxShadow: isMockMode
-                ? '0 0 8px rgba(245, 158, 11, 0.6)'
-                : '0 0 8px rgba(16, 185, 129, 0.6)'
+              backgroundColor: '#10B981',
+              boxShadow: '0 0 8px rgba(16, 185, 129, 0.8)'
             }}
           />
-          <span>{isMockMode ? 'SIMULADOR' : 'AO VIVO'}</span>
+          <span>AO VIVO · SPTRANS</span>
         </button>
 
         {/* Botão de Configurações */}

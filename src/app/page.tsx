@@ -107,15 +107,15 @@ export default function HomePage() {
       })
       .catch(() => setIsMockMode(true));
 
-    // Carregar linha inicial (8000-10 Lapa)
+    // Carregar linha inicial solicitada pelo usuário (1703-10 Jd. Hebron / Shopping Center Norte)
     handleSelectLinha({
-      cl: 1001,
+      cl: 1703,
       lc: false,
-      lt: '8000',
+      lt: '1703',
       tl: 10,
       sl: 1,
-      tp: 'TERM. LAPA',
-      ts: 'PCA. RAMOS DE AZEVEDO'
+      tp: 'JD. HEBRON',
+      ts: 'SHOPPING CENTER NORTE'
     });
   }, []);
 
