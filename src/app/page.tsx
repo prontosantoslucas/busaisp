@@ -59,7 +59,7 @@ const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
 });
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<ActiveTabType>('MAPA');
+  const [activeTab, setActiveTab] = useState<ActiveTabType>('ROTAS');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
 

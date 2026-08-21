@@ -21,6 +21,7 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     tp: "SHOPPING CENTER NORTE",
     ts: "JD. FONTALIS"
   },
+  // Linha 172N-10 (Shopping Center Norte ↔ Metrô Santana)
   {
     cl: 1721,
     lc: false,
@@ -30,6 +31,47 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     tp: "SHOPPING CENTER NORTE",
     ts: "METRO SANTANA"
   },
+  // Linha 1764-10 (Jd. Corisco ↔ Metrô Santana - Atende Jd. Fontális / Tremembé)
+  {
+    cl: 1764,
+    lc: false,
+    lt: "1764",
+    tl: 10,
+    sl: 1,
+    tp: "JD. CORISCO",
+    ts: "METRO SANTANA"
+  },
+  // Linha 1722-10 (Jd. Marina ↔ Shopping Center Norte)
+  {
+    cl: 1722,
+    lc: false,
+    lt: "1722",
+    tl: 10,
+    sl: 1,
+    tp: "JD. MARINA",
+    ts: "SHOPPING CENTER NORTE"
+  },
+  // Linha 2029-10 (Vila Medeiros ↔ Metrô Tucuruvi)
+  {
+    cl: 2029,
+    lc: false,
+    lt: "2029",
+    tl: 10,
+    sl: 1,
+    tp: "VILA MEDEIROS",
+    ts: "METRO TUCURUVI"
+  },
+  // Linha 1778-10 (Jaçanã ↔ Metrô Santana)
+  {
+    cl: 1778,
+    lc: false,
+    lt: "1778",
+    tl: 10,
+    sl: 1,
+    tp: "JACANA",
+    ts: "METRO SANTANA"
+  },
+  // Linha 175T-10 (Metrô Santana ↔ Metrô Jabaquara)
   {
     cl: 1750,
     lc: false,
@@ -39,6 +81,7 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     tp: "METRO SANTANA",
     ts: "METRO JABAQUARA"
   },
+  // Linha 106A-10 (Metrô Santana ↔ Itaim Bibi)
   {
     cl: 1060,
     lc: false,
@@ -48,6 +91,7 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     tp: "METRO SANTANA",
     ts: "ITAIM BIBI"
   },
+  // Linha 107T-10 (Metrô Tucuruvi ↔ Term. Pinheiros)
   {
     cl: 6001,
     lc: false,
@@ -57,24 +101,7 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     tp: "METRO TUCURUVI",
     ts: "TERM. PINHEIROS"
   },
-  {
-    cl: 1770,
-    lc: false,
-    lt: "177H",
-    tl: 10,
-    sl: 1,
-    tp: "METRO SANTANA",
-    ts: "CIDADE UNIVERSITARIA (USP)"
-  },
-  {
-    cl: 2104,
-    lc: false,
-    lt: "2104",
-    tl: 10,
-    sl: 1,
-    tp: "METRO SANTANA",
-    ts: "TERM. PQ. D. PEDRO II"
-  },
+  // Linha 8000-10 (Term. Lapa ↔ Pça. Ramos de Azevedo)
   {
     cl: 1001,
     lc: false,
@@ -83,29 +110,11 @@ export const MOCK_LINHAS: SPTransLinha[] = [
     sl: 1,
     tp: "TERM. LAPA",
     ts: "PCA. RAMOS DE AZEVEDO"
-  },
-  {
-    cl: 2001,
-    lc: false,
-    lt: "8700",
-    tl: 10,
-    sl: 1,
-    tp: "TERM. CAMPO LIMPO",
-    ts: "PCA. RAMOS DE AZEVEDO"
-  },
-  {
-    cl: 3001,
-    lc: false,
-    lt: "6450",
-    tl: 10,
-    sl: 1,
-    tp: "TERM. CAPELINHA",
-    ts: "TERM. BANDEIRA"
   }
 ];
 
 export const MOCK_PARADAS: SPTransParada[] = [
-  // Paradas Oficiais Linha 1703-10
+  // Parada Shopping Center Norte
   {
     cp: 340015350,
     np: "PARADA SHOPPING CENTER NORTE",
@@ -113,13 +122,15 @@ export const MOCK_PARADAS: SPTransParada[] = [
     py: -23.5152,
     px: -46.6190
   },
+  // Terminal Jd. Fontális (Ajustado ao lado da Rua Flor de Maio no Tremembé)
   {
-    cp: 340015351,
-    np: "PARADA AV. JARDIM JAPÃO, 1200",
-    ed: "AV. JARDIM JAPAO, 1200 - JD. BRASIL",
-    py: -23.4930,
-    px: -46.5920
+    cp: 340015353,
+    np: "TERMINAL JD. FONTÁLIS",
+    ed: "R. USHIKICHI KAMIYA, 100 - JD. FONTÁLIS",
+    py: -23.4338,
+    px: -46.5778
   },
+  // Parada Av. Roland Garros
   {
     cp: 340015352,
     np: "PARADA AV. ROLAND GARROS, 850",
@@ -127,13 +138,15 @@ export const MOCK_PARADAS: SPTransParada[] = [
     py: -23.4855,
     px: -46.5860
   },
+  // Parada Av. Jardim Japão
   {
-    cp: 340015353,
-    np: "TERMINAL JD. FONTÁLIS",
-    ed: "R. USHIKICHI KAMIYA, S/N - JD. FONTALIS",
-    py: -23.4680,
-    px: -46.5820
+    cp: 340015351,
+    np: "PARADA AV. JARDIM JAPÃO, 1200",
+    ed: "AV. JARDIM JAPAO, 1200 - JD. BRASIL",
+    py: -23.4930,
+    px: -46.5920
   },
+  // Parada Av. Conceição
   {
     cp: 340015354,
     np: "PARADA AV. CONCEIÇÃO, 2500",
@@ -141,6 +154,23 @@ export const MOCK_PARADAS: SPTransParada[] = [
     py: -23.5040,
     px: -46.6060
   },
+  // Parada Metrô Tucuruvi
+  {
+    cp: 340015355,
+    np: "TERMINAL METRÔ TUCURUVI",
+    ed: "AV. DR. ANTONIO MARIA LAET, 100 - TUCURUVI",
+    py: -23.4795,
+    px: -46.6030
+  },
+  // Parada Metrô Santana
+  {
+    cp: 340015356,
+    np: "TERMINAL METRÔ SANTANA",
+    ed: "R. LEITE DE MORAIS, 100 - SANTANA",
+    py: -23.5020,
+    px: -46.6260
+  },
+  // Parada Trianon MASP
   {
     cp: 340015339,
     np: "PARADA TRIANON MASP (B/C)",
@@ -159,16 +189,24 @@ export function getMockVeiculos(codigoLinha: number): SPTransVeiculo[] {
   const destName = isSentidoCenterNorte ? "SHOPPING CENTER NORTE" : "JD. FONTÁLIS";
 
   const baseCoordinates: Record<number, Array<{ py: number; px: number; prefix: string; accessible: boolean; heading: number; dest: string }>> = {
-    1703: [ // Sentido 1: Indo para SHOPPING CENTER NORTE
+    1703: [
       { py: -23.5135 + drift, px: -46.6180 + drift2, prefix: "21045", accessible: true, heading: 195, dest: "SHOPPING CENTER NORTE" },
       { py: -23.5010 + drift2, px: -46.6040 + drift, prefix: "21102", accessible: true, heading: 210, dest: "SHOPPING CENTER NORTE" },
       { py: -23.4890 + drift, px: -46.5900 + drift2, prefix: "21230", accessible: true, heading: 200, dest: "SHOPPING CENTER NORTE" },
-      { py: -23.4730 + drift2, px: -46.5830 + drift, prefix: "21340", accessible: false, heading: 185, dest: "SHOPPING CENTER NORTE" }
+      { py: -23.4420 + drift2, px: -46.5800 + drift, prefix: "21340", accessible: false, heading: 185, dest: "SHOPPING CENTER NORTE" }
     ],
-    1704: [ // Sentido 2: Indo para JD. FONTÁLIS
-      { py: -23.4750 + drift, px: -46.5825 + drift2, prefix: "21401", accessible: true, heading: 25, dest: "JD. FONTÁLIS" },
-      { py: -23.4940 + drift2, px: -46.5960 + drift, prefix: "21488", accessible: true, heading: 30, dest: "JD. FONTÁLIS" },
+    1704: [
+      { py: -23.4380 + drift, px: -46.5790 + drift2, prefix: "21401", accessible: true, heading: 25, dest: "JD. FONTÁLIS" },
+      { py: -23.4840 + drift2, px: -46.5880 + drift, prefix: "21488", accessible: true, heading: 30, dest: "JD. FONTÁLIS" },
       { py: -23.5090 + drift, px: -46.6140 + drift2, prefix: "21550", accessible: true, heading: 15, dest: "JD. FONTÁLIS" }
+    ],
+    1721: [
+      { py: -23.5110 + drift, px: -46.6210 + drift2, prefix: "22010", accessible: true, heading: 270, dest: "METRO SANTANA" },
+      { py: -23.5040 + drift2, px: -46.6240 + drift, prefix: "22055", accessible: true, heading: 280, dest: "METRO SANTANA" }
+    ],
+    1764: [
+      { py: -23.4410 + drift, px: -46.5820 + drift2, prefix: "23100", accessible: true, heading: 190, dest: "METRO SANTANA" },
+      { py: -23.4750 + drift2, px: -46.6010 + drift, prefix: "23144", accessible: true, heading: 205, dest: "METRO SANTANA" }
     ]
   };
 
@@ -215,33 +253,32 @@ export function getMockPrevisaoParada(codigoParada: number): SPTransPrevisaoResp
           lt1: "JD. FONTÁLIS",
           qv: 3,
           vs: [
-            {
-              p: "21045",
-              t: addMinutes(3),
-              a: true,
-              ta: hrStr,
-              py: parada.py + 0.003,
-              px: parada.px - 0.004,
-              destination: "SHOPPING CENTER NORTE"
-            },
-            {
-              p: "21102",
-              t: addMinutes(11),
-              a: true,
-              ta: hrStr,
-              py: parada.py + 0.009,
-              px: parada.px - 0.012,
-              destination: "SHOPPING CENTER NORTE"
-            },
-            {
-              p: "21230",
-              t: addMinutes(22),
-              a: true,
-              ta: hrStr,
-              py: parada.py + 0.018,
-              px: parada.px - 0.024,
-              destination: "SHOPPING CENTER NORTE"
-            }
+            { p: "21045", t: addMinutes(3), a: true, ta: hrStr, py: parada.py + 0.003, px: parada.px - 0.004, destination: "SHOPPING CENTER NORTE" },
+            { p: "21102", t: addMinutes(11), a: true, ta: hrStr, py: parada.py + 0.009, px: parada.px - 0.012, destination: "SHOPPING CENTER NORTE" },
+            { p: "21230", t: addMinutes(22), a: true, ta: hrStr, py: parada.py + 0.018, px: parada.px - 0.024, destination: "SHOPPING CENTER NORTE" }
+          ]
+        },
+        {
+          cl: 1764,
+          c: "1764-10",
+          sl: 1,
+          lt0: "METRO SANTANA",
+          lt1: "JD. CORISCO",
+          qv: 2,
+          vs: [
+            { p: "23100", t: addMinutes(6), a: true, ta: hrStr, py: parada.py + 0.005, px: parada.px - 0.006, destination: "METRO SANTANA" },
+            { p: "23144", t: addMinutes(18), a: true, ta: hrStr, py: parada.py + 0.015, px: parada.px - 0.016, destination: "METRO SANTANA" }
+          ]
+        },
+        {
+          cl: 1722,
+          c: "1722-10",
+          sl: 1,
+          lt0: "SHOPPING CENTER NORTE",
+          lt1: "JD. MARINA",
+          qv: 2,
+          vs: [
+            { p: "24010", t: addMinutes(8), a: true, ta: hrStr, py: parada.py + 0.007, px: parada.px - 0.008, destination: "SHOPPING CENTER NORTE" }
           ]
         }
       ]
@@ -259,7 +296,7 @@ export const MOCK_RAIL_LINES: RailLine[] = [
     operator: "METRO",
     status: "NORMAL",
     statusText: "Operação Normal",
-    description: "Circulação de trens nos intervalos normais entre Jabaquara e Tucuruvi.",
+    description: "Circulação regular entre Jabaquara e Tucuruvi.",
     updatedAt: "Agora"
   },
   {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { RoutePlan, RouteLocation } from '@/lib/routing';
+import { RoutePlan, RouteLocation, RouteSearchResult } from '@/lib/routing';
 import {
   Navigation,
   MapPin,
@@ -18,7 +18,8 @@ import {
   Map,
   ChevronRight,
   Zap,
-  Activity
+  Activity,
+  Layers
 } from 'lucide-react';
 
 interface RoutePlannerProps {
@@ -36,10 +37,15 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
   const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
 
   const [isCalculating, setIsCalculating] = useState(false);
-  const [calculatedRoute, setCalculatedRoute] = useState<RoutePlan | null>(null);
+  const [routeResult, setRouteResult] = useState<RouteSearchResult | null>(null);
+  const [selectedAlternativeIndex, setSelectedAlternativeIndex] = useState<number>(0);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Buscar sugestões enquanto o usuário digita o destino
+  // Auto-calcular rota padrão inicial ao abrir o app
+  useEffect(() => {
+    handleCalculate('Shopping Center Norte');
+  }, []);
+
   const handleDestinoChange = (text: string) => {
     setDestino(text);
     setSelectedDestLocation(null);
@@ -100,7 +106,20 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       const res = await fetch(url);
       const json = await res.json();
       if (json.success && json.data) {
-        setCalculatedRoute(json.data);
+        if (json.data.alternatives) {
+          setRouteResult(json.data);
+          setSelectedAlternativeIndex(0);
+        } else if (json.data.primaryRoute) {
+          setRouteResult(json.data);
+          setSelectedAlternativeIndex(0);
+        } else {
+          // Formato plano único
+          setRouteResult({
+            primaryRoute: json.data,
+            alternatives: [json.data]
+          });
+          setSelectedAlternativeIndex(0);
+        }
       }
     } catch (e) {
       console.error('Erro ao calcular rota:', e);
@@ -108,6 +127,10 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       setIsCalculating(false);
     }
   };
+
+  const activeRoute = routeResult
+    ? routeResult.alternatives[selectedAlternativeIndex] || routeResult.primaryRoute
+    : null;
 
   return (
     <div
@@ -149,9 +172,9 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
             <Navigation size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 800 }}>Planejador de Rotas a Pé + Ônibus</h2>
+            <h2 style={{ fontSize: '17px', fontWeight: 800 }}>Planejador de Rotas SP</h2>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Caminho a pé detalhado e horário ideal para chegar ao ponto
+              Todas as linhas disponíveis para a sua região com tempo a pé
             </p>
           </div>
         </div>
@@ -337,47 +360,125 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
           style={{ justifyContent: 'center', height: '44px' }}
         >
           <Sparkles size={16} />
-          {isCalculating ? 'Calculando Caminho a Pé & Ônibus...' : 'Traçar Melhor Rota'}
+          {isCalculating ? 'Calculando Todas as Linhas & Ônibus...' : 'Buscar Melhores Opções de Linhas'}
         </button>
       </div>
 
-      {/* Resultado com Métricas a Pé, Confirmação e Traçado */}
-      {calculatedRoute && (
+      {/* Confirmação de Endereço */}
+      {activeRoute && (
+        <div
+          style={{
+            background: 'rgba(16, 185, 129, 0.12)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+          }}
+        >
+          <CheckCircle2 size={20} color="#10B981" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
+              Endereço Confirmado: {activeRoute.destination.name}
+            </div>
+            <div style={{ fontSize: '11px', color: '#6EE7B7', marginTop: '2px' }}>
+              {activeRoute.destination.addressDetails || 'São Paulo - SP'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SELETOR DE TODAS AS LINHAS DISPONÍVEIS NA REGIÃO */}
+      {routeResult && routeResult.alternatives.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <Layers size={16} color="#38BDF8" />
+            <span>Linhas Disponíveis na Região ({routeResult.alternatives.length} opções):</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {routeResult.alternatives.map((alt, idx) => {
+              const isSelected = idx === selectedAlternativeIndex;
+              return (
+                <div
+                  key={alt.id}
+                  onClick={() => setSelectedAlternativeIndex(idx)}
+                  style={{
+                    background: isSelected
+                      ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.22), rgba(227, 6, 19, 0.15))'
+                      : 'rgba(23, 32, 51, 0.7)',
+                    border: isSelected
+                      ? '2px solid #38BDF8'
+                      : '1px solid var(--border-color)',
+                    borderRadius: '14px',
+                    padding: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    boxShadow: isSelected ? '0 4px 20px rgba(56, 189, 248, 0.25)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {/* Badge da Linha */}
+                    <div
+                      style={{
+                        background: 'var(--accent-sptrans)',
+                        color: '#fff',
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        fontWeight: 900,
+                        fontSize: '14px',
+                        boxShadow: '0 2px 8px rgba(227, 6, 19, 0.4)'
+                      }}
+                    >
+                      {alt.recommendedLine.lt}-{alt.recommendedLine.tl}
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
+                        Destino: {alt.recommendedLine.ts}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🚶 {alt.totalWalkDurationMinutes} min a pé ({alt.totalWalkDistanceMeters}m)</span>
+                        <span>•</span>
+                        <span>⏱️ Total: ~{alt.totalDurationMinutes} min</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tempo do Ônibus no Ponto */}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '9px', color: '#FCA5A5', fontWeight: 700 }}>
+                      NO PONTO EM
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#E30613' }}>
+                      {alt.nextBusEtaMinutes} min
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Detalhes da Linha Selecionada */}
+      {activeRoute && (
         <div
           className="glass-panel"
           style={{
             borderRadius: '16px',
-            padding: '20px',
+            padding: '18px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px',
+            gap: '14px',
             animation: 'fadeIn 0.3s ease'
           }}
         >
-          {/* Card de Confirmação de Endereço */}
-          <div
-            style={{
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              borderRadius: '12px',
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px'
-            }}
-          >
-            <CheckCircle2 size={20} color="#10B981" style={{ marginTop: '2px', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
-                Endereço Confirmado: {calculatedRoute.destination.name}
-              </div>
-              <div style={{ fontSize: '11px', color: '#6EE7B7', marginTop: '2px' }}>
-                {calculatedRoute.destination.addressDetails || 'São Paulo - SP'}
-              </div>
-            </div>
-          </div>
-
-          {/* Banner de Sugestão de Horário de Saída a Pé */}
+          {/* Banner de Saída a Pé */}
           <div
             style={{
               background: 'rgba(2, 132, 199, 0.15)',
@@ -391,108 +492,13 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
           >
             <Zap size={20} color="#38BDF8" style={{ flexShrink: 0 }} />
             <div style={{ fontSize: '12px', fontWeight: 600, color: '#E0F2FE', lineHeight: 1.4 }}>
-              {calculatedRoute.departureSuggestion}
-            </div>
-          </div>
-
-          {/* Card Resumo com Métricas a Pé e Tempo do Ônibus */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '10px'
-            }}
-          >
-            {/* Total Geral */}
-            <div
-              style={{
-                background: 'rgba(23, 32, 51, 0.8)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '14px'
-              }}
-            >
-              <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>
-                Tempo Total de Viagem
-              </div>
-              <div style={{ fontSize: '24px', fontWeight: 900, color: '#F8FAFC', marginTop: '2px' }}>
-                ~{calculatedRoute.totalDurationMinutes} min
-              </div>
-              <div style={{ fontSize: '11px', color: '#38BDF8', marginTop: '4px' }}>
-                Total: {(calculatedRoute.totalDistanceMeters / 1000).toFixed(1)} km
-              </div>
-            </div>
-
-            {/* Total a Pé */}
-            <div
-              style={{
-                background: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                borderRadius: '12px',
-                padding: '14px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#38BDF8', fontWeight: 700 }}>
-                <Footprints size={14} />
-                <span>CAMINHADA A PÉ</span>
-              </div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: '#38BDF8', marginTop: '2px' }}>
-                {calculatedRoute.totalWalkDurationMinutes} min
-              </div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
-                {calculatedRoute.totalWalkDistanceMeters}m · ~{calculatedRoute.totalEstimatedSteps} passos
-              </div>
-            </div>
-          </div>
-
-          {/* Destaque do Ônibus no Ponto */}
-          <div
-            style={{
-              background: 'rgba(227, 6, 19, 0.15)',
-              border: '1px solid rgba(227, 6, 19, 0.4)',
-              borderRadius: '12px',
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  background: 'var(--accent-sptrans)',
-                  color: '#fff',
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  fontWeight: 800,
-                  fontSize: '13px'
-                }}
-              >
-                {calculatedRoute.recommendedLine.lt}-{calculatedRoute.recommendedLine.tl}
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                  Destino: {calculatedRoute.recommendedLine.ts}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Veículo #{calculatedRoute.nextBusVehiclePrefix}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', color: '#FCA5A5', fontWeight: 700 }}>
-                CHEGA NO PONTO EM:
-              </div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: '#E30613' }}>
-                {calculatedRoute.nextBusEtaMinutes} min
-              </div>
+              {activeRoute.departureSuggestion}
             </div>
           </div>
 
           {/* Botão de Ver Trajeto no Mapa */}
           <button
-            onClick={() => onRouteCalculated(calculatedRoute)}
+            onClick={() => onRouteCalculated(activeRoute)}
             className="btn-primary"
             style={{
               justifyContent: 'center',
@@ -502,16 +508,16 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
             }}
           >
             <Map size={18} />
-            Ver Trajeto no Mapa (Caminhada + Ônibus)
+            Ver Linha {activeRoute.recommendedLine.lt}-{activeRoute.recommendedLine.tl} no Mapa
           </button>
 
           {/* Passo a Passo da Rota */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Passo a Passo com Instruções a Pé:
+              Instruções de Deslocamento:
             </h4>
 
-            {calculatedRoute.steps.map((step, idx) => (
+            {activeRoute.steps.map((step, idx) => (
               <div
                 key={idx}
                 style={{

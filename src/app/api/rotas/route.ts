@@ -48,11 +48,11 @@ export async function GET(request: NextRequest) {
       destLoc = await geocodeAddress(destinoStr);
     }
 
-    const routePlan = await calculateRoute(originLoc, destLoc);
+    const routeResult = await calculateRoute(originLoc, destLoc);
 
     return NextResponse.json({
       success: true,
-      data: routePlan,
+      data: routeResult,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
