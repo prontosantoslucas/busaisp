@@ -10,7 +10,24 @@ import {
 } from '@/types/sptrans';
 import { StationItem } from '@/lib/stationsData';
 import { RoutePlan } from '@/lib/routing';
-import { RefreshCw, Locate, Footprints, Layers, Square, Navigation, Play, Radio, TrainTrack, MapPin } from 'lucide-react';
+import { TrafficIncident } from '@/types/traffic';
+import {
+  RefreshCw,
+  Locate,
+  Footprints,
+  Layers,
+  Square,
+  Navigation,
+  Play,
+  Radio,
+  TrainTrack,
+  MapPin,
+  AlertTriangle,
+  ShieldAlert,
+  Cone,
+  Car,
+  Flame
+} from 'lucide-react';
 
 export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -28,6 +45,7 @@ export interface LiveMapProps {
   stations?: StationItem[];
   selectedStation?: StationItem | null;
   onRouteToStation?: (station: StationItem) => void;
+  incidents?: TrafficIncident[];
 }
 
 export default function LiveMap({
@@ -45,19 +63,23 @@ export default function LiveMap({
   onStartPercurso,
   stations = [],
   selectedStation,
-  onRouteToStation
+  onRouteToStation,
+  incidents = []
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const busMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stopMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stationMarkersGroupRef = useRef<L.LayerGroup | null>(null);
+  const incidentMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const routePolylinesGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
   const watchPositionIdRef = useRef<number | null>(null);
+
   const [isLocating, setIsLocating] = useState(false);
   const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
+  const [showIncidents, setShowIncidents] = useState(true);
 
   // Inicializar o Mapa Leaflet
   useEffect(() => {
@@ -83,6 +105,7 @@ export default function LiveMap({
     busMarkersGroupRef.current = L.layerGroup().addTo(map);
     stopMarkersGroupRef.current = L.layerGroup().addTo(map);
     stationMarkersGroupRef.current = L.layerGroup().addTo(map);
+    incidentMarkersGroupRef.current = L.layerGroup().addTo(map);
     routePolylinesGroupRef.current = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
@@ -229,7 +252,7 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(busLine);
       allCoords.push(...activeRoute.polyline.transit);
 
-      // Círculos de cada parada intermediária ao longo do traçado (Foto 3)
+      // Círculos de cada parada intermediária ao longo do traçado
       if (activeRoute.allRouteStops && activeRoute.allRouteStops.length > 0) {
         activeRoute.allRouteStops.forEach((stop, sIdx) => {
           const isFirst = sIdx === 0;
@@ -265,7 +288,7 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(boardMarker);
     }
 
-    // 3. Marcadores de Baldeação (se houver)
+    // 3. Marcadores de Baldeação
     if (activeRoute.transferPoints && activeRoute.transferPoints.length > 0) {
       activeRoute.transferPoints.forEach((tp) => {
         const transferHtml = `
@@ -334,11 +357,104 @@ export default function LiveMap({
 
     routePolylinesGroupRef.current.addLayer(destMarker);
 
-    // Ajustar zoom e enquadramento inicial
     if (!isPercursoActive && allCoords.length > 0) {
       map.fitBounds(L.latLngBounds(allCoords), { padding: [60, 60], maxZoom: 16 });
     }
   }, [activeRoute, isPercursoActive]);
+
+  // Atualizar Marcadores de Incidentes de Trânsito (Waze / CET / TomTom)
+  useEffect(() => {
+    if (!incidentMarkersGroupRef.current) return;
+
+    incidentMarkersGroupRef.current.clearLayers();
+
+    if (!showIncidents || !incidents || incidents.length === 0) return;
+
+    incidents.forEach((inc) => {
+      let iconEmoji = '⚠️';
+      let bgColor = '#F59E0B';
+      let pulseColor = 'rgba(245, 158, 11, 0.4)';
+      let label = 'Alerta';
+
+      if (inc.type === 'POLICE') {
+        iconEmoji = '🚓';
+        bgColor = '#2563EB';
+        pulseColor = 'rgba(37, 99, 235, 0.5)';
+        label = 'BLITZ / POLÍCIA';
+      } else if (inc.type === 'ACCIDENT') {
+        iconEmoji = '💥';
+        bgColor = '#DC2626';
+        pulseColor = 'rgba(220, 38, 38, 0.5)';
+        label = 'ACIDENTE';
+      } else if (inc.type === 'CONSTRUCTION') {
+        iconEmoji = '🚧';
+        bgColor = '#EA580C';
+        pulseColor = 'rgba(234, 88, 12, 0.5)';
+        label = 'OBRAS / INTERDIÇÃO';
+      } else if (inc.type === 'JAM') {
+        iconEmoji = '🔴';
+        bgColor = '#991B1B';
+        pulseColor = 'rgba(153, 27, 27, 0.5)';
+        label = 'TRÂNSITO LENTO';
+      } else if (inc.type === 'HAZARD') {
+        iconEmoji = '⚠️';
+        bgColor = '#D97706';
+        pulseColor = 'rgba(217, 119, 6, 0.5)';
+        label = 'PERIGO NA PISTA';
+      }
+
+      const htmlIcon = `
+        <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: ${pulseColor}; animation: markerPulse 1.8s infinite;"></div>
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bgColor}; border: 2px solid #FFFFFF; box-shadow: 0 4px 10px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff;">
+            ${iconEmoji}
+          </div>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: htmlIcon,
+        className: 'incident-marker',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      const marker = L.marker([inc.lat, inc.lng], { icon: customIcon, zIndexOffset: 700 });
+
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 230px; padding: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="background: ${bgColor}; color: #FFFFFF; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+              ${iconEmoji} ${label}
+            </span>
+            <span style="font-size: 10px; color: #94A3B8; font-weight: 700;">
+              Fonte: ${inc.source}
+            </span>
+          </div>
+
+          <strong style="color: #FFFFFF; font-size: 13px; display: block; margin-bottom: 4px; line-height: 1.3;">
+            ${inc.title}
+          </strong>
+
+          <div style="color: #38BDF8; font-size: 11px; font-weight: 700; margin-bottom: 6px;">
+            📍 ${inc.street}
+          </div>
+
+          <div style="font-size: 12px; color: #CBD5E1; background: #1E293B; padding: 6px 8px; border-radius: 6px; margin-bottom: 6px; line-height: 1.4;">
+            ${inc.description}
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94A3B8;">
+            <span>⏱️ Atualizado às ${inc.updatedAt}</span>
+            <span style="color: #10B981; font-weight: 800;">Confiança: 10/10</span>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml);
+      incidentMarkersGroupRef.current?.addLayer(marker);
+    });
+  }, [incidents, showIncidents]);
 
   // Atualizar marcadores de Ônibus no mapa
   useEffect(() => {
@@ -631,6 +747,44 @@ export default function LiveMap({
           zIndex: 999
         }}
       >
+        {/* Toggle de Camada de Incidentes (Waze/CET) */}
+        <button
+          onClick={() => setShowIncidents(!showIncidents)}
+          className={`btn-icon ${showIncidents ? 'active' : ''}`}
+          style={{
+            background: showIncidents ? '#DC2626' : '#1C1E24',
+            color: '#FFFFFF',
+            border: showIncidents ? '1.5px solid #EF4444' : '1px solid #2D313C',
+            position: 'relative'
+          }}
+          title={showIncidents ? 'Ocultar Incidentes de Trânsito' : 'Exibir Incidentes de Trânsito'}
+          aria-label="Incidentes de Trânsito"
+        >
+          <AlertTriangle size={19} />
+          {incidents.length > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                background: '#EF4444',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 900,
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1.5px solid #1C1E24'
+              }}
+            >
+              {incidents.length}
+            </span>
+          )}
+        </button>
+
         <button
           onClick={handleLocateMe}
           className="btn-icon"

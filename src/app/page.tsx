@@ -17,6 +17,7 @@ import MoovitRouteDetail from '@/components/Moovit/MoovitRouteDetail';
 import MoovitDeparturesModal from '@/components/Moovit/MoovitDeparturesModal';
 import StationsExplorerPanel from '@/components/Stations/StationsExplorerPanel';
 import { StationItem, SP_ALL_STATIONS } from '@/lib/stationsData';
+import { TrafficIncident } from '@/types/traffic';
 import LineItineraryPanel from '@/components/BusSearch/LineItineraryPanel';
 import FavoritesDrawer from '@/components/Favorites/FavoritesDrawer';
 import TokenConfigModal from '@/components/UI/TokenConfigModal';
@@ -76,12 +77,13 @@ export default function HomePage() {
   const [selectedLine, setSelectedLine] = useState<SPTransLinha | null>(null);
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
   const [selectedStation, setSelectedStation] = useState<StationItem | null>(null);
+  const [incidents, setIncidents] = useState<TrafficIncident[]>([]);
   const [veiculos, setVeiculos] = useState<SPTransVeiculo[]>([]);
   const [paradas, setParadas] = useState<SPTransParada[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
 
-  // GPS
+  // GPS & Incidentes de Trânsito ao Vivo
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -91,6 +93,21 @@ export default function HomePage() {
       );
     }
     fetchFavorites().then(setFavorites);
+
+    const fetchIncidents = async () => {
+      try {
+        const res = await fetch('/api/transito/incidentes');
+        const json = await res.json();
+        if (json.success && json.data?.incidents) {
+          setIncidents(json.data.incidents);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar incidentes de trânsito:', err);
+      }
+    };
+    fetchIncidents();
+    const incInterval = setInterval(fetchIncidents, 60000);
+    return () => clearInterval(incInterval);
   }, []);
 
   // Buscar linhas
@@ -226,6 +243,7 @@ export default function HomePage() {
             setActiveTab('DIRECOES');
             handleCalculateRoutes(`${st.name}, ${st.address}`);
           }}
+          incidents={incidents}
         />
       </div>
 
