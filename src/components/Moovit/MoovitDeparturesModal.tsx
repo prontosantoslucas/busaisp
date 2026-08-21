@@ -67,8 +67,8 @@ export default function MoovitDeparturesModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
-                background: '#1E3A8A',
-                border: '1px solid #3B82F6',
+                background: 'rgba(227, 6, 19, 0.22)',
+                border: '1px solid var(--moovit-sptrans-red)',
                 color: '#FFFFFF',
                 padding: '4px 10px',
                 borderRadius: '6px',
@@ -90,7 +90,7 @@ export default function MoovitDeparturesModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
-                background: '#2563EB',
+                background: 'var(--moovit-sptrans-red)',
                 color: '#fff',
                 width: '32px',
                 height: '32px',
@@ -177,7 +177,7 @@ export default function MoovitDeparturesModal({
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#38BDF8',
+                color: 'var(--moovit-sptrans-red)',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer',

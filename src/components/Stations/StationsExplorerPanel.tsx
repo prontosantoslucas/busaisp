@@ -187,7 +187,7 @@ export default function StationsExplorerPanel({
               padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
-              background: subView === 'STATUS' ? '#2563EB' : 'transparent',
+              background: subView === 'STATUS' ? 'var(--moovit-sptrans-red)' : 'transparent',
               color: subView === 'STATUS' ? '#FFFFFF' : '#9CA3AF',
               fontWeight: 800,
               fontSize: '12px',
@@ -278,7 +278,7 @@ export default function StationsExplorerPanel({
                   padding: '6px 12px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: selectedRailFilter === f.id ? '#2563EB' : '#262932',
+                  background: selectedRailFilter === f.id ? 'var(--moovit-sptrans-red)' : '#262932',
                   color: selectedRailFilter === f.id ? '#FFFFFF' : '#9CA3AF',
                   fontWeight: 700,
                   fontSize: '12px',
@@ -477,7 +477,7 @@ export default function StationsExplorerPanel({
                         <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                           {station.name}
                         </h3>
-                        <div style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--moovit-sptrans-red)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                           <MapPin size={12} />
                           <span>{station.address}</span>
                         </div>
@@ -490,7 +490,7 @@ export default function StationsExplorerPanel({
                         onRouteToStation(station);
                       }}
                       style={{
-                        background: '#2563EB',
+                        background: 'var(--moovit-sptrans-red)',
                         border: 'none',
                         borderRadius: '8px',
                         padding: '6px 10px',

@@ -104,7 +104,7 @@ export default function MoovitRouteDetail({
                 border: '1px solid #334155',
                 borderRadius: '9999px',
                 padding: '5px 10px',
-                color: '#38BDF8',
+                color: 'var(--moovit-sptrans-red)',
                 fontSize: '11px',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -147,8 +147,8 @@ export default function MoovitRouteDetail({
                   key={r.id || i}
                   onClick={() => onSelectRouteIndex(i)}
                   style={{
-                    background: isSelected ? '#2563EB' : '#262932',
-                    border: `1px solid ${isSelected ? '#60A5FA' : '#323642'}`,
+                    background: isSelected ? 'var(--moovit-sptrans-red)' : '#262932',
+                    border: `1px solid ${isSelected ? 'var(--moovit-sptrans-red)' : '#323642'}`,
                     borderRadius: '9999px',
                     padding: '5px 10px',
                     color: '#FFFFFF',
@@ -249,7 +249,7 @@ export default function MoovitRouteDetail({
                       width: '24px',
                       height: '24px',
                       borderRadius: '50%',
-                      background: '#2563EB',
+                      background: 'var(--moovit-sptrans-red)',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',

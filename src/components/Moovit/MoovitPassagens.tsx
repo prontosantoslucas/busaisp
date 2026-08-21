@@ -62,8 +62,8 @@ export default function MoovitPassagens() {
       {/* Card Cartão TOP */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #1E3A8A, #1C1E24)',
-          border: '1px solid #3B82F6',
+          background: 'linear-gradient(135deg, #7A0912, #1C1E24)',
+          border: '1px solid var(--moovit-sptrans-red)',
           borderRadius: '16px',
           padding: '18px',
           display: 'flex',
@@ -76,7 +76,7 @@ export default function MoovitPassagens() {
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#93C5FD', textTransform: 'uppercase' }}>
             Metrô / CPTM & EMTU
           </span>
-          <span style={{ background: '#2563EB', color: '#fff', fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+          <span style={{ background: 'var(--moovit-sptrans-red)', color: '#fff', fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
             ESTADUAL
           </span>
         </div>
@@ -92,7 +92,7 @@ export default function MoovitPassagens() {
 
         <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '10px 12px', fontSize: '12px', color: '#E5E7EB', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <CheckCircle2 size={14} color="#38BDF8" />
+            <CheckCircle2 size={14} color="var(--moovit-sptrans-red)" />
             <span>Válido em todas as linhas de Metrô e CPTM.</span>
           </div>
         </div>

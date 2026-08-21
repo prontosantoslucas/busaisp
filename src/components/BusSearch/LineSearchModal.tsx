@@ -262,7 +262,7 @@ export default function LineSearchModal({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
-                      e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                      e.currentTarget.style.borderColor = 'rgba(227, 6, 19, 0.3)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
@@ -272,8 +272,8 @@ export default function LineSearchModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div
                         style={{
-                          background: 'rgba(56, 189, 248, 0.2)',
-                          color: '#38BDF8',
+                          background: 'rgba(227, 6, 19, 0.2)',
+                          color: 'var(--moovit-sptrans-red)',
                           padding: '8px',
                           borderRadius: '8px',
                           display: 'flex',
