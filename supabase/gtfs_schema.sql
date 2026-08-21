@@ -84,10 +84,23 @@ alter table public.gtfs_stop_times enable row level security;
 alter table public.gtfs_calendar enable row level security;
 alter table public.gtfs_calendar_dates enable row level security;
 
+drop policy if exists "Leitura pública gtfs_agency" on public.gtfs_agency;
 create policy "Leitura pública gtfs_agency" on public.gtfs_agency for select using (true);
+
+drop policy if exists "Leitura pública gtfs_routes" on public.gtfs_routes;
 create policy "Leitura pública gtfs_routes" on public.gtfs_routes for select using (true);
+
+drop policy if exists "Leitura pública gtfs_stops" on public.gtfs_stops;
 create policy "Leitura pública gtfs_stops" on public.gtfs_stops for select using (true);
+
+drop policy if exists "Leitura pública gtfs_trips" on public.gtfs_trips;
 create policy "Leitura pública gtfs_trips" on public.gtfs_trips for select using (true);
+
+drop policy if exists "Leitura pública gtfs_stop_times" on public.gtfs_stop_times;
 create policy "Leitura pública gtfs_stop_times" on public.gtfs_stop_times for select using (true);
+
+drop policy if exists "Leitura pública gtfs_calendar" on public.gtfs_calendar;
 create policy "Leitura pública gtfs_calendar" on public.gtfs_calendar for select using (true);
+
+drop policy if exists "Leitura pública gtfs_calendar_dates" on public.gtfs_calendar_dates;
 create policy "Leitura pública gtfs_calendar_dates" on public.gtfs_calendar_dates for select using (true);
