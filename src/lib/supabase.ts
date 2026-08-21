@@ -1,18 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://andnuavykwjcivlesnky.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_8zWglq3GN3lCC0xmFxF4cg_AEXfvocn';
 
-export const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null;
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface FavoriteItem {
   id?: string;
   type: 'linha' | 'parada' | 'trilho';
-  ref_code: string;       // ex: codigoLinha ("1001"), codigoParada ("340015339") ou id Linha Trilha ("4")
-  title: string;          // ex: "8000-10 Term. Lapa"
+  ref_code: string;       // ex: "1703", "340015350", "1"
+  title: string;          // ex: "1703-10 Jd. Fontális / Center Norte"
   label?: string;         // ex: "Casa 🏠", "Trabalho 💼"
   details?: Record<string, any>;
   created_at?: string;
@@ -21,7 +18,7 @@ export interface FavoriteItem {
 const LOCAL_STORAGE_FAVORITES_KEY = 'busaisp_favorites';
 
 /**
- * Carrega favoritos do LocalStorage
+ * Carrega favoritos salvos localmente no dispositivo
  */
 export function getLocalFavorites(): FavoriteItem[] {
   if (typeof window === 'undefined') return [];
@@ -51,10 +48,6 @@ export function saveLocalFavorites(items: FavoriteItem[]): void {
 export async function fetchFavorites(): Promise<FavoriteItem[]> {
   const localItems = getLocalFavorites();
 
-  if (!supabase) {
-    return localItems;
-  }
-
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
@@ -66,14 +59,17 @@ export async function fetchFavorites(): Promise<FavoriteItem[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.warn('[Supabase] Tabela favorites não encontrada ou erro na consulta:', error.message);
+      return localItems;
+    }
 
     if (data && data.length > 0) {
       return data as FavoriteItem[];
     }
     return localItems;
   } catch (err) {
-    console.warn('Erro ao buscar favoritos no Supabase:', err);
+    console.warn('[Supabase] Falha ao consultar nuvem:', err);
     return localItems;
   }
 }
@@ -89,10 +85,8 @@ export async function toggleFavorite(item: FavoriteItem): Promise<FavoriteItem[]
 
   let updated: FavoriteItem[];
   if (index >= 0) {
-    // Remover
     updated = current.filter((_, idx) => idx !== index);
   } else {
-    // Adicionar
     const newItem: FavoriteItem = {
       ...item,
       id: item.id || `fav_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -103,30 +97,28 @@ export async function toggleFavorite(item: FavoriteItem): Promise<FavoriteItem[]
 
   saveLocalFavorites(updated);
 
-  // Se o Supabase estiver autenticado, sincronizar em background
-  if (supabase) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        if (index >= 0) {
-          await supabase
-            .from('favorites')
-            .delete()
-            .match({ user_id: session.user.id, type: item.type, ref_code: item.ref_code });
-        } else {
-          await supabase.from('favorites').insert({
-            user_id: session.user.id,
-            type: item.type,
-            ref_code: item.ref_code,
-            title: item.title,
-            label: item.label || '',
-            details: item.details || {}
-          });
-        }
+  // Sincronizar com Supabase se usuário estiver autenticado
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      if (index >= 0) {
+        await supabase
+          .from('favorites')
+          .delete()
+          .match({ user_id: session.user.id, type: item.type, ref_code: item.ref_code });
+      } else {
+        await supabase.from('favorites').insert({
+          user_id: session.user.id,
+          type: item.type,
+          ref_code: item.ref_code,
+          title: item.title,
+          label: item.label || '',
+          details: item.details || {}
+        });
       }
-    } catch (e) {
-      console.warn('Falha na sincronização do Supabase:', e);
     }
+  } catch (e) {
+    console.warn('[Supabase] Erro ao sincronizar favorito na nuvem:', e);
   }
 
   return updated;
