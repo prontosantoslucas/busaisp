@@ -1,12 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { geocodeAddress, calculateRoute, searchAddressSuggestions, RouteLocation } from '@/lib/routing';
+import { supabase } from '@/lib/supabase';
+
+const DEFAULT_POPULAR_DESTINATIONS = [
+  'Shopping Center Norte',
+  'Metrô / Terminal Tucuruvi',
+  'Avenida Paulista, 1578',
+  'Metrô / Terminal Santana',
+  'Rua Flor de Maio, 40'
+];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tipo = searchParams.get('tipo');
   const query = searchParams.get('q');
 
-  // Sugestões de autocomplete enquanto digita
+  // 1. Destinos Mais Procurados em tempo real (com fallback resiliente)
+  if (tipo === 'destinos_populares') {
+    try {
+      const { data, error } = await supabase.rpc('get_popular_destinations', { limit_count: 6 });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const destinations = data.map((row: any) => row.destination_name);
+        return NextResponse.json({
+          success: true,
+          data: destinations
+        });
+      }
+    } catch (err) {
+      console.warn('[API /api/rotas] Fallback para destinos populares padrão:', err);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: DEFAULT_POPULAR_DESTINATIONS
+    });
+  }
+
+  // 2. Sugestões de autocomplete enquanto digita
   if (tipo === 'sugestoes' && query) {
     const suggestions = await searchAddressSuggestions(query);
     return NextResponse.json({
@@ -49,6 +79,22 @@ export async function GET(request: NextRequest) {
     }
 
     const routeResult = await calculateRoute(originLoc, destLoc);
+
+    // Registra o evento de busca de forma assíncrona (não bloqueia a resposta)
+    try {
+      supabase.from('search_events').insert({
+        origin_name: originLoc.name,
+        origin_lat: originLoc.lat,
+        origin_lng: originLoc.lng,
+        destination_name: destLoc.name,
+        destination_lat: destLoc.lat,
+        destination_lng: destLoc.lng
+      }).then(({ error }) => {
+        if (error) console.warn('[SearchEvents] Aviso ao registrar busca:', error.message);
+      });
+    } catch (e) {
+      // Ignora erro de telemetria
+    }
 
     return NextResponse.json({
       success: true,

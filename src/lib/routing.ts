@@ -1,6 +1,6 @@
 import { SPTransLinha, SPTransParada } from '@/types/sptrans';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
-import { findNearbyStops, findDirectRoutes, NearbyStop, DirectRoute } from '@/lib/gtfs';
+import { findNearbyStops, findDirectRoutes, findRoutesFromStops, NearbyStop, DirectRoute, ReachableRoute } from '@/lib/gtfs';
 
 export interface RouteLocation {
   name: string;
@@ -36,6 +36,7 @@ export interface RoutePlan {
   departureStop: SPTransParada;
   arrivalStop: SPTransParada;
   recommendedLine: SPTransLinha;
+  transferCount: number;
   nextBusEtaMinutes: number;
   nextBusVehiclePrefix?: string;
   departureSuggestion: string;
@@ -52,6 +53,14 @@ export interface RoutePlan {
 export interface RouteSearchResult {
   primaryRoute: RoutePlan;
   alternatives: RoutePlan[];
+}
+
+export interface DiscoveredLeg {
+  line: SPTransLinha;
+  boardStop: SPTransParada;
+  alightStop: SPTransParada;
+  etaMinutes: number;
+  vehiclePrefix: string;
 }
 
 const KNOWN_SP_LOCATIONS: Record<string, { lat: number; lng: number; name: string; details: string }> = {
@@ -241,112 +250,169 @@ function generatePedestrianWaypoints(start: [number, number], end: [number, numb
 }
 
 /**
- * Cria um plano de rota específico para uma linha de ônibus candidata
+ * Constrói um RoutePlan completo a partir de uma ou mais pernas de ônibus já
+ * resolvidas (parada de embarque, parada de desembarque, linha e previsão em
+ * tempo real de cada perna). Uma viagem direta é apenas o caso de uma única
+ * perna — sem baldeação, sem etapa de transferência entre pernas.
  */
-function buildPlanForLine(
+export function buildMultiLegPlan(
   originLoc: RouteLocation,
   destLoc: RouteLocation,
-  line: SPTransLinha,
-  origStop: SPTransParada,
-  destStop: SPTransParada,
-  busEtaMinutes: number,
-  vehiclePrefix: string
+  legs: DiscoveredLeg[]
 ): RoutePlan {
-  const hasRealTimeEta = busEtaMinutes >= 0;
+  const firstLeg = legs[0];
+  const lastLeg = legs[legs.length - 1];
+  const transferCount = legs.length - 1;
 
-  const walkToStopMeters = Math.max(120, getDistanceMeters(originLoc.lat, originLoc.lng, origStop.py, origStop.px));
+  const steps: RouteStep[] = [];
+  const transitPolyline: [number, number][] = [];
+
+  let totalDurationMinutes = 0;
+  let totalDistanceMeters = 0;
+  let totalWalkDistanceMeters = 0;
+  let totalWalkDurationMinutes = 0;
+  let totalEstimatedSteps = 0;
+
+  const walkToStopMeters = Math.max(120, getDistanceMeters(originLoc.lat, originLoc.lng, firstLeg.boardStop.py, firstLeg.boardStop.px));
   const walkToStopMinutes = Math.max(2, Math.round(walkToStopMeters / 75));
   const walkToStopSteps = Math.round(walkToStopMeters / 0.75);
-
-  const transitDistanceMeters = getDistanceMeters(origStop.py, origStop.px, destStop.py, destStop.px) || 4500;
-  const transitMinutes = Math.max(12, Math.round(transitDistanceMeters / 280));
-
-  const walkToDestMeters = Math.max(80, getDistanceMeters(destLoc.lat, destLoc.lng, destStop.py, destStop.px));
-  const walkToDestMinutes = Math.max(1, Math.round(walkToDestMeters / 75));
-  const walkToDestSteps = Math.round(walkToDestMeters / 0.75);
-
-  const totalWalkDistanceMeters = walkToStopMeters + walkToDestMeters;
-  const totalWalkDurationMinutes = walkToStopMinutes + walkToDestMinutes;
-  const totalEstimatedSteps = walkToStopSteps + walkToDestSteps;
-
-  const totalDurationMinutes = hasRealTimeEta
-    ? walkToStopMinutes + Math.max(0, busEtaMinutes - walkToStopMinutes) + transitMinutes + walkToDestMinutes
-    : walkToStopMinutes + transitMinutes + walkToDestMinutes;
-  const totalDistanceMeters = walkToStopMeters + transitDistanceMeters + walkToDestMeters;
-
-  let departureSuggestion = '';
-  if (!hasRealTimeEta) {
-    departureSuggestion = `🚶 Caminhe até ${origStop.np} (${walkToStopMinutes} min). Sem previsão em tempo real para a linha ${line.lt} agora — confira o horário no ponto.`;
-  } else if (busEtaMinutes <= walkToStopMinutes + 1) {
-    departureSuggestion = `⚡ Saia a pé agora! Você leva ${walkToStopMinutes} min até o ponto e o ônibus #${vehiclePrefix} chega em ${busEtaMinutes} min.`;
-  } else {
-    const waitTime = busEtaMinutes - walkToStopMinutes;
-    departureSuggestion = `🚶 Saia a pé em ~${waitTime} min para chegar ao ponto exatamente quando o ônibus #${vehiclePrefix} estiver se aproximando.`;
-  }
-
   const walkToStopPath = generatePedestrianWaypoints(
     [originLoc.lat, originLoc.lng],
-    [origStop.py, origStop.px]
+    [firstLeg.boardStop.py, firstLeg.boardStop.px]
   );
 
-  const midLat1 = (origStop.py * 2 + destStop.py) / 3;
-  const midLng1 = (origStop.px * 2 + destStop.px) / 3 + 0.003;
-  const midLat2 = (origStop.py + destStop.py * 2) / 3;
-  const midLng2 = (origStop.px + destStop.py * 2) / 3 - 0.002;
+  steps.push({
+    type: 'WALK',
+    instruction: `Caminhe a pé até ${firstLeg.boardStop.np}`,
+    detailedWalkGuide: `Siga pelas calçadas por ${walkToStopMeters}m (~${walkToStopSteps} passos). Tempo estimado: ${walkToStopMinutes} min.`,
+    durationMinutes: walkToStopMinutes,
+    distanceMeters: walkToStopMeters,
+    estimatedSteps: walkToStopSteps,
+    stopName: firstLeg.boardStop.np
+  });
 
-  const transitPath: [number, number][] = [
-    [origStop.py, origStop.px],
-    [midLat1, midLng1],
-    [midLat2, midLng2],
-    [destStop.py, destStop.px]
-  ];
+  totalWalkDistanceMeters += walkToStopMeters;
+  totalWalkDurationMinutes += walkToStopMinutes;
+  totalEstimatedSteps += walkToStopSteps;
+  totalDurationMinutes += walkToStopMinutes;
+  totalDistanceMeters += walkToStopMeters;
 
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    const hasRealTimeEta = leg.etaMinutes >= 0;
+
+    const transitDistanceMeters = getDistanceMeters(leg.boardStop.py, leg.boardStop.px, leg.alightStop.py, leg.alightStop.px) || 4500;
+    const transitMinutes = Math.max(12, Math.round(transitDistanceMeters / 280));
+
+    steps.push({
+      type: 'BUS',
+      instruction: `Embarque na linha ${leg.line.lt}-${leg.line.tl} (${leg.line.ts})`,
+      detailedWalkGuide: `Aguarde na parada. Letreiro do ônibus: DESTINO ${leg.line.ts}`,
+      durationMinutes: transitMinutes,
+      distanceMeters: transitDistanceMeters,
+      busLine: `${leg.line.lt}-${leg.line.tl}`,
+      busDestination: leg.line.ts,
+      nextBusEtaMinutes: hasRealTimeEta ? leg.etaMinutes : undefined,
+      accuracyLevel: hasRealTimeEta ? 'HIGH' : 'ESTIMATED',
+      lastTelemetryText: hasRealTimeEta ? 'Sinal GPS em tempo real' : 'Sem sinal GPS em tempo real disponível',
+      stopName: leg.alightStop.np
+    });
+
+    const midLat1 = (leg.boardStop.py * 2 + leg.alightStop.py) / 3;
+    const midLng1 = (leg.boardStop.px * 2 + leg.alightStop.px) / 3 + 0.003;
+    const midLat2 = (leg.boardStop.py + leg.alightStop.py * 2) / 3;
+    const midLng2 = (leg.boardStop.px + leg.alightStop.py * 2) / 3 - 0.002;
+    transitPolyline.push(
+      [leg.boardStop.py, leg.boardStop.px],
+      [midLat1, midLng1],
+      [midLat2, midLng2],
+      [leg.alightStop.py, leg.alightStop.px]
+    );
+
+    totalDurationMinutes += transitMinutes;
+    totalDistanceMeters += transitDistanceMeters;
+
+    const nextLeg = legs[i + 1];
+    if (nextLeg) {
+      const transferMeters = getDistanceMeters(leg.alightStop.py, leg.alightStop.px, nextLeg.boardStop.py, nextLeg.boardStop.px);
+
+      if (transferMeters > 30) {
+        const transferMinutes = Math.max(1, Math.round(transferMeters / 75));
+        const transferSteps = Math.round(transferMeters / 0.75);
+        steps.push({
+          type: 'WALK',
+          instruction: `Faça a baldeação a pé até ${nextLeg.boardStop.np}`,
+          detailedWalkGuide: `Caminhe ${transferMeters}m (~${transferSteps} passos) até o próximo ponto de embarque.`,
+          durationMinutes: transferMinutes,
+          distanceMeters: transferMeters,
+          estimatedSteps: transferSteps,
+          stopName: nextLeg.boardStop.np
+        });
+        totalWalkDistanceMeters += transferMeters;
+        totalWalkDurationMinutes += transferMinutes;
+        totalEstimatedSteps += transferSteps;
+        totalDurationMinutes += transferMinutes;
+        totalDistanceMeters += transferMeters;
+      } else {
+        steps.push({
+          type: 'WALK',
+          instruction: `Aguarde a próxima linha em ${nextLeg.boardStop.np}`,
+          durationMinutes: 0,
+          distanceMeters: 0,
+          stopName: nextLeg.boardStop.np
+        });
+      }
+    }
+  }
+
+  const walkToDestMeters = Math.max(80, getDistanceMeters(destLoc.lat, destLoc.lng, lastLeg.alightStop.py, lastLeg.alightStop.px));
+  const walkToDestMinutes = Math.max(1, Math.round(walkToDestMeters / 75));
+  const walkToDestSteps = Math.round(walkToDestMeters / 0.75);
   const walkToDestPath = generatePedestrianWaypoints(
-    [destStop.py, destStop.px],
+    [lastLeg.alightStop.py, lastLeg.alightStop.px],
     [destLoc.lat, destLoc.lng]
   );
 
-  const steps: RouteStep[] = [
-    {
-      type: 'WALK',
-      instruction: `Caminhe a pé até ${origStop.np}`,
-      detailedWalkGuide: `Siga pelas calçadas por ${walkToStopMeters}m (~${walkToStopSteps} passos). Tempo estimado: ${walkToStopMinutes} min.`,
-      durationMinutes: walkToStopMinutes,
-      distanceMeters: walkToStopMeters,
-      estimatedSteps: walkToStopSteps,
-      stopName: origStop.np
-    },
-    {
-      type: 'BUS',
-      instruction: `Embarque na linha ${line.lt}-${line.tl} (${line.ts})`,
-      detailedWalkGuide: `Aguarde na parada. Letreiro do ônibus: DESTINO ${line.ts}`,
-      durationMinutes: transitMinutes,
-      distanceMeters: transitDistanceMeters,
-      busLine: `${line.lt}-${line.tl}`,
-      busDestination: line.ts,
-      nextBusEtaMinutes: hasRealTimeEta ? busEtaMinutes : undefined,
-      accuracyLevel: hasRealTimeEta ? 'HIGH' : 'ESTIMATED',
-      lastTelemetryText: hasRealTimeEta ? 'Sinal GPS em tempo real' : 'Sem sinal GPS em tempo real disponível'
-    },
-    {
-      type: 'WALK',
-      instruction: `Desembarque em ${destStop.np} e caminhe a pé até o destino`,
-      detailedWalkGuide: `Caminhada final de ${walkToDestMeters}m (~${walkToDestSteps} passos) até ${destLoc.name}.`,
-      durationMinutes: walkToDestMinutes,
-      distanceMeters: walkToDestMeters,
-      estimatedSteps: walkToDestSteps,
-      stopName: destStop.np
-    },
-    {
-      type: 'DESTINATION',
-      instruction: `Chegada no destino: ${destLoc.name}`,
-      durationMinutes: 0,
-      distanceMeters: 0
-    }
-  ];
+  steps.push({
+    type: 'WALK',
+    instruction: `Desembarque em ${lastLeg.alightStop.np} e caminhe a pé até o destino`,
+    detailedWalkGuide: `Caminhada final de ${walkToDestMeters}m (~${walkToDestSteps} passos) até ${destLoc.name}.`,
+    durationMinutes: walkToDestMinutes,
+    distanceMeters: walkToDestMeters,
+    estimatedSteps: walkToDestSteps,
+    stopName: lastLeg.alightStop.np
+  });
+
+  steps.push({
+    type: 'DESTINATION',
+    instruction: `Chegada no destino: ${destLoc.name}`,
+    durationMinutes: 0,
+    distanceMeters: 0
+  });
+
+  totalWalkDistanceMeters += walkToDestMeters;
+  totalWalkDurationMinutes += walkToDestMinutes;
+  totalEstimatedSteps += walkToDestSteps;
+  totalDurationMinutes += walkToDestMinutes;
+  totalDistanceMeters += walkToDestMeters;
+
+  const hasFirstLegEta = firstLeg.etaMinutes >= 0;
+
+  let departureSuggestion = '';
+  if (!hasFirstLegEta) {
+    departureSuggestion = `🚶 Caminhe até ${firstLeg.boardStop.np} (${walkToStopMinutes} min). Sem previsão em tempo real para a linha ${firstLeg.line.lt} agora — confira o horário no ponto.`;
+  } else if (firstLeg.etaMinutes <= walkToStopMinutes + 1) {
+    departureSuggestion = `⚡ Saia a pé agora! Você leva ${walkToStopMinutes} min até o ponto e o ônibus #${firstLeg.vehiclePrefix} chega em ${firstLeg.etaMinutes} min.`;
+  } else {
+    const waitTime = firstLeg.etaMinutes - walkToStopMinutes;
+    departureSuggestion = `🚶 Saia a pé em ~${waitTime} min para chegar ao ponto exatamente quando o ônibus #${firstLeg.vehiclePrefix} estiver se aproximando.`;
+  }
+  if (transferCount > 0) {
+    departureSuggestion += ` Essa viagem tem ${transferCount} ${transferCount === 1 ? 'baldeação' : 'baldeações'}.`;
+  }
 
   return {
-    id: `route_${line.lt}_${Date.now()}`,
+    id: `route_${legs.map(l => l.line.lt).join('_')}_${Date.now()}`,
     origin: originLoc,
     destination: destLoc,
     totalDurationMinutes,
@@ -354,18 +420,19 @@ function buildPlanForLine(
     totalWalkDistanceMeters,
     totalWalkDurationMinutes,
     totalEstimatedSteps,
-    departureStop: origStop,
-    arrivalStop: destStop,
-    recommendedLine: line,
-    nextBusEtaMinutes: hasRealTimeEta ? busEtaMinutes : -1,
-    nextBusVehiclePrefix: vehiclePrefix || undefined,
+    departureStop: firstLeg.boardStop,
+    arrivalStop: lastLeg.alightStop,
+    recommendedLine: firstLeg.line,
+    transferCount,
+    nextBusEtaMinutes: hasFirstLegEta ? firstLeg.etaMinutes : -1,
+    nextBusVehiclePrefix: firstLeg.vehiclePrefix || undefined,
     departureSuggestion,
-    accuracyLevel: hasRealTimeEta ? 'HIGH' : 'ESTIMATED',
-    lastTelemetryText: hasRealTimeEta ? 'Sinal GPS em tempo real (Alta Precisão)' : 'Sem sinal GPS em tempo real disponível para esta linha',
+    accuracyLevel: hasFirstLegEta ? 'HIGH' : 'ESTIMATED',
+    lastTelemetryText: hasFirstLegEta ? 'Sinal GPS em tempo real (Alta Precisão)' : 'Sem sinal GPS em tempo real disponível para esta linha',
     steps,
     polyline: {
       walkToStop: walkToStopPath,
-      transit: transitPath,
+      transit: transitPolyline,
       walkToDest: walkToDestPath
     }
   };
@@ -389,7 +456,7 @@ function gtfsStopToParada(stop: NearbyStop): SPTransParada {
   };
 }
 
-function directRouteToLinha(route: DirectRoute): SPTransLinha {
+function directRouteToLinha(route: DirectRoute | ReachableRoute): SPTransLinha {
   const numericCl = Number(route.routeId.replace(/\D/g, '')) || 0;
   const [ladoA, ladoB] = (route.routeLongName || '').split(/[-–]/).map(s => s.trim());
 
@@ -437,67 +504,140 @@ async function resolveRealTimeEta(
   return { eta: etaMinutos, prefix: proximoVeiculo.p };
 }
 
+const MAX_TRANSFER_ROUNDS = 4;
+const MAX_FRONTIER_PER_ROUND = 40;
+const MAX_ALTERNATIVES = 10;
+
+interface FrontierEntry {
+  stop: NearbyStop;
+  legs: DiscoveredLeg[];
+}
+
+async function resolveLegEta(boardStop: SPTransParada, line: SPTransLinha): Promise<{ eta: number; prefix: string }> {
+  try {
+    return await resolveRealTimeEta(boardStop.cp, line.lt, line.ts);
+  } catch (err) {
+    console.warn(`[Routing] Falha ao buscar previsão em tempo real para a linha ${line.lt}:`, err);
+    return { eta: -1, prefix: '' };
+  }
+}
+
+/**
+ * Busca em ondas (BFS por rodadas):
+ * Rodada 1 = conexões diretas (0 baldeações)
+ * Rodada 2..4 = expande a fronteira de paradas e testa conexão direta com o destino (1+ baldeações)
+ * Resultados ordenados por tempo total primeiro, depois por distância a pé, depois por baldeações.
+ */
+async function findMultiLegPlans(
+  originLoc: RouteLocation,
+  destLoc: RouteLocation,
+  origNearby: NearbyStop[],
+  destNearby: NearbyStop[]
+): Promise<RoutePlan[]> {
+  const destStopIds = destNearby.map(s => s.stopId);
+  const destByStopId = new Map(destNearby.map(s => [s.stopId, s]));
+  const visited = new Set<string>(origNearby.map(s => s.stopId));
+
+  let frontier: FrontierEntry[] = origNearby.map(stop => ({ stop, legs: [] }));
+  const plans: RoutePlan[] = [];
+
+  for (let round = 1; round <= MAX_TRANSFER_ROUNDS && frontier.length > 0 && plans.length < MAX_ALTERNATIVES; round++) {
+    const frontierByStopId = new Map(frontier.map(f => [f.stop.stopId, f]));
+    const frontierStopIds = Array.from(frontierByStopId.keys());
+
+    const directRoutes = await findDirectRoutes(frontierStopIds, destStopIds, 20);
+
+    for (const route of directRoutes) {
+      const originEntry = frontierByStopId.get(route.originStopId);
+      const destStopInfo = destByStopId.get(route.destStopId);
+      if (!originEntry || !destStopInfo) continue;
+
+      const line = directRouteToLinha(route);
+      if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
+
+      const boardStop = gtfsStopToParada(originEntry.stop);
+      const alightStop = gtfsStopToParada(destStopInfo);
+      const { eta, prefix } = await resolveLegEta(boardStop, line);
+
+      const legs: DiscoveredLeg[] = [...originEntry.legs, { line, boardStop, alightStop, etaMinutes: eta, vehiclePrefix: prefix }];
+      plans.push(buildMultiLegPlan(originLoc, destLoc, legs));
+
+      if (plans.length >= MAX_ALTERNATIVES) break;
+    }
+
+    if (plans.length >= MAX_ALTERNATIVES || round === MAX_TRANSFER_ROUNDS) break;
+
+    const expansion = await findRoutesFromStops(frontierStopIds, 300);
+    const nextFrontierByStopId = new Map<string, FrontierEntry>();
+
+    for (const route of expansion) {
+      if (visited.has(route.destStopId)) continue;
+      if (nextFrontierByStopId.size >= MAX_FRONTIER_PER_ROUND) break;
+
+      const originEntry = frontierByStopId.get(route.originStopId);
+      if (!originEntry) continue;
+
+      const line = directRouteToLinha(route);
+      if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
+
+      const boardStop = gtfsStopToParada(originEntry.stop);
+      const alightStop: SPTransParada = {
+        cp: stopIdToCodigoParada(route.destStopId),
+        np: route.destStopName,
+        ed: '',
+        py: route.destStopLat,
+        px: route.destStopLng
+      };
+      const { eta, prefix } = await resolveLegEta(boardStop, line);
+
+      const legs: DiscoveredLeg[] = [...originEntry.legs, { line, boardStop, alightStop, etaMinutes: eta, vehiclePrefix: prefix }];
+      visited.add(route.destStopId);
+      nextFrontierByStopId.set(route.destStopId, {
+        stop: { stopId: route.destStopId, name: route.destStopName, lat: route.destStopLat, lng: route.destStopLng, distanceMeters: 0 },
+        legs
+      });
+    }
+
+    frontier = Array.from(nextFrontierByStopId.values());
+  }
+
+  return plans;
+}
+
 /**
  * Motor de Roteirização Multimodal — busca paradas e linhas reais (GTFS)
- * perto da origem e do destino. Apenas viagens diretas (sem baldeação);
- * rotas com troca de ônibus ficam para uma fase futura do roteiro.
+ * perto da origem e do destino com raio de 2,5km, incluindo viagens com baldeação.
+ * Ordenado por tempo total estimado primeiro, depois distância a pé, depois baldeações.
  */
 export async function calculateRoute(
   originLoc: RouteLocation,
   destLoc: RouteLocation
 ): Promise<RouteSearchResult> {
-  const origNearby = await findNearbyStops(originLoc.lat, originLoc.lng);
+  const origNearby = await findNearbyStops(originLoc.lat, originLoc.lng, 2500, 15);
   if (origNearby.length === 0) {
-    throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada.');
+    throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada (raio de 2,5 km).');
   }
 
-  const destNearby = await findNearbyStops(destLoc.lat, destLoc.lng);
+  const destNearby = await findNearbyStops(destLoc.lat, destLoc.lng, 2500, 15);
   if (destNearby.length === 0) {
-    throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado.');
+    throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado (raio de 2,5 km).');
   }
 
-  const directRoutes = await findDirectRoutes(
-    origNearby.map(s => s.stopId),
-    destNearby.map(s => s.stopId)
-  );
+  const plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby);
 
-  if (directRoutes.length === 0) {
-    throw new Error('Nenhuma linha direta encontrada conectando a origem ao destino. Rotas com baldeação ainda não são suportadas.');
+  if (plans.length === 0) {
+    throw new Error('Nenhuma linha encontrada conectando a origem ao destino, mesmo considerando baldeações.');
   }
 
-  const stopById = new Map<string, NearbyStop>(
-    [...origNearby, ...destNearby].map(stop => [stop.stopId, stop])
+  // Ordenação: Tempo Total -> Distância a Pé -> Baldeações
+  plans.sort((a, b) =>
+    a.totalDurationMinutes - b.totalDurationMinutes ||
+    a.totalWalkDistanceMeters - b.totalWalkDistanceMeters ||
+    a.transferCount - b.transferCount
   );
-
-  const plans = await Promise.all(
-    directRoutes.map(async (route) => {
-      const origStopInfo = stopById.get(route.originStopId);
-      const destStopInfo = stopById.get(route.destStopId);
-      if (!origStopInfo || !destStopInfo) return null;
-
-      const origStop = gtfsStopToParada(origStopInfo);
-      const destStop = gtfsStopToParada(destStopInfo);
-      const line = directRouteToLinha(route);
-
-      let eta = -1;
-      let prefix = '';
-      try {
-        const resolved = await resolveRealTimeEta(origStop.cp, line.lt, line.ts);
-        eta = resolved.eta;
-        prefix = resolved.prefix;
-      } catch (err) {
-        console.warn(`[Routing] Falha ao buscar previsão em tempo real para a linha ${line.lt}:`, err);
-      }
-
-      return buildPlanForLine(originLoc, destLoc, line, origStop, destStop, eta, prefix);
-    })
-  );
-
-  const validPlans = plans.filter((plan): plan is RoutePlan => plan !== null);
-  validPlans.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
 
   return {
-    primaryRoute: validPlans[0],
-    alternatives: validPlans
+    primaryRoute: plans[0],
+    alternatives: plans
   };
 }

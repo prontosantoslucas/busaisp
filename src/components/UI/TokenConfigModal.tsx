@@ -101,12 +101,12 @@ export default function TokenConfigModal({ isOpen, onClose }: TokenConfigModalPr
               <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
                 {authStatus?.authenticated
                   ? 'API Olho Vivo Conectada em Tempo Real'
-                  : 'Modo Demonstração Interativo Ativo'}
+                  : 'Aguardando Conexão com a API SPTrans'}
               </div>
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.4 }}>
                 {authStatus?.authenticated
                   ? 'Sua chave de desenvolvedor está validada. Posições e previsões são consultadas diretamente da SPTrans.'
-                  : 'O aplicativo está funcionando com o simulador de alta fidelidade de linhas de SP (8000, 8700, 6450, etc.). Para usar 100% ao vivo com toda a frota municipal:'}
+                  : 'Para ativar o rastreamento em tempo real com toda a frota municipal da SPTrans:'}
               </p>
             </div>
           </div>

@@ -41,7 +41,26 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
   const [routeResult, setRouteResult] = useState<RouteSearchResult | null>(null);
   const [calculationError, setCalculationError] = useState<string | null>(null);
   const [selectedAlternativeIndex, setSelectedAlternativeIndex] = useState<number>(0);
+  const [popularDestinations, setPopularDestinations] = useState<string[]>([
+    'Shopping Center Norte',
+    'Metrô / Terminal Tucuruvi',
+    'Avenida Paulista, 1578',
+    'Metrô / Terminal Santana',
+    'Rua Flor de Maio, 40'
+  ]);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Carregar destinos mais procurados da API
+  useEffect(() => {
+    fetch('/api/rotas?tipo=destinos_populares')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setPopularDestinations(json.data);
+        }
+      })
+      .catch(err => console.warn('Erro ao carregar destinos populares:', err));
+  }, []);
 
   // Auto-calcular rota padrão inicial ao abrir o app
   useEffect(() => {
@@ -338,36 +357,38 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
           )}
         </div>
 
-        {/* Atalhos Rápidos */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-          {[
-            { label: 'Rua Flor de Maio', query: 'Rua Flor de Maio, 40' },
-            { label: 'Center Norte', query: 'Shopping Center Norte' },
-            { label: 'Jd. Fontális', query: 'Jardim Fontalis' },
-            { label: 'Metrô Tucuruvi', query: 'Metrô Tucuruvi' },
-            { label: 'Av. Paulista', query: 'Av. Paulista, 1578' }
-          ].map((dest) => (
-            <button
-              key={dest.query}
-              onClick={() => {
-                setDestino(dest.query);
-                handleCalculate(dest.query);
-              }}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                background: 'rgba(255, 255, 255, 0.04)',
-                color: 'var(--text-secondary)',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              📍 {dest.label}
-            </button>
-          ))}
+        {/* Destinos Mais Procurados */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+            🔥 Destinos Mais Procurados:
+          </div>
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {popularDestinations.map((dest) => (
+              <button
+                key={dest}
+                onClick={() => {
+                  setDestino(dest);
+                  handleCalculate(dest);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')}
+              >
+                📍 {dest}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Botão de Ação */}
@@ -466,18 +487,37 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {/* Badge da Linha */}
-                    <div
-                      style={{
-                        background: 'var(--accent-sptrans)',
-                        color: '#fff',
-                        padding: '8px 12px',
-                        borderRadius: '10px',
-                        fontWeight: 900,
-                        fontSize: '14px',
-                        boxShadow: '0 2px 8px rgba(227, 6, 19, 0.4)'
-                      }}
-                    >
-                      {alt.recommendedLine.lt}-{alt.recommendedLine.tl}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        style={{
+                          background: 'var(--accent-sptrans)',
+                          color: '#fff',
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          fontWeight: 900,
+                          fontSize: '14px',
+                          boxShadow: '0 2px 8px rgba(227, 6, 19, 0.4)'
+                        }}
+                      >
+                        {alt.recommendedLine.lt}-{alt.recommendedLine.tl}
+                      </div>
+
+                      {alt.transferCount > 0 && (
+                        <div
+                          style={{
+                            background: 'rgba(251, 191, 36, 0.18)',
+                            color: '#FBBF24',
+                            border: '1px solid rgba(251, 191, 36, 0.35)',
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {alt.transferCount} {alt.transferCount === 1 ? 'baldeação' : 'baldeações'}
+                        </div>
+                      )}
                     </div>
 
                     <div>

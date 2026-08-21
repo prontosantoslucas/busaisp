@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         success: true,
         authenticated: Boolean(cookie),
         hasToken: hasEnvToken,
-        message: cookie ? 'Conectado à API SPTrans Olho Vivo' : 'Modo Demonstração (Token não inserido ou inválido)',
+        message: cookie ? 'Conectado à API SPTrans Olho Vivo' : 'Aguardando autenticação SPTrans',
         timestamp
       });
     }

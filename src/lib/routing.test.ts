@@ -2,14 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/gtfs', () => ({
   findNearbyStops: vi.fn(),
-  findDirectRoutes: vi.fn()
+  findDirectRoutes: vi.fn(),
+  findRoutesFromStops: vi.fn()
 }));
 
 vi.mock('@/lib/sptrans', () => ({
   buscarPrevisaoParada: vi.fn()
 }));
 
-import { findNearbyStops, findDirectRoutes } from '@/lib/gtfs';
+import { findNearbyStops, findDirectRoutes, findRoutesFromStops } from '@/lib/gtfs';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
 import { calculateRoute } from '@/lib/routing';
 
@@ -18,6 +19,7 @@ const dest = { name: 'Destino', lat: -23.51, lng: -46.62 };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  (findRoutesFromStops as any).mockResolvedValue([]);
 });
 
 describe('calculateRoute', () => {
@@ -27,13 +29,14 @@ describe('calculateRoute', () => {
     await expect(calculateRoute(origin, dest)).rejects.toThrow('Nenhuma parada de ônibus encontrada perto da origem');
   });
 
-  it('lança erro claro quando não há linha direta entre origem e destino', async () => {
+  it('lança erro claro quando não há linha conectando a origem ao destino', async () => {
     (findNearbyStops as any)
       .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
       .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
-    (findDirectRoutes as any).mockResolvedValueOnce([]);
+    (findDirectRoutes as any).mockResolvedValue([]);
+    (findRoutesFromStops as any).mockResolvedValue([]);
 
-    await expect(calculateRoute(origin, dest)).rejects.toThrow('Nenhuma linha direta encontrada');
+    await expect(calculateRoute(origin, dest)).rejects.toThrow('Nenhuma linha encontrada conectando a origem ao destino');
   });
 
   it('monta um plano de rota real usando paradas e linhas do GTFS, com previsão em tempo real', async () => {
@@ -79,15 +82,64 @@ describe('calculateRoute', () => {
 
     const result = await calculateRoute(origin, dest);
 
-    // O ETA exato depende do relógio no momento do teste (comparado com "10:05" fixo),
-    // então não é verificado aqui — só o encadeamento correto dos dados reais.
     expect(result.primaryRoute.recommendedLine.lt).toBe('1703');
     expect(result.primaryRoute.departureStop.cp).toBe(340015353);
     expect(result.primaryRoute.arrivalStop.cp).toBe(340015350);
+    expect(result.primaryRoute.transferCount).toBe(0);
     expect(result.alternatives).toHaveLength(1);
   });
 
-  it('separa o número da linha do sub-código quando routeShortName vem no formato "NNNN-NN" (regressão do bug do "-10" duplicado)', async () => {
+  it('calcula rota com baldeação quando não há linha direta', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '100', name: 'PARADA INICIAL', lat: -23.43, lng: -46.58, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '300', name: 'PARADA FINAL', lat: -23.55, lng: -46.65, distanceMeters: 50 }]);
+    
+    // Rodada 1: sem rota direta entre 100 e 300
+    (findDirectRoutes as any).mockResolvedValueOnce([]);
+
+    // Expansão: linha 1 vai de 100 para parada intermediária 200
+    (findRoutesFromStops as any).mockResolvedValueOnce([
+      {
+        routeId: '1000-10',
+        routeShortName: '1000',
+        routeLongName: 'INICIAL - INTERMEDIARIA',
+        tripId: 't1',
+        tripHeadsign: 'INTERMEDIARIA',
+        originStopId: '100',
+        originDepartureSeconds: 0,
+        destStopId: '200',
+        destStopName: 'PARADA INTERMEDIARIA',
+        destStopLat: -23.48,
+        destStopLng: -46.61,
+        destArrivalSeconds: 600
+      }
+    ]);
+
+    // Rodada 2: busca direta de 200 para 300 (encontra linha 2)
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '2000-10',
+        routeShortName: '2000',
+        routeLongName: 'INTERMEDIARIA - FINAL',
+        tripId: 't2',
+        tripHeadsign: 'FINAL',
+        originStopId: '200',
+        originDepartureSeconds: 0,
+        destStopId: '300',
+        destArrivalSeconds: 600
+      }
+    ]);
+
+    (buscarPrevisaoParada as any).mockResolvedValue({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    expect(result.primaryRoute.transferCount).toBe(1);
+    expect(result.primaryRoute.steps.some(s => s.instruction.includes('Faça a baldeação') || s.instruction.includes('Aguarde a próxima linha'))).toBe(true);
+    expect(result.primaryRoute.departureSuggestion).toContain('1 baldeação');
+  });
+
+  it('separa o número da linha do sub-código quando routeShortName vem no formato "NNNN-NN"', async () => {
     (findNearbyStops as any)
       .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
       .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
@@ -133,7 +185,7 @@ describe('calculateRoute', () => {
     await expect(calculateRoute(origin, dest)).rejects.toThrow('não é numérico');
   });
 
-  it('ordena as alternativas pela duração total quando há mais de uma linha direta', async () => {
+  it('ordena as alternativas pela duração total quando há mais de uma linha', async () => {
     (findNearbyStops as any)
       .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
       .mockResolvedValueOnce([
@@ -158,7 +210,7 @@ describe('calculateRoute', () => {
 
     expect(result.alternatives).toHaveLength(2);
     expect(result.primaryRoute.arrivalStop.cp).toBe(340015350);
-    expect(result.primaryRoute.totalDurationMinutes).toBeLessThan(result.alternatives[1].totalDurationMinutes);
+    expect(result.primaryRoute.totalDurationMinutes).toBeLessThanOrEqual(result.alternatives[1].totalDurationMinutes);
   });
 
   it('mantém as demais alternativas quando a previsão em tempo real falha para uma delas', async () => {

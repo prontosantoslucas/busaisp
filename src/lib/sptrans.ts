@@ -2,15 +2,9 @@ import {
   SPTransLinha,
   SPTransParada,
   SPTransPosicaoLinha,
-  SPTransPrevisaoResponse,
-  SPTransVeiculo
+  SPTransPrevisaoResponse
 } from '@/types/sptrans';
-import {
-  MOCK_LINHAS,
-  MOCK_PARADAS,
-  getMockVeiculos,
-  getMockPrevisaoParada
-} from '@/lib/mockData';
+import { supabase } from '@/lib/supabase';
 
 const SPTRANS_BASE_URL = 'http://api.olhovivo.sptrans.com.br/v2.1';
 
@@ -155,12 +149,15 @@ async function fetchSPTrans<T>(endpoint: string): Promise<{ data: T | null; isMo
 }
 
 // -------------------------------------------------------------
-// Funções Públicas de Produção com Dados da Linha 1703-10
+// Funções Públicas de Produção com Dados Reais SPTrans & GTFS
 // -------------------------------------------------------------
 
 export async function buscarLinhas(termosBusca: string): Promise<{ linhas: SPTransLinha[]; isMock: boolean }> {
-  if (!termosBusca) return { linhas: MOCK_LINHAS, isMock: false };
+  if (!termosBusca || termosBusca.trim().length === 0) {
+    return { linhas: [], isMock: false };
+  }
 
+  // 1. Tenta buscar direto na Olho Vivo (SPTrans)
   const { data } = await fetchSPTrans<SPTransLinha[]>(
     `/Linha/Buscar?termosBusca=${encodeURIComponent(termosBusca)}`
   );
@@ -169,25 +166,50 @@ export async function buscarLinhas(termosBusca: string): Promise<{ linhas: SPTra
     return { linhas: data, isMock: false };
   }
 
-  const query = termosBusca.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const filtered = MOCK_LINHAS.filter(l => {
-    const cleanLt = l.lt.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanFull = `${l.lt}-${l.tl}`.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return cleanLt.includes(query) ||
-      cleanFull.includes(query) ||
-      l.tp.toLowerCase().includes(termosBusca.toLowerCase()) ||
-      l.ts.toLowerCase().includes(termosBusca.toLowerCase());
-  });
+  // 2. Fallback para banco GTFS PostGIS (1.361 linhas cadastradas)
+  try {
+    const cleanQuery = termosBusca.trim();
+    const { data: gtfsData, error } = await supabase
+      .from('gtfs_routes')
+      .select('route_id, short_name, long_name')
+      .or(`short_name.ilike.%${cleanQuery}%,long_name.ilike.%${cleanQuery}%`)
+      .limit(25);
 
-  return {
-    linhas: filtered.length > 0 ? filtered : MOCK_LINHAS,
-    isMock: false
-  };
+    if (!error && gtfsData && gtfsData.length > 0) {
+      const linhas: SPTransLinha[] = gtfsData.map((r: any) => {
+        const shortName = r.short_name || r.route_id;
+        const lastDash = shortName.lastIndexOf('-');
+        const lt = lastDash > 0 ? shortName.slice(0, lastDash) : shortName;
+        const tl = lastDash > 0 ? Number(shortName.slice(lastDash + 1)) || 10 : 10;
+        const [ladoA, ladoB] = (r.long_name || '').split(/[-–]/).map((s: string) => s.trim());
+        const numericCl = Number(r.route_id.replace(/\D/g, '')) || 0;
+
+        return {
+          cl: numericCl,
+          lc: false,
+          lt,
+          tl,
+          sl: 1,
+          tp: ladoA || '',
+          ts: ladoB || ladoA || ''
+        };
+      });
+
+      return { linhas, isMock: false };
+    }
+  } catch (err) {
+    console.warn('[SPTrans] Erro ao buscar linhas no banco GTFS:', err);
+  }
+
+  return { linhas: [], isMock: false };
 }
 
 export async function buscarParadas(termosBusca: string): Promise<{ paradas: SPTransParada[]; isMock: boolean }> {
-  if (!termosBusca) return { paradas: MOCK_PARADAS, isMock: false };
+  if (!termosBusca || termosBusca.trim().length === 0) {
+    return { paradas: [], isMock: false };
+  }
 
+  // 1. Tenta buscar direto na Olho Vivo (SPTrans)
   const { data } = await fetchSPTrans<SPTransParada[]>(
     `/Parada/Buscar?termosBusca=${encodeURIComponent(termosBusca)}`
   );
@@ -196,16 +218,31 @@ export async function buscarParadas(termosBusca: string): Promise<{ paradas: SPT
     return { paradas: data, isMock: false };
   }
 
-  const query = termosBusca.toLowerCase();
-  const filtered = MOCK_PARADAS.filter(p =>
-    p.np.toLowerCase().includes(query) ||
-    p.ed.toLowerCase().includes(query)
-  );
+  // 2. Fallback para banco GTFS PostGIS (22.241 paradas cadastradas)
+  try {
+    const cleanQuery = termosBusca.trim();
+    const { data: gtfsData, error } = await supabase
+      .from('gtfs_stops')
+      .select('stop_id, name, lat, lng')
+      .ilike('name', `%${cleanQuery}%`)
+      .limit(25);
 
-  return {
-    paradas: filtered.length > 0 ? filtered : MOCK_PARADAS,
-    isMock: false
-  };
+    if (!error && gtfsData && gtfsData.length > 0) {
+      const paradas: SPTransParada[] = gtfsData.map((s: any) => ({
+        cp: Number(s.stop_id) || 0,
+        np: s.name,
+        ed: '',
+        py: s.lat,
+        px: s.lng
+      }));
+
+      return { paradas, isMock: false };
+    }
+  } catch (err) {
+    console.warn('[SPTrans] Erro ao buscar paradas no banco GTFS:', err);
+  }
+
+  return { paradas: [], isMock: false };
 }
 
 export async function buscarPosicaoLinha(codigoLinha: number): Promise<{ posicao: SPTransPosicaoLinha | null; isMock: boolean }> {
@@ -217,22 +254,14 @@ export async function buscarPosicaoLinha(codigoLinha: number): Promise<{ posicao
     return { posicao: data, isMock: false };
   }
 
-  const now = new Date();
-  const hr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  return {
-    posicao: {
-      hr,
-      vs: getMockVeiculos(codigoLinha)
-    },
-    isMock: false
-  };
+  return { posicao: null, isMock: false };
 }
 
 export async function buscarPrevisaoParada(codigoParada: number): Promise<{ previsao: SPTransPrevisaoResponse | null; isMock: boolean }> {
   const cookie = await authenticateSPTrans();
 
   if (!cookie) {
-    return { previsao: getMockPrevisaoParada(codigoParada), isMock: true };
+    return { previsao: null, isMock: false };
   }
 
   const { data } = await fetchSPTrans<SPTransPrevisaoResponse>(
@@ -255,8 +284,5 @@ export async function buscarPrevisaoLinha(codigoLinha: number): Promise<{ previs
     return { previsao: data, isMock: false };
   }
 
-  return {
-    previsao: getMockPrevisaoParada(340015350),
-    isMock: false
-  };
+  return { previsao: null, isMock: false };
 }
