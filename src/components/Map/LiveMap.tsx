@@ -86,14 +86,14 @@ export default function LiveMap({
     } else {
       const userIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; width: 30px; height: 30px; border-radius: 50%; background: rgba(56, 189, 248, 0.45); animation: markerPulse 2s infinite;"></div>
-            <div style="width: 16px; height: 16px; border-radius: 50%; background: #0284C7; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
+          <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background: rgba(56, 189, 248, 0.45); animation: markerPulse 2s infinite;"></div>
+            <div style="width: 26px; height: 26px; border-radius: 50%; background: #0284C7; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">🧭</div>
           </div>
         `,
         className: 'user-location-marker',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
       });
 
       userMarkerRef.current = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1000 })
@@ -289,10 +289,11 @@ export default function LiveMap({
     });
 
     if (bounds.length > 0 && selectedLine && !activeRoute && mapInstanceRef.current) {
-      const leafletBounds = L.latLngBounds(bounds);
+      const boundsWithUser = userCoords ? [...bounds, userCoords] : bounds;
+      const leafletBounds = L.latLngBounds(boundsWithUser);
       mapInstanceRef.current.fitBounds(leafletBounds, { padding: [50, 50], maxZoom: 15 });
     }
-  }, [veiculos, selectedLine, activeRoute]);
+  }, [veiculos, selectedLine, activeRoute, userCoords]);
 
   // Atualizar marcadores de Paradas
   useEffect(() => {
