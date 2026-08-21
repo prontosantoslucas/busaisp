@@ -393,11 +393,16 @@ function directRouteToLinha(route: DirectRoute): SPTransLinha {
   const numericCl = Number(route.routeId.replace(/\D/g, '')) || 0;
   const [ladoA, ladoB] = (route.routeLongName || '').split(/[-–]/).map(s => s.trim());
 
+  const shortName = route.routeShortName || route.routeId;
+  const lastDashIndex = shortName.lastIndexOf('-');
+  const lt = lastDashIndex > 0 ? shortName.slice(0, lastDashIndex) : shortName;
+  const tl = lastDashIndex > 0 ? Number(shortName.slice(lastDashIndex + 1)) || 10 : 10;
+
   return {
     cl: numericCl,
     lc: false,
-    lt: route.routeShortName || route.routeId,
-    tl: 10,
+    lt,
+    tl,
     sl: 1,
     tp: ladoA || '',
     ts: route.tripHeadsign || ladoB || ''

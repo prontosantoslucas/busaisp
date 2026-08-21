@@ -87,6 +87,31 @@ describe('calculateRoute', () => {
     expect(result.alternatives).toHaveLength(1);
   });
 
+  it('separa o número da linha do sub-código quando routeShortName vem no formato "NNNN-NN" (regressão do bug do "-10" duplicado)', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '2012-10',
+        routeShortName: '2012-10',
+        routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE',
+        tripId: 'trip_1',
+        tripHeadsign: 'SHOPPING CENTER NORTE',
+        originStopId: '340015353',
+        originDepartureSeconds: 0,
+        destStopId: '340015350',
+        destArrivalSeconds: 0
+      }
+    ]);
+    (buscarPrevisaoParada as any).mockResolvedValueOnce({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    expect(result.primaryRoute.recommendedLine.lt).toBe('2012');
+    expect(result.primaryRoute.recommendedLine.tl).toBe(10);
+  });
+
   it('lança erro claro quando um stop_id do GTFS não é numérico', async () => {
     (findNearbyStops as any)
       .mockResolvedValueOnce([{ stopId: 'nao-numerico', name: 'PARADA X', lat: -23.43, lng: -46.58, distanceMeters: 50 }])

@@ -277,7 +277,7 @@ export default function HomePage() {
                     Rota até {activeRoute.destination.name}
                   </div>
                   <div style={{ fontSize: '11px', color: '#38BDF8' }}>
-                    ~{activeRoute.totalDurationMinutes} min · Próximo ônibus em {activeRoute.nextBusEtaMinutes} min no ponto
+                    ~{activeRoute.totalDurationMinutes} min · {activeRoute.nextBusEtaMinutes >= 0 ? `Próximo ônibus em ${activeRoute.nextBusEtaMinutes} min no ponto` : 'Sem previsão em tempo real para esta linha agora'}
                   </div>
                 </div>
               </div>

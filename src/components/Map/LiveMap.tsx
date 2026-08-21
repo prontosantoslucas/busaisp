@@ -188,7 +188,7 @@ export default function LiveMap({
       });
 
       const boardMarker = L.marker([activeRoute.departureStop.py, activeRoute.departureStop.px], { icon: boardIcon })
-        .bindPopup(`<strong>Ponto de Embarque: ${activeRoute.departureStop.np}</strong><br/>Ônibus chega em <strong>${activeRoute.nextBusEtaMinutes} min</strong>`);
+        .bindPopup(`<strong>Ponto de Embarque: ${activeRoute.departureStop.np}</strong><br/>${activeRoute.nextBusEtaMinutes >= 0 ? `Ônibus chega em <strong>${activeRoute.nextBusEtaMinutes} min</strong>` : 'Sem previsão em tempo real para esta linha agora'}`);
       routePolylinesGroupRef.current.addLayer(boardMarker);
     }
 
@@ -423,7 +423,9 @@ export default function LiveMap({
               <span>A pé: <strong style={{ color: '#38BDF8' }}>{activeRoute.totalWalkDurationMinutes} min</strong> ({activeRoute.totalWalkDistanceMeters}m)</span>
             </div>
             <div style={{ color: '#FCA5A5', fontWeight: 700 }}>
-              Ônibus chega em: <strong style={{ color: '#E30613' }}>{activeRoute.nextBusEtaMinutes} min</strong>
+              {activeRoute.nextBusEtaMinutes >= 0
+                ? <>Ônibus chega em: <strong style={{ color: '#E30613' }}>{activeRoute.nextBusEtaMinutes} min</strong></>
+                : <span style={{ color: '#94A3B8' }}>Sem previsão em tempo real</span>}
             </div>
           </div>
         </div>

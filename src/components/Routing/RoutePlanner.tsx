@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Zap,
   Activity,
-  Layers
+  Layers,
+  AlertCircle
 } from 'lucide-react';
 
 interface RoutePlannerProps {
@@ -38,6 +39,7 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [routeResult, setRouteResult] = useState<RouteSearchResult | null>(null);
+  const [calculationError, setCalculationError] = useState<string | null>(null);
   const [selectedAlternativeIndex, setSelectedAlternativeIndex] = useState<number>(0);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -106,6 +108,7 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       const res = await fetch(url);
       const json = await res.json();
       if (json.success && json.data) {
+        setCalculationError(null);
         if (json.data.alternatives) {
           setRouteResult(json.data);
           setSelectedAlternativeIndex(0);
@@ -120,9 +123,14 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
           });
           setSelectedAlternativeIndex(0);
         }
+      } else {
+        setRouteResult(null);
+        setCalculationError(json.error || 'Não foi possível calcular uma rota para esse endereço.');
       }
     } catch (e) {
       console.error('Erro ao calcular rota:', e);
+      setRouteResult(null);
+      setCalculationError('Erro de conexão ao calcular a rota. Tente novamente.');
     } finally {
       setIsCalculating(false);
     }
@@ -389,6 +397,31 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
         </div>
       )}
 
+      {/* Erro de Cálculo de Rota */}
+      {calculationError && !activeRoute && (
+        <div
+          style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+          }}
+        >
+          <AlertCircle size={20} color="#EF4444" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
+              Não foi possível calcular a rota
+            </div>
+            <div style={{ fontSize: '11px', color: '#FCA5A5', marginTop: '2px' }}>
+              {calculationError}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SELETOR DE TODAS AS LINHAS DISPONÍVEIS NA REGIÃO */}
       {routeResult && routeResult.alternatives.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -451,12 +484,20 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
 
                   {/* Tempo do Ônibus no Ponto */}
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '9px', color: '#FCA5A5', fontWeight: 700 }}>
-                      NO PONTO EM
-                    </div>
-                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#E30613' }}>
-                      {alt.nextBusEtaMinutes} min
-                    </div>
+                    {alt.nextBusEtaMinutes >= 0 ? (
+                      <>
+                        <div style={{ fontSize: '9px', color: '#FCA5A5', fontWeight: 700 }}>
+                          NO PONTO EM
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: 900, color: '#E30613' }}>
+                          {alt.nextBusEtaMinutes} min
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', maxWidth: '90px' }}>
+                        Sem previsão em tempo real
+                      </div>
+                    )}
                   </div>
                 </div>
               );
