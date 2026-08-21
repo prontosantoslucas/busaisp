@@ -13,6 +13,7 @@ import {
   Radio,
   Bell,
   Play,
+  Square,
   CreditCard,
   MapPin,
   Clock,
@@ -32,6 +33,8 @@ interface MoovitRouteDetailProps {
   onOpenDeparturesModal: () => void;
   onToggleFavorite: () => void;
   isFavorited: boolean;
+  isPercursoActive?: boolean;
+  onStopPercurso?: () => void;
 }
 
 export default function MoovitRouteDetail({
@@ -43,7 +46,9 @@ export default function MoovitRouteDetail({
   onStartLiveNavigation,
   onOpenDeparturesModal,
   onToggleFavorite,
-  isFavorited
+  isFavorited,
+  isPercursoActive = false,
+  onStopPercurso
 }: MoovitRouteDetailProps) {
   const [expandedStops, setExpandedStops] = useState<Record<number, boolean>>({});
 
@@ -53,7 +58,7 @@ export default function MoovitRouteDetail({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Top Bar: Indo para [Destino] (Foto 2) */}
+      {/* Top Bar: Indo para [Destino] */}
       <div
         style={{
           background: '#1C1E24',
@@ -161,7 +166,7 @@ export default function MoovitRouteDetail({
         )}
       </div>
 
-      {/* Card Detalhes da Rota (Foto 2) */}
+      {/* Card Detalhes da Rota */}
       <div
         style={{
           background: '#1C1E24',
@@ -184,7 +189,7 @@ export default function MoovitRouteDetail({
           </span>
         </div>
 
-        {/* 1. Sua Localização (Foto 2) */}
+        {/* 1. Sua Localização */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
           <div
             style={{
@@ -213,7 +218,7 @@ export default function MoovitRouteDetail({
           </div>
         </div>
 
-        {/* 2. Caminhada Inicial (Foto 2) */}
+        {/* 2. Caminhada Inicial */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative', marginLeft: '4px' }}>
           <div style={{ width: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ width: '2px', height: '24px', background: '#7C3AED', borderStyle: 'dotted' }} />
@@ -228,7 +233,7 @@ export default function MoovitRouteDetail({
           </div>
         </div>
 
-        {/* 3. Steps de Ônibus com Contagem Exata de Paradas e Baldeação (Foto 2) */}
+        {/* 3. Steps de Ônibus com Contagem Exata de Paradas e Baldeação */}
         {route.steps.map((step, idx) => {
           if (step.type === 'BUS') {
             const isStopsExpanded = expandedStops[idx] ?? false;
@@ -237,7 +242,7 @@ export default function MoovitRouteDetail({
 
             return (
               <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/* Linha de Ônibus Header com Botão IR (Foto 2) */}
+                {/* Linha de Ônibus Header com Botão IR */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
                   <div
                     style={{
@@ -286,14 +291,14 @@ export default function MoovitRouteDetail({
                       </button>
                     </div>
 
-                    {/* Previsão ao Vivo (ex: (( 6 min ⭕) */}
+                    {/* Previsão ao Vivo */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34D399', fontSize: '13px', fontWeight: 800, marginTop: '4px' }}>
                       <Radio size={14} />
                       <span>{step.departureEtas?.[0] ?? route.departureEtas[0] ?? 6} min</span>
                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #34D399', display: 'inline-block' }} />
                     </div>
 
-                    {/* Linha de Paradas Expansível: Siga por X Paradas até [Nome da Parada] (Foto 2) */}
+                    {/* Linha de Paradas Expansível */}
                     <div
                       onClick={() => toggleStops(idx)}
                       style={{
@@ -383,7 +388,7 @@ export default function MoovitRouteDetail({
           return null;
         })}
 
-        {/* 4. Desembarque e Caminhada Final (Foto 2) */}
+        {/* 4. Desembarque e Caminhada Final */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
           <div
             style={{
@@ -412,7 +417,7 @@ export default function MoovitRouteDetail({
           </div>
         </div>
 
-        {/* 5. Seu Destino (Foto 2) */}
+        {/* 5. Seu Destino */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
           <div
             style={{
@@ -442,32 +447,55 @@ export default function MoovitRouteDetail({
         </div>
       </div>
 
-      {/* Botão Prominente Inferior: Começar Navegação */}
+      {/* Botão Prominente Inferior: Iniciar Percurso / Parar Percurso */}
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-        <button
-          onClick={() => {
-            onStartLiveNavigation();
-          }}
-          style={{
-            flex: 1,
-            background: '#10B981',
-            border: 'none',
-            borderRadius: '9999px',
-            padding: '14px 20px',
-            color: '#FFFFFF',
-            fontSize: '15px',
-            fontWeight: 900,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)'
-          }}
-        >
-          <Play size={18} fill="#fff" />
-          <span>Começar Navegação</span>
-        </button>
+        {isPercursoActive ? (
+          <button
+            onClick={onStopPercurso}
+            style={{
+              flex: 1,
+              background: '#EF4444',
+              border: 'none',
+              borderRadius: '9999px',
+              padding: '14px 20px',
+              color: '#FFFFFF',
+              fontSize: '15px',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)'
+            }}
+          >
+            <Square size={17} fill="#fff" />
+            <span>Parar Percurso</span>
+          </button>
+        ) : (
+          <button
+            onClick={onStartLiveNavigation}
+            style={{
+              flex: 1,
+              background: '#10B981',
+              border: 'none',
+              borderRadius: '9999px',
+              padding: '14px 20px',
+              color: '#FFFFFF',
+              fontSize: '15px',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            <Play size={18} fill="#fff" />
+            <span>Iniciar Percurso</span>
+          </button>
+        )}
 
         <button
           onClick={onOpenDeparturesModal}

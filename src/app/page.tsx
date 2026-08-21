@@ -24,6 +24,7 @@ import {
   Bus,
   Map as MapIcon,
   Play,
+  Square,
   Share2,
   ChevronUp,
   ChevronDown,
@@ -62,6 +63,7 @@ export default function HomePage() {
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [isDeparturesModalOpen, setIsDeparturesModalOpen] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [isPercursoActive, setIsPercursoActive] = useState(false);
 
   const [origem, setOrigem] = useState('Local atual');
   const [destino, setDestino] = useState('Rua Flor de Maio, 40');
@@ -208,6 +210,12 @@ export default function HomePage() {
           onRefresh={() => selectedLine && loadVeiculos(selectedLine)}
           activeRoute={activeRoute}
           userCoords={userCoords}
+          isPercursoActive={isPercursoActive}
+          onStartPercurso={() => {
+            setIsPercursoActive(true);
+            setIsMapFullscreen(true);
+          }}
+          onStopPercurso={() => setIsPercursoActive(false)}
         />
       </div>
 
@@ -216,7 +224,7 @@ export default function HomePage() {
         <div
           style={{
             position: 'absolute',
-            top: '16px',
+            top: isPercursoActive ? '80px' : '16px',
             left: '16px',
             zIndex: 960,
             display: 'flex',
@@ -225,26 +233,49 @@ export default function HomePage() {
             animation: 'fadeIn 0.2s ease'
           }}
         >
-          <button
-            onClick={() => setIsMapFullscreen(false)}
-            style={{
-              background: '#10B981',
-              border: 'none',
-              borderRadius: '9999px',
-              padding: '12px 18px',
-              color: '#FFFFFF',
-              fontSize: '14px',
-              fontWeight: 900,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)'
-            }}
-          >
-            <Play size={16} fill="#fff" />
-            <span>Começar Navegação</span>
-          </button>
+          {isPercursoActive ? (
+            <button
+              onClick={() => setIsPercursoActive(false)}
+              style={{
+                background: '#EF4444',
+                border: 'none',
+                borderRadius: '9999px',
+                padding: '12px 18px',
+                color: '#FFFFFF',
+                fontSize: '14px',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 6px 20px rgba(239, 68, 68, 0.4)'
+              }}
+            >
+              <Square size={16} fill="#fff" />
+              <span>Parar Percurso</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsPercursoActive(true)}
+              style={{
+                background: '#10B981',
+                border: 'none',
+                borderRadius: '9999px',
+                padding: '12px 18px',
+                color: '#FFFFFF',
+                fontSize: '14px',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)'
+              }}
+            >
+              <Play size={16} fill="#fff" />
+              <span>Iniciar Percurso</span>
+            </button>
+          )}
 
           <button
             onClick={() => setIsMapFullscreen(false)}
@@ -335,10 +366,15 @@ export default function HomePage() {
               selectedRouteIndex={selectedRouteIndex}
               onSelectRouteIndex={(idx) => handleSelectRouteFromList(idx)}
               onBack={() => setScreenMode('RESULTS')}
-              onStartLiveNavigation={() => setIsMapFullscreen(true)}
+              onStartLiveNavigation={() => {
+                setIsPercursoActive(true);
+                setIsMapFullscreen(true);
+              }}
               onOpenDeparturesModal={() => setIsDeparturesModalOpen(true)}
               onToggleFavorite={handleToggleRouteFavorite}
               isFavorited={isCurrentRouteFavorited}
+              isPercursoActive={isPercursoActive}
+              onStopPercurso={() => setIsPercursoActive(false)}
             />
           )}
 

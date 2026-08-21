@@ -9,7 +9,7 @@ import {
   SPTransVeiculo
 } from '@/types/sptrans';
 import { RoutePlan } from '@/lib/routing';
-import { RefreshCw, Locate, Footprints, Layers } from 'lucide-react';
+import { RefreshCw, Locate, Footprints, Layers, Square, Navigation, Play, Radio } from 'lucide-react';
 
 export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -21,6 +21,9 @@ export interface LiveMapProps {
   isMockMode?: boolean;
   activeRoute?: RoutePlan | null;
   userCoords?: [number, number] | null;
+  isPercursoActive?: boolean;
+  onStopPercurso?: () => void;
+  onStartPercurso?: () => void;
 }
 
 export default function LiveMap({
@@ -32,7 +35,10 @@ export default function LiveMap({
   onRefresh,
   isMockMode = false,
   activeRoute,
-  userCoords
+  userCoords,
+  isPercursoActive = false,
+  onStopPercurso,
+  onStartPercurso
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -41,7 +47,9 @@ export default function LiveMap({
   const routePolylinesGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
+  const watchPositionIdRef = useRef<number | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
 
   // Inicializar o Mapa Leaflet
   useEffect(() => {
@@ -76,44 +84,80 @@ export default function LiveMap({
     };
   }, []);
 
-  // Monitorar geolocalização do usuário (sem abrir popup automático invasivo)
+  // Monitorar e seguir GPS continuamente quando "Iniciar Percurso" estiver ativo
   useEffect(() => {
-    if (!mapInstanceRef.current || !userCoords) return;
+    if (isPercursoActive && typeof window !== 'undefined' && navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setLiveUserCoords(coords);
+
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView(coords, 17, { animate: true });
+          }
+        },
+        (err) => {
+          console.warn('[GPS] Erro no monitoramento de percurso:', err.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 6000 }
+      );
+
+      watchPositionIdRef.current = watchId;
+
+      return () => {
+        if (watchPositionIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchPositionIdRef.current);
+          watchPositionIdRef.current = null;
+        }
+      };
+    } else {
+      if (watchPositionIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchPositionIdRef.current);
+        watchPositionIdRef.current = null;
+      }
+    }
+  }, [isPercursoActive]);
+
+  const effectiveCoords = liveUserCoords || userCoords;
+
+  // Atualizar marcador de localização do usuário
+  useEffect(() => {
+    if (!mapInstanceRef.current || !effectiveCoords) return;
 
     const map = mapInstanceRef.current;
 
     if (userMarkerRef.current) {
-      userMarkerRef.current.setLatLng(userCoords);
+      userMarkerRef.current.setLatLng(effectiveCoords);
     } else {
       const userIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            <div style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background: rgba(56, 189, 248, 0.45); animation: markerPulse 2s infinite;"></div>
-            <div style="width: 26px; height: 26px; border-radius: 50%; background: #0284C7; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px;">🧭</div>
+          <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: ${isPercursoActive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(56, 189, 248, 0.45)'}; animation: markerPulse 1.5s infinite;"></div>
+            <div style="width: 26px; height: 26px; border-radius: 50%; background: ${isPercursoActive ? '#10B981' : '#0284C7'}; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px;">🧭</div>
           </div>
         `,
         className: 'user-location-marker',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
       });
 
-      userMarkerRef.current = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1000 })
+      userMarkerRef.current = L.marker(effectiveCoords, { icon: userIcon, zIndexOffset: 1000 })
         .bindPopup('<strong>📍 Sua Localização (GPS)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão em tempo real</span>')
         .addTo(map);
     }
 
     if (userAccuracyCircleRef.current) {
-      userAccuracyCircleRef.current.setLatLng(userCoords);
+      userAccuracyCircleRef.current.setLatLng(effectiveCoords);
     } else {
-      userAccuracyCircleRef.current = L.circle(userCoords, {
-        radius: 40,
-        color: '#0284C7',
-        fillColor: '#38BDF8',
-        fillOpacity: 0.12,
+      userAccuracyCircleRef.current = L.circle(effectiveCoords, {
+        radius: 35,
+        color: isPercursoActive ? '#10B981' : '#0284C7',
+        fillColor: isPercursoActive ? '#34D399' : '#38BDF8',
+        fillOpacity: 0.15,
         weight: 1
       }).addTo(map);
     }
-  }, [userCoords]);
+  }, [effectiveCoords, isPercursoActive]);
 
   // Atualizar traçado no mapa com curvas perfeitas de ruas
   useEffect(() => {
@@ -263,7 +307,7 @@ export default function LiveMap({
       allCoords.push(...activeRoute.polyline.walkToDest);
     }
 
-    // 4. Marcador de Destino Final
+    // 5. Marcador de Destino Final
     const destIcon = L.divIcon({
       html: `
         <div style="background: #10B981; color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.6); font-size: 16px;">
@@ -281,11 +325,11 @@ export default function LiveMap({
 
     routePolylinesGroupRef.current.addLayer(destMarker);
 
-    // Ajustar zoom e visualização ampla
-    if (allCoords.length > 0) {
+    // Ajustar zoom e enquadramento inicial
+    if (!isPercursoActive && allCoords.length > 0) {
       map.fitBounds(L.latLngBounds(allCoords), { padding: [60, 60], maxZoom: 16 });
     }
-  }, [activeRoute]);
+  }, [activeRoute, isPercursoActive]);
 
   // Atualizar marcadores de Ônibus no mapa
   useEffect(() => {
@@ -355,13 +399,13 @@ export default function LiveMap({
       bounds.push([v.py, v.px]);
     });
 
-    if (bounds.length > 0 && mapInstanceRef.current) {
+    if (bounds.length > 0 && mapInstanceRef.current && !isPercursoActive) {
       if (!activeRoute) {
-        const boundsWithUser = userCoords ? [...bounds, userCoords] : bounds;
+        const boundsWithUser = effectiveCoords ? [...bounds, effectiveCoords] : bounds;
         mapInstanceRef.current.fitBounds(L.latLngBounds(boundsWithUser), { padding: [50, 50], maxZoom: 15 });
       }
     }
-  }, [veiculos, selectedLine, activeRoute, userCoords]);
+  }, [veiculos, selectedLine, activeRoute, effectiveCoords, isPercursoActive]);
 
   // Atualizar marcadores de Paradas
   useEffect(() => {
@@ -407,6 +451,7 @@ export default function LiveMap({
       (pos) => {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setIsLocating(false);
+        setLiveUserCoords(coords);
 
         if (mapInstanceRef.current) {
           mapInstanceRef.current.setView(coords, 16, { animate: true });
@@ -425,6 +470,82 @@ export default function LiveMap({
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {/* Container Leaflet */}
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
+
+      {/* Barra HUD Flutuante de Percurso Ativo no Topo do Mapa */}
+      {isPercursoActive && activeRoute && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            right: '16px',
+            maxWidth: '520px',
+            margin: '0 auto',
+            zIndex: 1000,
+            background: '#0F172A',
+            border: '2px solid #10B981',
+            borderRadius: '16px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                background: '#10B981',
+                color: '#fff',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Navigation size={18} className="animate-pulse" />
+            </div>
+
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 900, color: '#34D399', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>🟢 PERCURSO ATIVO</span>
+                <span>·</span>
+                <span>GPS SEGUINDO</span>
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
+                {activeRoute.steps[0]?.instruction || 'Siga o trajeto no mapa'}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onStopPercurso}
+            style={{
+              background: '#EF4444',
+              border: 'none',
+              borderRadius: '9999px',
+              padding: '8px 14px',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(239, 68, 68, 0.4)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Square size={13} fill="#fff" />
+            <span>Parar</span>
+          </button>
+        </div>
+      )}
 
       {/* Botões de Ação Flutuantes */}
       <div
