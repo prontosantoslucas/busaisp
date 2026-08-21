@@ -121,6 +121,8 @@ export default function MoovitHome({
     ? (liveRoutePlan.departureSuggestion || `Sai em ⏱️ ${liveRoutePlan.departureEtas?.join(', ') || '1, 21, 42'} min de ${liveRoutePlan.departureStop.np}`)
     : 'Sai em ⏱️ 1, 21, 42 min de Av. Zaki Narchi, 1238';
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
       {/* Top Bar: Menu & Cidade */}
@@ -144,9 +146,8 @@ export default function MoovitHome({
         </span>
       </div>
 
-      {/* Barra de Busca Gigante (Estilo Exato Moovit) */}
+      {/* Barra de Busca Gigante Digitável (Estilo Exato Moovit) */}
       <div
-        onClick={onSearchClick}
         style={{
           background: '#1C1E24',
           border: '1px solid #2D313C',
@@ -154,18 +155,41 @@ export default function MoovitHome({
           display: 'flex',
           alignItems: 'center',
           overflow: 'hidden',
-          cursor: 'pointer',
           boxShadow: '0 6px 20px rgba(0,0,0,0.5)'
         }}
       >
-        <div style={{ flex: 1, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ flex: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ color: '#FF6600', fontWeight: 900, fontSize: '18px' }}>|</span>
-          <span style={{ fontSize: '15px', color: '#9CA3AF', fontWeight: 500 }}>
-            Para onde você quer ir?
-          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim()) {
+                onSelectDestination(searchQuery.trim());
+              }
+            }}
+            placeholder="Para onde você quer ir?"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#FFFFFF',
+              fontSize: '15px',
+              fontWeight: 500,
+              outline: 'none',
+              width: '100%'
+            }}
+          />
         </div>
 
         <button
+          onClick={() => {
+            if (searchQuery.trim()) {
+              onSelectDestination(searchQuery.trim());
+            } else {
+              onSearchClick();
+            }
+          }}
           style={{
             background: '#FF6600',
             border: 'none',

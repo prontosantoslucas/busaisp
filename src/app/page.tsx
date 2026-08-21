@@ -327,7 +327,6 @@ export default function HomePage() {
             <MoovitHome
               onSearchClick={() => {
                 setScreenMode('RESULTS');
-                handleCalculateRoutes();
               }}
               onSelectDestination={(dest) => {
                 setDestino(dest);
