@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Map, Clock, Train, Star, Navigation } from 'lucide-react';
+import { Route, Bus, Train, Star } from 'lucide-react';
 
-export type TabType = 'ROTAS' | 'MAPA' | 'PREVISOES' | 'TRILHOS' | 'FAVORITOS';
+export type TabType = 'ROTAS' | 'ITINERARIOS' | 'TRILHOS' | 'FAVORITOS';
 export type ActiveTabType = TabType;
 
 export interface MobileTabBarProps {
@@ -18,7 +18,6 @@ export default function MobileTabBar({
   activeTab,
   onTabChange,
   onChangeTab,
-  onOpenSearch,
   favoritesCount = 0
 }: MobileTabBarProps) {
   const handleSelect = (tab: TabType) => {
@@ -30,28 +29,22 @@ export default function MobileTabBar({
     {
       id: 'ROTAS' as TabType,
       label: 'Rotas',
-      icon: <Navigation size={21} />,
-      badge: 'SP'
+      icon: <Route size={20} />
     },
     {
-      id: 'MAPA' as TabType,
-      label: 'Ao Vivo',
-      icon: <Map size={21} />
-    },
-    {
-      id: 'PREVISOES' as TabType,
-      label: 'Previsões',
-      icon: <Clock size={21} />
+      id: 'ITINERARIOS' as TabType,
+      label: 'Linhas & Itinerários',
+      icon: <Bus size={20} />
     },
     {
       id: 'TRILHOS' as TabType,
-      label: 'Trilhos',
-      icon: <Train size={21} />
+      label: 'Metrô & CPTM',
+      icon: <Train size={20} />
     },
     {
       id: 'FAVORITOS' as TabType,
       label: 'Favoritos',
-      icon: <Star size={21} />,
+      icon: <Star size={20} />,
       badge: favoritesCount > 0 ? String(favoritesCount) : undefined
     }
   ];

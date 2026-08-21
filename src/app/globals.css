@@ -679,8 +679,30 @@ html, body {
   animation: spin 1s linear infinite;
 }
 
-/* Responsive adjustments */
+/* Floating Main Panel (Desktop & Mobile) */
+.floating-main-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+@media (max-width: 767px) {
+  .floating-main-panel {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 20px) !important;
+    max-width: 440px !important;
+    top: 68px !important;
+    max-height: calc(100dvh - 142px) !important;
+  }
+}
+
 @media (min-width: 768px) {
+  .floating-main-panel {
+    left: 20px !important;
+    width: 400px !important;
+    max-height: calc(100vh - 100px) !important;
+  }
+
   .floating-search-container {
     left: 24px;
     right: auto;
@@ -701,3 +723,4 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 }
+

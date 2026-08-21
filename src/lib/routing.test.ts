@@ -3,14 +3,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('@/lib/gtfs', () => ({
   findNearbyStops: vi.fn(),
   findDirectRoutes: vi.fn(),
-  findRoutesFromStops: vi.fn()
+  findRoutesFromStops: vi.fn(),
+  getTripStopCoordinates: vi.fn()
 }));
 
 vi.mock('@/lib/sptrans', () => ({
   buscarPrevisaoParada: vi.fn()
 }));
 
-import { findNearbyStops, findDirectRoutes, findRoutesFromStops } from '@/lib/gtfs';
+import { findNearbyStops, findDirectRoutes, findRoutesFromStops, getTripStopCoordinates } from '@/lib/gtfs';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
 import { calculateRoute } from '@/lib/routing';
 
@@ -20,11 +21,12 @@ const dest = { name: 'Destino', lat: -23.51, lng: -46.62 };
 beforeEach(() => {
   vi.clearAllMocks();
   (findRoutesFromStops as any).mockResolvedValue([]);
+  (getTripStopCoordinates as any).mockResolvedValue([]);
 });
 
 describe('calculateRoute', () => {
   it('lança erro claro quando não há paradas perto da origem', async () => {
-    (findNearbyStops as any).mockResolvedValueOnce([]);
+    (findNearbyStops as any).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
     await expect(calculateRoute(origin, dest)).rejects.toThrow('Nenhuma parada de ônibus encontrada perto da origem');
   });

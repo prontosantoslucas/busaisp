@@ -1,13 +1,18 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    rpc: vi.fn()
+    rpc: vi.fn(),
+    from: vi.fn()
   }
 }));
 
 import { supabase } from '@/lib/supabase';
-import { findNearbyStops, findDirectRoutes, findRoutesFromStops } from '@/lib/gtfs';
+import { findNearbyStops, findDirectRoutes, findRoutesFromStops, getTripStopCoordinates } from '@/lib/gtfs';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('findNearbyStops', () => {
   it('calls the nearby_stops RPC with the right parameters and maps the rows', async () => {
@@ -24,7 +29,7 @@ describe('findNearbyStops', () => {
       in_lat: -23.5158,
       in_lng: -46.6182,
       radius_meters: 2500,
-      max_results: 15
+      max_results: 12
     });
     expect(result).toEqual([
       { stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 120.5 }
@@ -107,7 +112,7 @@ describe('findRoutesFromStops', () => {
 
     expect(supabase.rpc).toHaveBeenCalledWith('routes_from_stops', {
       origin_stop_ids: ['A'],
-      max_results: 300
+      max_results: 120
     });
     expect(result).toEqual([
       {
@@ -131,5 +136,26 @@ describe('findRoutesFromStops', () => {
     (supabase.rpc as any).mockResolvedValue({ data: null, error: { message: 'function not found' } });
 
     await expect(findRoutesFromStops(['A'])).rejects.toThrow('Falha ao buscar linhas alcançáveis');
+  });
+});
+
+describe('getTripStopCoordinates', () => {
+  it('queries stop times and returns lat/lng coordinates', async () => {
+    const mockOrder = vi.fn().mockResolvedValue({
+      data: [
+        { stop_sequence: 1, stop_id: 'A', gtfs_stops: { lat: -23.4, lng: -46.5 } },
+        { stop_sequence: 2, stop_id: 'B', gtfs_stops: { lat: -23.5, lng: -46.6 } }
+      ],
+      error: null
+    });
+    const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+    const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+    (supabase.from as any).mockReturnValue({ select: mockSelect });
+
+    const coords = await getTripStopCoordinates('trip_1', 'A', 'B');
+    expect(coords).toEqual([
+      [-23.4, -46.5],
+      [-23.5, -46.6]
+    ]);
   });
 });

@@ -174,11 +174,10 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
+        gap: '10px',
         width: '100%',
-        maxWidth: '700px',
-        margin: '0 auto',
-        padding: '16px 12px 100px 12px'
+        margin: '0',
+        padding: '0'
       }}
     >
       {/* Top Banner de Roteirização */}
@@ -524,10 +523,28 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                       <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
                         Destino: {alt.recommendedLine.ts}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <span>🚶 {alt.totalWalkDurationMinutes} min a pé ({alt.totalWalkDistanceMeters}m)</span>
                         <span>•</span>
                         <span>⏱️ Total: ~{alt.totalDurationMinutes} min</span>
+                        {alt.trafficStatus && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              background: alt.trafficStatus === 'INTENSO' ? 'rgba(239, 68, 68, 0.18)' : alt.trafficStatus === 'MODERADO' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(16, 185, 129, 0.18)',
+                              color: alt.trafficStatus === 'INTENSO' ? '#FCA5A5' : alt.trafficStatus === 'MODERADO' ? '#FDE68A' : '#6EE7B7',
+                              border: `1px solid ${alt.trafficStatus === 'INTENSO' ? 'rgba(239, 68, 68, 0.3)' : alt.trafficStatus === 'MODERADO' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                              padding: '1px 6px',
+                              borderRadius: '6px',
+                              fontSize: '9px',
+                              fontWeight: 700
+                            }}
+                          >
+                            {alt.trafficStatus === 'INTENSO' ? '🔴 Trânsito Lento' : alt.trafficStatus === 'MODERADO' ? '🟡 Trânsito Moderado' : '🟢 Vias Fluindo'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

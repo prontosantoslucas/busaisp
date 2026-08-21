@@ -12,7 +12,7 @@ export async function findNearbyStops(
   lat: number,
   lng: number,
   radiusMeters = 2500,
-  maxResults = 15
+  maxResults = 12
 ): Promise<NearbyStop[]> {
   const { data, error } = await supabase.rpc('nearby_stops', {
     in_lat: lat,
@@ -49,7 +49,7 @@ export interface DirectRoute {
 export async function findDirectRoutes(
   originStopIds: string[],
   destStopIds: string[],
-  maxResults = 25
+  maxResults = 15
 ): Promise<DirectRoute[]> {
   const { data, error } = await supabase.rpc('direct_routes_between', {
     origin_stop_ids: originStopIds,
@@ -91,7 +91,7 @@ export interface ReachableRoute {
 
 export async function findRoutesFromStops(
   originStopIds: string[],
-  maxResults = 300
+  maxResults = 120
 ): Promise<ReachableRoute[]> {
   const { data, error } = await supabase.rpc('routes_from_stops', {
     origin_stop_ids: originStopIds,
@@ -116,4 +116,43 @@ export async function findRoutesFromStops(
     destStopLng: row.dest_stop_lng,
     destArrivalSeconds: row.dest_arrival_seconds
   }));
+}
+
+/**
+ * Busca a sequência real de paradas no banco GTFS para desenhar a rota fiel nas ruas
+ */
+export async function getTripStopCoordinates(
+  tripId: string,
+  originStopId?: string,
+  destStopId?: string
+): Promise<[number, number][]> {
+  try {
+    const { data, error } = await supabase
+      .from('gtfs_stop_times')
+      .select('stop_sequence, stop_id, gtfs_stops(lat, lng)')
+      .eq('trip_id', tripId)
+      .order('stop_sequence', { ascending: true });
+
+    if (error || !data || data.length === 0) return [];
+
+    let startIndex = 0;
+    let endIndex = data.length - 1;
+
+    if (originStopId) {
+      const idx = data.findIndex((r: any) => r.stop_id === originStopId);
+      if (idx >= 0) startIndex = idx;
+    }
+    if (destStopId) {
+      const idx = data.findIndex((r: any) => r.stop_id === destStopId);
+      if (idx >= 0 && idx >= startIndex) endIndex = idx;
+    }
+
+    const sliced = data.slice(startIndex, endIndex + 1);
+    return sliced
+      .filter((r: any) => r.gtfs_stops?.lat && r.gtfs_stops?.lng)
+      .map((r: any) => [r.gtfs_stops.lat, r.gtfs_stops.lng] as [number, number]);
+  } catch (err) {
+    console.warn('[GTFS] Erro ao buscar sequência de paradas do trip:', err);
+    return [];
+  }
 }
