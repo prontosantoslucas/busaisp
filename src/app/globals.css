@@ -117,6 +117,29 @@ html, body {
   letter-spacing: 0.3px;
 }
 
+/* Campo de Input Padrão (usado em buscas de linha, parada e rota) */
+.input-field {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--moovit-surface-elevated);
+  border: 1px solid var(--moovit-border);
+  color: var(--moovit-text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.input-field::placeholder {
+  color: var(--moovit-text-muted);
+}
+
+.input-field:focus {
+  border-color: var(--moovit-sptrans-red);
+  background: var(--moovit-surface-hover);
+}
+
 /* Leaflet Container Customization */
 .leaflet-container {
   width: 100%;

@@ -162,15 +162,19 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
   if (!query || query.trim().length < 2) return [];
   const norm = query.toLowerCase().trim();
   const suggestions: RouteLocation[] = [];
+  const seenNames = new Set<string>();
 
   for (const [key, loc] of Object.entries(KNOWN_SP_LOCATIONS)) {
     if (key.includes(norm) || norm.includes(key)) {
-      suggestions.push({
-        name: loc.name,
-        addressDetails: loc.details,
-        lat: loc.lat,
-        lng: loc.lng
-      });
+      if (!seenNames.has(loc.name.toLowerCase())) {
+        seenNames.add(loc.name.toLowerCase());
+        suggestions.push({
+          name: loc.name,
+          addressDetails: loc.details,
+          lat: loc.lat,
+          lng: loc.lng
+        });
+      }
     }
   }
 
@@ -179,7 +183,7 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
         cleanQuery + ', São Paulo, Brasil'
-      )}&limit=4&addressdetails=1`,
+      )}&limit=5&addressdetails=1`,
       { headers: { 'User-Agent': 'BusaISP/1.0' } }
     );
     if (res.ok) {
@@ -190,7 +194,9 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
           const mainTitle = parts.slice(0, 2).join(', ').trim();
           const subDetails = parts.slice(2, 5).join(', ').trim();
 
-          if (!suggestions.some(s => Math.abs(s.lat - parseFloat(item.lat)) < 0.001)) {
+          const lowerMain = mainTitle.toLowerCase();
+          if (!seenNames.has(lowerMain) && !suggestions.some(s => Math.abs(s.lat - parseFloat(item.lat)) < 0.001 && Math.abs(s.lng - parseFloat(item.lon)) < 0.001)) {
+            seenNames.add(lowerMain);
             suggestions.push({
               name: mainTitle,
               addressDetails: subDetails,

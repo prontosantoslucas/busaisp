@@ -110,8 +110,54 @@ export default function MoovitRouteResults({
     return `Chegada: ${customTime} ▾`;
   };
 
+  const [activeInput, setActiveInput] = useState<'origem' | 'destino' | null>(null);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+
+  // Autocomplete para o input ativo
+  React.useEffect(() => {
+    const query = activeInput === 'origem' ? origem : activeInput === 'destino' ? destino : '';
+    if (!query || query.trim().length < 2 || query === 'Minha Localização' || query === 'Local atual') {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const res = await fetch(`/api/rotas?tipo=sugestoes&q=${encodeURIComponent(query.trim())}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setSuggestions(json.data);
+        } else {
+          setSuggestions([]);
+        }
+      } catch (err) {
+        console.warn('[MoovitRouteResults] Erro ao buscar sugestões:', err);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [activeInput, origem, destino]);
+
+  const handleSelectSuggestion = (loc: any) => {
+    const str = `${loc.name}${loc.addressDetails ? `, ${loc.addressDetails}` : ''}`;
+    if (activeInput === 'origem') {
+      onOrigemChange(str);
+    } else {
+      onDestinoChange(str);
+    }
+    setActiveInput(null);
+    setSuggestions([]);
+    setTimeout(() => {
+      onCalculate();
+    }, 50);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', position: 'relative' }}>
       {/* Top Header com Inputs de Origem / Destino */}
       <div
         style={{
@@ -122,7 +168,8 @@ export default function MoovitRouteResults({
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          position: 'relative'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -144,7 +191,7 @@ export default function MoovitRouteResults({
           </button>
 
           {/* Form de Endereços */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
             {/* Origem */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#262932', borderRadius: '8px', padding: '6px 12px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #9CA3AF', display: 'inline-block' }} />
@@ -152,6 +199,7 @@ export default function MoovitRouteResults({
                 type="text"
                 value={origem}
                 onChange={(e) => onOrigemChange(e.target.value)}
+                onFocus={() => setActiveInput('origem')}
                 placeholder="Minha Localização"
                 style={{
                   background: 'transparent',
@@ -172,7 +220,17 @@ export default function MoovitRouteResults({
                 type="text"
                 value={destino}
                 onChange={(e) => onDestinoChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onCalculate()}
+                onFocus={() => setActiveInput('destino')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (suggestions.length > 0) {
+                      handleSelectSuggestion(suggestions[0]);
+                    } else {
+                      setActiveInput(null);
+                      onCalculate();
+                    }
+                  }
+                }}
                 placeholder="Para onde você quer ir?"
                 style={{
                   background: 'transparent',
@@ -185,6 +243,60 @@ export default function MoovitRouteResults({
                 }}
               />
             </div>
+
+            {/* Dropdown de Sugestões de Endereço */}
+            {activeInput && suggestions.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: 0,
+                  right: 0,
+                  background: '#1C1E24',
+                  border: '1.5px solid #3B82F6',
+                  borderRadius: '12px',
+                  padding: '6px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.8)',
+                  zIndex: 999,
+                  maxHeight: '220px',
+                  overflowY: 'auto'
+                }}
+              >
+                <div style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: '#38BDF8', textTransform: 'uppercase' }}>
+                  Locais encontrados para {activeInput === 'origem' ? 'origem' : 'destino'}:
+                </div>
+                {suggestions.map((sug, sIdx) => (
+                  <div
+                    key={sIdx}
+                    onClick={() => handleSelectSuggestion(sug)}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: '#262932',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span style={{ color: '#0284C7' }}>📍</span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {sug.name}
+                      </div>
+                      {sug.addressDetails && (
+                        <div style={{ fontSize: '11px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {sug.addressDetails}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Botões Laterais */}
@@ -208,7 +320,10 @@ export default function MoovitRouteResults({
               <ArrowUpDown size={15} />
             </button>
             <button
-              onClick={onCalculate}
+              onClick={() => {
+                setActiveInput(null);
+                onCalculate();
+              }}
               style={{
                 background: '#262932',
                 border: '1px solid #323642',

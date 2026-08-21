@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FavoriteItem } from '@/lib/supabase';
-import { RoutePlan } from '@/lib/routing';
+import { RoutePlan, RouteLocation } from '@/lib/routing';
 import {
   Search,
   Menu,
@@ -13,7 +13,10 @@ import {
   Clock,
   Radio,
   MapPin,
-  Star
+  Star,
+  Navigation,
+  X,
+  History
 } from 'lucide-react';
 
 interface MoovitHomeProps {
@@ -34,6 +37,12 @@ export default function MoovitHome({
   const [frequentIndex, setFrequentIndex] = useState(0);
   const [liveRoutePlan, setLiveRoutePlan] = useState<RoutePlan | null>(null);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<RouteLocation[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Destinos Reais Frequentes / Favoritos
   const userFavoritesList = favorites.map(f => ({
@@ -96,6 +105,35 @@ export default function MoovitHome({
     };
   }, [frequentIndex, currentFrequent?.destinationName, userCoords]);
 
+  // Autocomplete / Lista de Confirmação de Endereços com Debounce
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      setSuggestions([]);
+      setIsDropdownOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const res = await fetch(`/api/rotas?tipo=sugestoes&q=${encodeURIComponent(searchQuery.trim())}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setSuggestions(json.data);
+          setIsDropdownOpen(true);
+        } else {
+          setSuggestions([]);
+        }
+      } catch (err) {
+        console.warn('[MoovitHome] Erro ao buscar sugestões:', err);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Formatação dos dados reais
   const durationText = liveRoutePlan
     ? `${Math.floor(liveRoutePlan.totalDurationMinutes / 60) > 0 ? `${Math.floor(liveRoutePlan.totalDurationMinutes / 60)} h ` : ''}${liveRoutePlan.totalDurationMinutes % 60} min`
@@ -121,10 +159,14 @@ export default function MoovitHome({
     ? (liveRoutePlan.departureSuggestion || `Sai em ⏱️ ${liveRoutePlan.departureEtas?.join(', ') || '1, 21, 42'} min de ${liveRoutePlan.departureStop.np}`)
     : 'Sai em ⏱️ 1, 21, 42 min de Av. Zaki Narchi, 1238';
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const handleSelectAddress = (loc: RouteLocation | string) => {
+    const destString = typeof loc === 'string' ? loc : `${loc.name}${loc.addressDetails ? `, ${loc.addressDetails}` : ''}`;
+    setIsDropdownOpen(false);
+    onSelectDestination(destString);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', position: 'relative' }}>
       {/* Top Bar: Menu & Cidade */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px' }}>
         <button
@@ -146,64 +188,194 @@ export default function MoovitHome({
         </span>
       </div>
 
-      {/* Barra de Busca Gigante Digitável (Estilo Exato Moovit) */}
-      <div
-        style={{
-          background: '#1C1E24',
-          border: '1px solid #2D313C',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          overflow: 'hidden',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.5)'
-        }}
-      >
-        <div style={{ flex: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ color: '#FF6600', fontWeight: 900, fontSize: '18px' }}>|</span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchQuery.trim()) {
-                onSelectDestination(searchQuery.trim());
-              }
-            }}
-            placeholder="Para onde você quer ir?"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#FFFFFF',
-              fontSize: '15px',
-              fontWeight: 500,
-              outline: 'none',
-              width: '100%'
-            }}
-          />
-        </div>
-
-        <button
-          onClick={() => {
-            if (searchQuery.trim()) {
-              onSelectDestination(searchQuery.trim());
-            } else {
-              onSearchClick();
-            }
-          }}
+      {/* Barra de Busca com Input Digitável e Lista de Confirmação */}
+      <div style={{ position: 'relative', width: '100%', zIndex: 980 }}>
+        <div
           style={{
-            background: '#FF6600',
-            border: 'none',
-            color: '#FFFFFF',
-            padding: '14px 20px',
+            background: '#1C1E24',
+            border: isDropdownOpen ? '1.5px solid #FF6600' : '1px solid #2D313C',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
+            overflow: 'hidden',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+            transition: 'border 0.2s ease'
           }}
-          aria-label="Buscar"
         >
-          <Search size={20} strokeWidth={2.5} />
-        </button>
+          <div style={{ flex: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ color: '#FF6600', fontWeight: 900, fontSize: '18px' }}>|</span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setIsDropdownOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (suggestions.length > 0) {
+                    handleSelectAddress(suggestions[0]);
+                  } else if (searchQuery.trim()) {
+                    handleSelectAddress(searchQuery.trim());
+                  }
+                }
+              }}
+              placeholder="Para onde você quer ir?"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '15px',
+                fontWeight: 500,
+                outline: 'none',
+                width: '100%'
+              }}
+            />
+
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSuggestions([]);
+                  setIsDropdownOpen(false);
+                }}
+                style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '2px' }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              if (suggestions.length > 0) {
+                handleSelectAddress(suggestions[0]);
+              } else if (searchQuery.trim()) {
+                handleSelectAddress(searchQuery.trim());
+              } else {
+                onSearchClick();
+              }
+            }}
+            style={{
+              background: '#FF6600',
+              border: 'none',
+              color: '#FFFFFF',
+              padding: '14px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+            aria-label="Buscar"
+          >
+            <Search size={20} strokeWidth={2.5} className={isLoadingSuggestions ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        {/* ================= LISTA DE CONFIRMAÇÃO DE ENDEREÇOS (DROPDOWN) ================= */}
+        {isDropdownOpen && suggestions.length > 0 && (
+          <div
+            ref={dropdownRef}
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              right: 0,
+              background: '#1C1E24',
+              border: '1.5px solid #3B82F6',
+              borderRadius: '14px',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.7)',
+              zIndex: 999,
+              maxHeight: '280px',
+              overflowY: 'auto',
+              animation: 'fadeIn 0.15s ease'
+            }}
+          >
+            <div style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 800, color: '#38BDF8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MapPin size={13} />
+              <span>Selecione e confirme o local de destino:</span>
+            </div>
+
+            {suggestions.map((item, sIdx) => (
+              <div
+                key={sIdx}
+                onClick={() => handleSelectAddress(item)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: '#262932',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  border: '1px solid transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#FF6600';
+                  e.currentTarget.style.background = '#2D313C';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'transparent';
+                  e.currentTarget.style.background = '#262932';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#0284C7',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    <MapPin size={16} />
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.name}
+                    </div>
+                    {item.addressDetails && (
+                      <div style={{ fontSize: '11px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
+                        {item.addressDetails}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: '#FF6600',
+                    color: '#fff',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    flexShrink: 0,
+                    marginLeft: '8px'
+                  }}
+                >
+                  <span>Ir</span>
+                  <Navigation size={11} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Card: Meu Destino Frequente / Favorito com Dados 100% Reais e Clicável */}
@@ -242,7 +414,7 @@ export default function MoovitHome({
 
         {/* Título & Horários Clicáveis */}
         <div
-          onClick={() => onSelectDestination(currentFrequent.destinationName)}
+          onClick={() => handleSelectAddress(currentFrequent.destinationName)}
           style={{ cursor: 'pointer' }}
         >
           <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#FFFFFF', marginBottom: '3px' }}>
@@ -255,7 +427,7 @@ export default function MoovitHome({
 
         {/* Cadeia Visual da Rota Dinâmica: 🚶 X > [🚌 Linha] > 🚶 Y */}
         <div
-          onClick={() => onSelectDestination(currentFrequent.destinationName)}
+          onClick={() => handleSelectAddress(currentFrequent.destinationName)}
           style={{
             background: '#262932',
             border: '1px solid #323642',
@@ -307,7 +479,7 @@ export default function MoovitHome({
 
         {/* Dicas Inteligentes com Previsão Oficial em Tempo Real */}
         <div
-          onClick={() => onSelectDestination(currentFrequent.destinationName)}
+          onClick={() => handleSelectAddress(currentFrequent.destinationName)}
           style={{ cursor: 'pointer' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9CA3AF' }}>
