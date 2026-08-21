@@ -278,59 +278,6 @@ export default function MoovitHome({
           </button>
         </div>
       </div>
-
-      {/* Banner Bilhete Único & Recargas */}
-      <div
-        style={{
-          background: '#1C1E24',
-          border: '1px solid #2D313C',
-          borderRadius: '14px',
-          padding: '14px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.3)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              background: '#E30613',
-              color: '#fff',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              fontWeight: 900,
-              fontSize: '12px'
-            }}
-          >
-            SPTrans
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
-              Bilhete Único e GPS Ao Vivo
-            </div>
-            <div style={{ fontSize: '11px', color: '#9CA3AF' }}>
-              Integração de 3h e telemetria oficial Olho Vivo
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={onSearchClick}
-          style={{
-            background: '#2563EB',
-            border: 'none',
-            color: '#fff',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '8px 12px',
-            borderRadius: '8px',
-            cursor: 'pointer'
-          }}
-        >
-          Planejar Rota
-        </button>
-      </div>
     </div>
   );
 }
