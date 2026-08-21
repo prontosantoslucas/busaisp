@@ -79,7 +79,7 @@ html, body {
   border-color: #4B5563;
 }
 .moovit-pill.active {
-  background: #1E293B;
+  background: rgba(227, 6, 19, 0.18);
   border-color: var(--moovit-blue-light);
   color: var(--moovit-blue-light);
 }
@@ -102,7 +102,7 @@ html, body {
 .moovit-card.selected {
   background: var(--moovit-surface-elevated);
   border: 2px solid var(--moovit-blue-light);
-  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 6px 24px rgba(227, 6, 19, 0.25);
 }
 
 /* Transit Badge */
@@ -110,8 +110,8 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #1E3A8A;
-  border: 1px solid #3B82F6;
+  background: rgba(227, 6, 19, 0.22);
+  border: 1px solid var(--moovit-sptrans-red);
   color: #FFFFFF;
   padding: 3px 8px;
   border-radius: 6px;

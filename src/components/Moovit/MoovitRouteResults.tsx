@@ -253,7 +253,7 @@ export default function MoovitRouteResults({
                   left: 0,
                   right: 0,
                   background: '#1C1E24',
-                  border: '1.5px solid #3B82F6',
+                  border: '1.5px solid var(--moovit-sptrans-red)',
                   borderRadius: '12px',
                   padding: '6px',
                   display: 'flex',
@@ -265,7 +265,7 @@ export default function MoovitRouteResults({
                   overflowY: 'auto'
                 }}
               >
-                <div style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: '#38BDF8', textTransform: 'uppercase' }}>
+                <div style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: 'var(--moovit-sptrans-red)', textTransform: 'uppercase' }}>
                   Locais encontrados para {activeInput === 'origem' ? 'origem' : 'destino'}:
                 </div>
                 {suggestions.map((sug, sIdx) => (
@@ -349,9 +349,9 @@ export default function MoovitRouteResults({
             onClick={() => setIsTimeModalOpen(!isTimeModalOpen)}
             className="moovit-pill"
             style={{
-              background: timeMode !== 'NOW' ? '#2563EB' : '#262932',
+              background: timeMode !== 'NOW' ? 'var(--moovit-sptrans-red)' : '#262932',
               color: '#FFFFFF',
-              borderColor: timeMode !== 'NOW' ? '#3B82F6' : '#323642'
+              borderColor: timeMode !== 'NOW' ? 'var(--moovit-sptrans-red)' : '#323642'
             }}
           >
             <Clock size={14} color={timeMode !== 'NOW' ? '#FFFFFF' : '#9CA3AF'} />
@@ -372,7 +372,7 @@ export default function MoovitRouteResults({
           <div
             style={{
               background: '#262932',
-              border: '1px solid #3B82F6',
+              border: '1px solid var(--moovit-sptrans-red)',
               borderRadius: '12px',
               padding: '14px',
               display: 'flex',
@@ -423,7 +423,7 @@ export default function MoovitRouteResults({
 
             {timeMode !== 'NOW' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1C1E24', padding: '8px 12px', borderRadius: '8px' }}>
-                <Clock size={16} color="#38BDF8" />
+                <Clock size={16} color="var(--moovit-sptrans-red)" />
                 <input
                   type="time"
                   value={customTime}
@@ -447,7 +447,7 @@ export default function MoovitRouteResults({
                 onCalculate();
               }}
               style={{
-                background: '#2563EB',
+                background: 'var(--moovit-sptrans-red)',
                 border: 'none',
                 borderRadius: '8px',
                 padding: '8px',
@@ -534,7 +534,7 @@ export default function MoovitRouteResults({
                 flexDirection: 'column',
                 gap: '10px',
                 padding: '16px',
-                borderLeft: isSelected ? '4px solid #38BDF8' : '1px solid #2D313C',
+                borderLeft: isSelected ? '4px solid var(--moovit-sptrans-red)' : '1px solid #2D313C',
                 cursor: 'pointer'
               }}
             >
@@ -554,8 +554,8 @@ export default function MoovitRouteResults({
                       {step.type === 'BUS' && (
                         <div
                           style={{
-                            background: '#1E3A8A',
-                            border: '1px solid #3B82F6',
+                            background: 'rgba(227, 6, 19, 0.22)',
+                            border: '1px solid var(--moovit-sptrans-red)',
                             color: '#FFFFFF',
                             padding: '3px 8px',
                             borderRadius: '6px',
@@ -583,7 +583,7 @@ export default function MoovitRouteResults({
                   <span style={{ fontSize: '16px', fontWeight: 900, color: '#FFFFFF' }}>
                     {route.totalDurationMinutes} min
                   </span>
-                  <ArrowRight size={18} color="#38BDF8" />
+                  <ArrowRight size={18} color="var(--moovit-sptrans-red)" />
                 </div>
               </div>
 

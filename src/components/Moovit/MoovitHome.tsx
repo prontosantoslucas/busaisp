@@ -283,7 +283,7 @@ export default function MoovitHome({
               left: 0,
               right: 0,
               background: '#1C1E24',
-              border: '1.5px solid #3B82F6',
+              border: '1.5px solid var(--moovit-sptrans-red)',
               borderRadius: '14px',
               padding: '8px',
               display: 'flex',
@@ -296,7 +296,7 @@ export default function MoovitHome({
               animation: 'fadeIn 0.15s ease'
             }}
           >
-            <div style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 800, color: '#38BDF8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 800, color: 'var(--moovit-sptrans-red)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <MapPin size={13} />
               <span>Selecione e confirme o local de destino:</span>
             </div>
@@ -398,7 +398,7 @@ export default function MoovitHome({
           </span>
           <div
             style={{
-              background: '#2563EB',
+              background: 'var(--moovit-sptrans-red)',
               color: '#fff',
               width: '28px',
               height: '28px',
