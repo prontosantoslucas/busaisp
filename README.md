@@ -66,6 +66,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 # Upstash Redis (Opcional para cache distribuído)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
+
+# Importação GTFS (Opcional para dados reais de paradas e linhas)
+# Chave gratuita: crie uma conta em https://www.transit.land e gere uma API key.
+TRANSITLAND_API_KEY=
+
+# Connection string direta do Postgres (não a URL/anon key acima).
+# Obtenha em: Supabase Dashboard > Project Settings > Database > Connection string.
+# Necessária apenas para rodar `npm run import:gtfs` — nunca é usada em runtime da aplicação.
+SUPABASE_DB_URL=
 ```
 > 💡 *Se `SPTRANS_TOKEN` não for preenchido, o app ativa automaticamente o simulador com dados reais de linhas famosas de SP (8000-10, 8700-10, Paulista, Faria Lima).*
 
@@ -112,6 +121,18 @@ create policy "Users can update own profile" on profiles for update using (auth.
 create policy "Users can manage own favorites" on favorites
   for all using (auth.uid() = user_id);
 ```
+
+---
+
+## 🗺️ Importação de Dados GTFS (Paradas e Linhas Reais)
+
+O planejador de rotas usa uma base real de paradas e linhas de toda São Paulo, importada do GTFS oficial da SPTrans (via espelho gratuito do Transitland) para dentro do Supabase.
+
+1. Execute `supabase/gtfs_schema.sql` e depois `supabase/gtfs_functions.sql` no SQL Editor do seu projeto Supabase (uma única vez, ou sempre que quiser recriar o esquema).
+2. Configure `TRANSITLAND_API_KEY` e `SUPABASE_DB_URL` no `.env.local` (veja `.env.example`).
+3. Rode `npm run import:gtfs` para baixar o feed mais recente e carregar as tabelas `gtfs_*`.
+
+O feed da SPTrans é atualizado diariamente pelo Transitland, mas a reimportação é manual — rode `npm run import:gtfs` novamente quando quiser atualizar (isso substitui todos os dados `gtfs_*` antigos).
 
 ---
 
