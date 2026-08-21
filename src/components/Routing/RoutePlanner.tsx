@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   Search,
   Map,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Activity
 } from 'lucide-react';
 
 interface RoutePlannerProps {
@@ -147,9 +149,9 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
             <Navigation size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 800 }}>Planejador de Rotas SP</h2>
+            <h2 style={{ fontSize: '17px', fontWeight: 800 }}>Planejador de Rotas a Pé + Ônibus</h2>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Melhor trajeto com tempo de chegada do ônibus no seu ponto
+              Caminho a pé detalhado e horário ideal para chegar ao ponto
             </p>
           </div>
         </div>
@@ -222,7 +224,7 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
               type="text"
               className="input-field"
               style={{ paddingLeft: '38px', height: '44px' }}
-              placeholder="Para onde você vai? (ex: Rua Flor de Maio, Center Norte)"
+              placeholder="Para onde você vai? (ex: Rua Flor de Maio, 40)"
               value={destino}
               onChange={(e) => handleDestinoChange(e.target.value)}
               onFocus={() => destino.trim().length >= 2 && setShowSuggestions(true)}
@@ -335,11 +337,11 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
           style={{ justifyContent: 'center', height: '44px' }}
         >
           <Sparkles size={16} />
-          {isCalculating ? 'Calculando Trajeto & Ônibus...' : 'Traçar Melhor Rota'}
+          {isCalculating ? 'Calculando Caminho a Pé & Ônibus...' : 'Traçar Melhor Rota'}
         </button>
       </div>
 
-      {/* Resultado com Confirmação Visual do Endereço e Traçado */}
+      {/* Resultado com Métricas a Pé, Confirmação e Traçado */}
       {calculatedRoute && (
         <div
           className="glass-panel"
@@ -375,48 +377,115 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
             </div>
           </div>
 
-          {/* Card Resumo do Tempo Total & Destaque do Ônibus */}
+          {/* Banner de Sugestão de Horário de Saída a Pé */}
           <div
             style={{
-              background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(16, 185, 129, 0.15))',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: '14px',
-              padding: '16px',
+              background: 'rgba(2, 132, 199, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '12px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}
+          >
+            <Zap size={20} color="#38BDF8" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#E0F2FE', lineHeight: 1.4 }}>
+              {calculatedRoute.departureSuggestion}
+            </div>
+          </div>
+
+          {/* Card Resumo com Métricas a Pé e Tempo do Ônibus */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '10px'
+            }}
+          >
+            {/* Total Geral */}
+            <div
+              style={{
+                background: 'rgba(23, 32, 51, 0.8)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '14px'
+              }}
+            >
+              <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>
+                Tempo Total de Viagem
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: '#F8FAFC', marginTop: '2px' }}>
+                ~{calculatedRoute.totalDurationMinutes} min
+              </div>
+              <div style={{ fontSize: '11px', color: '#38BDF8', marginTop: '4px' }}>
+                Total: {(calculatedRoute.totalDistanceMeters / 1000).toFixed(1)} km
+              </div>
+            </div>
+
+            {/* Total a Pé */}
+            <div
+              style={{
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: '12px',
+                padding: '14px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#38BDF8', fontWeight: 700 }}>
+                <Footprints size={14} />
+                <span>CAMINHADA A PÉ</span>
+              </div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: '#38BDF8', marginTop: '2px' }}>
+                {calculatedRoute.totalWalkDurationMinutes} min
+              </div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                {calculatedRoute.totalWalkDistanceMeters}m · ~{calculatedRoute.totalEstimatedSteps} passos
+              </div>
+            </div>
+          </div>
+
+          {/* Destaque do Ônibus no Ponto */}
+          <div
+            style={{
+              background: 'rgba(227, 6, 19, 0.15)',
+              border: '1px solid rgba(227, 6, 19, 0.4)',
+              borderRadius: '12px',
+              padding: '12px 14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}
           >
-            <div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>
-                Tempo Total Estimado
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  background: 'var(--accent-sptrans)',
+                  color: '#fff',
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '13px'
+                }}
+              >
+                {calculatedRoute.recommendedLine.lt}-{calculatedRoute.recommendedLine.tl}
               </div>
-              <div style={{ fontSize: '26px', fontWeight: 900, color: '#F8FAFC' }}>
-                ~{calculatedRoute.totalDurationMinutes} min
-              </div>
-              <div style={{ fontSize: '12px', color: '#38BDF8', marginTop: '2px' }}>
-                Distância: {(calculatedRoute.totalDistanceMeters / 1000).toFixed(1)} km
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                  Destino: {calculatedRoute.recommendedLine.ts}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Veículo #{calculatedRoute.nextBusVehiclePrefix}
+                </div>
               </div>
             </div>
 
-            {/* Destaque do Ônibus no Ponto de Partida */}
-            <div
-              style={{
-                background: 'rgba(227, 6, 19, 0.2)',
-                border: '1px solid rgba(227, 6, 19, 0.5)',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                textAlign: 'right'
-              }}
-            >
+            <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '10px', color: '#FCA5A5', fontWeight: 700 }}>
-                ÔNIBUS NO PONTO EM:
+                CHEGA NO PONTO EM:
               </div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#E30613' }}>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#E30613' }}>
                 {calculatedRoute.nextBusEtaMinutes} min
-              </div>
-              <div style={{ fontSize: '10px', color: '#94A3B8' }}>
-                {calculatedRoute.recommendedLine.lt}-{calculatedRoute.recommendedLine.tl}
               </div>
             </div>
           </div>
@@ -433,13 +502,13 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
             }}
           >
             <Map size={18} />
-            Ver Traçado Completo no Mapa
+            Ver Trajeto no Mapa (Caminhada + Ônibus)
           </button>
 
           {/* Passo a Passo da Rota */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Passo a Passo do Trajeto:
+              Passo a Passo com Instruções a Pé:
             </h4>
 
             {calculatedRoute.steps.map((step, idx) => (
@@ -454,15 +523,15 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
               >
                 <div
                   style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '50%',
                     background:
                       step.type === 'WALK'
-                        ? 'rgba(56, 189, 248, 0.15)'
+                        ? 'rgba(56, 189, 248, 0.18)'
                         : step.type === 'BUS'
-                        ? 'rgba(227, 6, 19, 0.15)'
-                        : 'rgba(16, 185, 129, 0.15)',
+                        ? 'rgba(227, 6, 19, 0.18)'
+                        : 'rgba(16, 185, 129, 0.18)',
                     color:
                       step.type === 'WALK'
                         ? '#38BDF8'
@@ -475,18 +544,18 @@ export default function RoutePlanner({ onRouteCalculated, userCoords }: RoutePla
                     flexShrink: 0
                   }}
                 >
-                  {step.type === 'WALK' && <Footprints size={16} />}
-                  {step.type === 'BUS' && <Bus size={16} />}
-                  {step.type === 'DESTINATION' && <CheckCircle2 size={16} />}
+                  {step.type === 'WALK' && <Footprints size={17} />}
+                  {step.type === 'BUS' && <Bus size={17} />}
+                  {step.type === 'DESTINATION' && <CheckCircle2 size={17} />}
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {step.instruction}
                   </div>
-                  {step.distanceMeters > 0 && (
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {step.distanceMeters}m · ~{step.durationMinutes} min
+                  {step.detailedWalkGuide && (
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', lineHeight: 1.4 }}>
+                      🚶 {step.detailedWalkGuide}
                     </div>
                   )}
                   {step.nextBusEtaMinutes !== undefined && (

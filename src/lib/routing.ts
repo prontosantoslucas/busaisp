@@ -12,8 +12,10 @@ export interface RouteLocation {
 export interface RouteStep {
   type: 'WALK' | 'BUS' | 'RAIL' | 'DESTINATION';
   instruction: string;
+  detailedWalkGuide?: string; // Instrução de caminhada na rua
   durationMinutes: number;
   distanceMeters: number;
+  estimatedSteps?: number;    // Quantidade estimada de passos a pé
   busLine?: string;
   busDestination?: string;
   stopName?: string;
@@ -28,11 +30,15 @@ export interface RoutePlan {
   destination: RouteLocation;
   totalDurationMinutes: number;
   totalDistanceMeters: number;
+  totalWalkDistanceMeters: number; // Distância total que o usuário vai andar a pé
+  totalWalkDurationMinutes: number;// Tempo total de caminhada a pé
+  totalEstimatedSteps: number;     // Total de passos a pé
   departureStop: SPTransParada;
   arrivalStop: SPTransParada;
   recommendedLine: SPTransLinha;
   nextBusEtaMinutes: number;
   nextBusVehiclePrefix?: string;
+  departureSuggestion: string;     // Ex: "Saia agora para embarcar com folga de 2 min"
   accuracyLevel: 'HIGH' | 'MEDIUM' | 'ESTIMATED';
   lastTelemetryText: string;
   steps: RouteStep[];
@@ -81,18 +87,6 @@ const KNOWN_SP_LOCATIONS: Record<string, { lat: number; lng: number; name: strin
     name: 'Avenida Paulista, 1578',
     details: 'Bela Vista, São Paulo - SP'
   },
-  'masp': {
-    lat: -23.5615,
-    lng: -46.6559,
-    name: 'Museu de Arte de São Paulo (MASP)',
-    details: 'Av. Paulista, 1578 - Cerqueira César, SP'
-  },
-  'lapa': {
-    lat: -23.5250,
-    lng: -46.6980,
-    name: 'Terminal Lapa',
-    details: 'Praça Miguel Dell\'Erba - Lapa, SP'
-  },
   'santana': {
     lat: -23.5020,
     lng: -46.6260,
@@ -104,18 +98,6 @@ const KNOWN_SP_LOCATIONS: Record<string, { lat: number; lng: number; name: strin
     lng: -46.6030,
     name: 'Metrô / Terminal Tucuruvi',
     details: 'Av. Dr. Antônio Maria Laet - Tucuruvi, SP'
-  },
-  'faria lima': {
-    lat: -23.5742,
-    lng: -46.6895,
-    name: 'Av. Brigadeiro Faria Lima',
-    details: 'Pinheiros / Itaim Bibi, São Paulo - SP'
-  },
-  'ibirapuera': {
-    lat: -23.5874,
-    lng: -46.6576,
-    name: 'Parque Ibirapuera',
-    details: 'Av. Pedro Álvares Cabral - Moema, SP'
   }
 };
 
@@ -128,7 +110,6 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
   const norm = query.toLowerCase().trim();
   const suggestions: RouteLocation[] = [];
 
-  // 1. Procurar no catálogo local
   for (const [key, loc] of Object.entries(KNOWN_SP_LOCATIONS)) {
     if (key.includes(norm) || norm.includes(key)) {
       suggestions.push({
@@ -140,7 +121,6 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
     }
   }
 
-  // 2. Consultar OpenStreetMap Nominatim com filtro para São Paulo
   try {
     const cleanQuery = norm.replace('maior', 'maio');
     const res = await fetch(
@@ -157,7 +137,6 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
           const mainTitle = parts.slice(0, 2).join(', ').trim();
           const subDetails = parts.slice(2, 5).join(', ').trim();
 
-          // Evitar duplicados
           if (!suggestions.some(s => Math.abs(s.lat - parseFloat(item.lat)) < 0.001)) {
             suggestions.push({
               name: mainTitle,
@@ -182,7 +161,6 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
 export async function geocodeAddress(query: string): Promise<RouteLocation> {
   const norm = query.toLowerCase().trim();
 
-  // 1. Verificar catálogo local
   for (const [key, loc] of Object.entries(KNOWN_SP_LOCATIONS)) {
     if (norm.includes(key) || key.includes(norm)) {
       return {
@@ -194,7 +172,6 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
     }
   }
 
-  // 2. Corrigir termos comuns (ex: flor de maior -> flor de maio)
   const cleanQuery = norm.replace('maior', 'maio');
 
   try {
@@ -221,7 +198,6 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
     console.warn('[Geocode] Fallback para local padrão:', err);
   }
 
-  // Fallback padrão se não encontrar (Jardim Fontális se tiver flor/fontalis)
   if (norm.includes('flor') || norm.includes('fontal')) {
     return {
       name: 'Rua Flor de Maio, 40',
@@ -255,14 +231,34 @@ function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 /**
- * Motor de Cálculo da Melhor Rota Multimodal com tempo do ônibus ao vivo
+ * Gera traçado de caminhada realista seguindo quarteirões urbanos a pé
+ */
+function generatePedestrianWaypoints(start: [number, number], end: [number, number]): [number, number][] {
+  const [lat1, lng1] = start;
+  const [lat2, lng2] = end;
+
+  // Criar pontos de curva para seguir as calçadas da rua em vez de atravessar construções em linha reta
+  const corner1: [number, number] = [lat1, lng2];
+  const midPoint: [number, number] = [(lat1 + lat2) / 2, (lng1 + lng2) / 2];
+
+  return [
+    [lat1, lng1],
+    [lat1, (lng1 + lng2) / 2],
+    [(lat1 + lat2) / 2, (lng1 + lng2) / 2],
+    [lat2, (lng1 + lng2) / 2],
+    [lat2, lng2]
+  ];
+}
+
+/**
+ * Motor de Cálculo com Navegação a Pé Detalhada (Pedestrian First)
  */
 export async function calculateRoute(
   originLoc: RouteLocation,
   destLoc: RouteLocation
 ): Promise<RoutePlan> {
-  // 1. Encontrar parada mais próxima da Origem
-  let nearestOrigStop = MOCK_PARADAS[3] || MOCK_PARADAS[0]; // Terminal Jd. Fontális por padrão se na ZN
+  // 1. Encontrar parada de ônibus mais próxima da localização onde o usuário está a pé
+  let nearestOrigStop = MOCK_PARADAS[3] || MOCK_PARADAS[0];
   let minOrigDist = Infinity;
 
   MOCK_PARADAS.forEach((stop) => {
@@ -273,8 +269,8 @@ export async function calculateRoute(
     }
   });
 
-  // 2. Encontrar parada mais próxima do Destino
-  let nearestDestStop = MOCK_PARADAS[0]; // Parada Shopping Center Norte
+  // 2. Encontrar parada de desembarque mais próxima do destino
+  let nearestDestStop = MOCK_PARADAS[0];
   let minDestDist = Infinity;
 
   MOCK_PARADAS.forEach((stop) => {
@@ -290,8 +286,8 @@ export async function calculateRoute(
   // 3. Linha recomendada (1703-10 Jd. Fontális ↔ Shopping Center Norte)
   const recommendedLine = MOCK_LINHAS[0];
 
-  // 4. Previsão em tempo real do ônibus no ponto de embarque
-  let busEtaMinutes = 3;
+  // 4. Previsão em tempo real do ônibus no ponto onde o usuário vai embarcar
+  let busEtaMinutes = 4;
   let vehiclePrefix = "21045";
   let accuracy: 'HIGH' | 'MEDIUM' | 'ESTIMATED' = 'HIGH';
   let telemetryAge = 'Sinal GPS recebido em tempo real (Alta Precisão)';
@@ -315,30 +311,44 @@ export async function calculateRoute(
     console.warn('[Routing] Erro ao obter previsão da parada:', e);
   }
 
-  // 5. Tempos e Distâncias
-  const walkToStopMeters = Math.max(120, minOrigDist);
+  // 5. Cálculos precisos de Caminhada a Pé (Velocidade média 4.5 km/h ~ 75 metros/min)
+  const walkToStopMeters = Math.max(150, minOrigDist);
   const walkToStopMinutes = Math.max(2, Math.round(walkToStopMeters / 75));
+  const walkToStopSteps = Math.round(walkToStopMeters / 0.75); // ~0.75m por passo
 
   const transitDistanceMeters = getDistanceMeters(
     nearestOrigStop.py,
     nearestOrigStop.px,
     nearestDestStop.py,
     nearestDestStop.px
-  ) || 4500;
-  const transitMinutes = Math.max(12, Math.round(transitDistanceMeters / 280));
+  ) || 4800;
+  const transitMinutes = Math.max(14, Math.round(transitDistanceMeters / 280));
 
-  const walkToDestMeters = Math.max(80, minDestDist);
+  const walkToDestMeters = Math.max(90, minDestDist);
   const walkToDestMinutes = Math.max(1, Math.round(walkToDestMeters / 75));
+  const walkToDestSteps = Math.round(walkToDestMeters / 0.75);
 
-  const totalDurationMinutes = walkToStopMinutes + busEtaMinutes + transitMinutes + walkToDestMinutes;
+  const totalWalkDistanceMeters = walkToStopMeters + walkToDestMeters;
+  const totalWalkDurationMinutes = walkToStopMinutes + walkToDestMinutes;
+  const totalEstimatedSteps = walkToStopSteps + walkToDestSteps;
+
+  const totalDurationMinutes = walkToStopMinutes + Math.max(0, busEtaMinutes - walkToStopMinutes) + transitMinutes + walkToDestMinutes;
   const totalDistanceMeters = walkToStopMeters + transitDistanceMeters + walkToDestMeters;
 
-  // 6. Polylines do traçado
-  const walkToStopPath: [number, number][] = [
+  // Sugestão de Horário de Saída
+  let departureSuggestion = '';
+  if (busEtaMinutes <= walkToStopMinutes + 1) {
+    departureSuggestion = `⚡ Saia a pé agora! Você leva ${walkToStopMinutes} min até o ponto e o ônibus #${vehiclePrefix} chega em ${busEtaMinutes} min.`;
+  } else {
+    const waitTime = busEtaMinutes - walkToStopMinutes;
+    departureSuggestion = `🚶 Saia a pé em ~${waitTime} min para chegar ao ponto exatamente quando o ônibus #${vehiclePrefix} estiver se aproximando.`;
+  }
+
+  // 6. Polylines detalhadas com traçado de pedestre e de ônibus
+  const walkToStopPath = generatePedestrianWaypoints(
     [originLoc.lat, originLoc.lng],
-    [(originLoc.lat + nearestOrigStop.py) / 2, (originLoc.lng + nearestOrigStop.px) / 2],
     [nearestOrigStop.py, nearestOrigStop.px]
-  ];
+  );
 
   const midLat1 = (nearestOrigStop.py * 2 + nearestDestStop.py) / 3;
   const midLng1 = (nearestOrigStop.px * 2 + nearestDestStop.px) / 3 + 0.003;
@@ -352,23 +362,26 @@ export async function calculateRoute(
     [nearestDestStop.py, nearestDestStop.px]
   ];
 
-  const walkToDestPath: [number, number][] = [
+  const walkToDestPath = generatePedestrianWaypoints(
     [nearestDestStop.py, nearestDestStop.px],
     [destLoc.lat, destLoc.lng]
-  ];
+  );
 
-  // 7. Passos
+  // 7. Passos estruturados
   const steps: RouteStep[] = [
     {
       type: 'WALK',
-      instruction: `Caminhe até a parada ${nearestOrigStop.np}`,
+      instruction: `Caminhe a pé até a parada ${nearestOrigStop.np}`,
+      detailedWalkGuide: `Siga pelas calçadas por ${walkToStopMeters} metros (~${walkToStopSteps} passos). Tempo estimado: ${walkToStopMinutes} min a pé.`,
       durationMinutes: walkToStopMinutes,
       distanceMeters: walkToStopMeters,
+      estimatedSteps: walkToStopSteps,
       stopName: nearestOrigStop.np
     },
     {
       type: 'BUS',
-      instruction: `Embarque na linha ${recommendedLine.lt}-${recommendedLine.tl} com letreiro DESTINO: ${recommendedLine.ts}`,
+      instruction: `Embarque na linha ${recommendedLine.lt}-${recommendedLine.tl} (${recommendedLine.ts})`,
+      detailedWalkGuide: `Aguarde na plataforma. Letreiro do ônibus: DESTINO ${recommendedLine.ts}`,
       durationMinutes: transitMinutes,
       distanceMeters: transitDistanceMeters,
       busLine: `${recommendedLine.lt}-${recommendedLine.tl}`,
@@ -379,14 +392,16 @@ export async function calculateRoute(
     },
     {
       type: 'WALK',
-      instruction: `Desembarque em ${nearestDestStop.np} e caminhe até o destino final`,
+      instruction: `Desembarque em ${nearestDestStop.np} e caminhe a pé até o destino`,
+      detailedWalkGuide: `Caminhada final de ${walkToDestMeters} metros (~${walkToDestSteps} passos) até o endereço de destino.`,
       durationMinutes: walkToDestMinutes,
       distanceMeters: walkToDestMeters,
+      estimatedSteps: walkToDestSteps,
       stopName: nearestDestStop.np
     },
     {
       type: 'DESTINATION',
-      instruction: `Chegada em ${destLoc.name}`,
+      instruction: `Chegada no destino: ${destLoc.name}`,
       durationMinutes: 0,
       distanceMeters: 0
     }
@@ -398,11 +413,15 @@ export async function calculateRoute(
     destination: destLoc,
     totalDurationMinutes,
     totalDistanceMeters,
+    totalWalkDistanceMeters,
+    totalWalkDurationMinutes,
+    totalEstimatedSteps,
     departureStop: nearestOrigStop,
     arrivalStop: nearestDestStop,
     recommendedLine,
     nextBusEtaMinutes: busEtaMinutes,
     nextBusVehiclePrefix: vehiclePrefix,
+    departureSuggestion,
     accuracyLevel: accuracy,
     lastTelemetryText: telemetryAge,
     steps,

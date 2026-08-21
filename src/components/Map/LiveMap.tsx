@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { SPTransLinha, SPTransParada, SPTransVeiculo } from '@/types/sptrans';
 import { RoutePlan } from '@/lib/routing';
-import { Compass, Locate, RefreshCw, Bus, MapPin, Accessibility, Clock, AlertCircle, ShieldCheck, Footprints, Flag } from 'lucide-react';
+import { Compass, Locate, RefreshCw, Bus, MapPin, Accessibility, Clock, AlertCircle, ShieldCheck, Footprints, Flag, Zap, X } from 'lucide-react';
 
 interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -18,7 +18,6 @@ interface LiveMapProps {
   userCoords?: [number, number] | null;
 }
 
-// Centro padrão: Região da Linha 1703-10 (Zona Norte / Center Norte / Jd. Fontális)
 const DEFAULT_CENTER: [number, number] = [-23.5000, -46.6050];
 const DEFAULT_ZOOM = 13;
 
@@ -54,7 +53,6 @@ export default function LiveMap({
       attributionControl: false
     });
 
-    // Camada escura / Voyager de alta qualidade
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd',
@@ -62,7 +60,6 @@ export default function LiveMap({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Grupos de camadas
     const routeGroup = L.layerGroup().addTo(map);
     const stopGroup = L.layerGroup().addTo(map);
     const busGroup = L.layerGroup().addTo(map);
@@ -78,48 +75,46 @@ export default function LiveMap({
     };
   }, []);
 
-  // Atualizar posição do usuário (GPS) no mapa com radar de precisão
+  // Atualizar posição do usuário (GPS) no mapa com radar
   useEffect(() => {
     if (!mapInstanceRef.current || !userCoords) return;
 
     const map = mapInstanceRef.current;
 
-    // Criar ou atualizar marcador do usuário
     if (userMarkerRef.current) {
       userMarkerRef.current.setLatLng(userCoords);
     } else {
       const userIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; width: 28px; height: 28px; border-radius: 50%; background: rgba(56, 189, 248, 0.4); animation: markerPulse 2s infinite;"></div>
+          <div style="position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 30px; height: 30px; border-radius: 50%; background: rgba(56, 189, 248, 0.45); animation: markerPulse 2s infinite;"></div>
             <div style="width: 16px; height: 16px; border-radius: 50%; background: #0284C7; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
           </div>
         `,
         className: 'user-location-marker',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
       });
 
       userMarkerRef.current = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1000 })
-        .bindPopup('<strong>📍 Você está aqui</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão GPS Ativa</span>')
+        .bindPopup('<strong>📍 Você está aqui (A Pé)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão GPS Ativa</span>')
         .addTo(map);
     }
 
-    // Círculo de precisão
     if (userAccuracyCircleRef.current) {
       userAccuracyCircleRef.current.setLatLng(userCoords);
     } else {
       userAccuracyCircleRef.current = L.circle(userCoords, {
-        radius: 40,
+        radius: 45,
         color: '#0284C7',
         fillColor: '#38BDF8',
-        fillOpacity: 0.12,
+        fillOpacity: 0.15,
         weight: 1
       }).addTo(map);
     }
   }, [userCoords]);
 
-  // Atualizar rota no mapa (quando uma rota ativa for calculada)
+  // Atualizar traçado no mapa com destaque especial para a caminhada a pé do pedestre
   useEffect(() => {
     if (!routePolylinesGroupRef.current || !mapInstanceRef.current) return;
 
@@ -130,24 +125,46 @@ export default function LiveMap({
     const map = mapInstanceRef.current;
     const allCoords: [number, number][] = [];
 
-    // 1. Caminhada até o ponto (linha tracejada azul)
+    // 1. Caminhada a pé inicial até a parada (Linha tracejada azul clara)
     if (activeRoute.polyline.walkToStop.length > 0) {
+      const walkGlow = L.polyline(activeRoute.polyline.walkToStop, {
+        color: '#38BDF8',
+        weight: 8,
+        opacity: 0.25
+      });
       const walkLine = L.polyline(activeRoute.polyline.walkToStop, {
         color: '#38BDF8',
-        weight: 4,
+        weight: 5,
         dashArray: '6, 8',
-        opacity: 0.85
+        opacity: 0.95
       });
+      routePolylinesGroupRef.current.addLayer(walkGlow);
       routePolylinesGroupRef.current.addLayer(walkLine);
       allCoords.push(...activeRoute.polyline.walkToStop);
+
+      // Marcador de Início da Caminhada
+      const startWalkIcon = L.divIcon({
+        html: `
+          <div style="background: #0284C7; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 14px;">
+            🚶
+          </div>
+        `,
+        className: 'walk-start-marker',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const startMarker = L.marker(activeRoute.polyline.walkToStop[0], { icon: startWalkIcon })
+        .bindPopup(`<strong>Início da Caminhada a Pé</strong><br/>Caminhe até ${activeRoute.departureStop.np}`);
+      routePolylinesGroupRef.current.addLayer(startMarker);
     }
 
-    // 2. Trajeto do ônibus (linha sólida vermelha com brilho)
+    // 2. Trajeto de Ônibus (Linha sólida vermelha SPTrans)
     if (activeRoute.polyline.transit.length > 0) {
       const busGlow = L.polyline(activeRoute.polyline.transit, {
         color: '#E30613',
-        weight: 8,
-        opacity: 0.35
+        weight: 9,
+        opacity: 0.3
       });
       const busLine = L.polyline(activeRoute.polyline.transit, {
         color: '#E30613',
@@ -157,24 +174,40 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(busGlow);
       routePolylinesGroupRef.current.addLayer(busLine);
       allCoords.push(...activeRoute.polyline.transit);
+
+      // Marcador de Embarque no Ônibus
+      const boardIcon = L.divIcon({
+        html: `
+          <div style="background: #E30613; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 14px;">
+            🚏
+          </div>
+        `,
+        className: 'bus-board-marker',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+
+      const boardMarker = L.marker([activeRoute.departureStop.py, activeRoute.departureStop.px], { icon: boardIcon })
+        .bindPopup(`<strong>Ponto de Embarque: ${activeRoute.departureStop.np}</strong><br/>Ônibus chega em <strong>${activeRoute.nextBusEtaMinutes} min</strong>`);
+      routePolylinesGroupRef.current.addLayer(boardMarker);
     }
 
-    // 3. Caminhada final até o destino
+    // 3. Caminhada final a pé até o destino
     if (activeRoute.polyline.walkToDest.length > 0) {
       const walkDestLine = L.polyline(activeRoute.polyline.walkToDest, {
         color: '#10B981',
-        weight: 4,
+        weight: 5,
         dashArray: '6, 8',
-        opacity: 0.85
+        opacity: 0.95
       });
       routePolylinesGroupRef.current.addLayer(walkDestLine);
       allCoords.push(...activeRoute.polyline.walkToDest);
     }
 
-    // 4. Marcador de Destino
+    // 4. Marcador de Destino Final
     const destIcon = L.divIcon({
       html: `
-        <div style="background: #10B981; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div style="background: #10B981; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 15px;">
           🏁
         </div>
       `,
@@ -185,17 +218,17 @@ export default function LiveMap({
 
     const destMarker = L.marker([activeRoute.destination.lat, activeRoute.destination.lng], {
       icon: destIcon
-    }).bindPopup(`<strong>Destino: ${activeRoute.destination.name}</strong>`);
+    }).bindPopup(`<strong>Destino: ${activeRoute.destination.name}</strong><br/>${activeRoute.destination.addressDetails || ''}`);
 
     routePolylinesGroupRef.current.addLayer(destMarker);
 
-    // Ajustar zoom para englobar toda a rota
+    // Ajustar zoom
     if (allCoords.length > 0) {
-      map.fitBounds(L.latLngBounds(allCoords), { padding: [60, 60], maxZoom: 16 });
+      map.fitBounds(L.latLngBounds(allCoords), { padding: [70, 70], maxZoom: 16 });
     }
   }, [activeRoute]);
 
-  // Atualizar marcadores de Ônibus no mapa com Destino explícito (Shopping Center Norte / Jd. Fontális)
+  // Atualizar marcadores de Ônibus no mapa com Destino explícito
   useEffect(() => {
     if (!busMarkersGroupRef.current || !mapInstanceRef.current) return;
 
@@ -294,7 +327,6 @@ export default function LiveMap({
     });
   }, [paradas, onSelectParada]);
 
-  // Obter localização do usuário (GPS)
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
       alert('Geolocalização não é suportada pelo seu navegador.');
@@ -324,6 +356,78 @@ export default function LiveMap({
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {/* Container Leaflet */}
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
+
+      {/* Card Flutuante de Rota com Caminhada Detalhada */}
+      {activeRoute && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '76px',
+            left: '12px',
+            right: '12px',
+            maxWidth: '460px',
+            margin: '0 auto',
+            zIndex: 990,
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            borderRadius: '14px',
+            padding: '12px 14px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            animation: 'fadeIn 0.3s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  background: '#0284C7',
+                  color: '#fff',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px'
+                }}
+              >
+                🚶
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
+                Rota a Pé + Ônibus
+              </span>
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#38BDF8' }}>
+              ~{activeRoute.totalDurationMinutes} min total
+            </span>
+          </div>
+
+          {/* Métricas a Pé & Ônibus no Ponto */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(0,0,0,0.3)',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              fontSize: '11px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#94A3B8' }}>
+              <Footprints size={14} color="#38BDF8" />
+              <span>A pé: <strong style={{ color: '#38BDF8' }}>{activeRoute.totalWalkDurationMinutes} min</strong> ({activeRoute.totalWalkDistanceMeters}m)</span>
+            </div>
+            <div style={{ color: '#FCA5A5', fontWeight: 700 }}>
+              Ônibus chega em: <strong style={{ color: '#E30613' }}>{activeRoute.nextBusEtaMinutes} min</strong>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Botões de Ação Flutuantes */}
       <div
