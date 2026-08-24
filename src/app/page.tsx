@@ -10,26 +10,28 @@ import {
 } from '@/types/sptrans';
 import { RoutePlan, RouteSearchResult } from '@/lib/routing';
 import { FavoriteItem, fetchFavorites, toggleFavorite } from '@/lib/supabase';
-import MoovitTabBar, { MoovitTabType } from '@/components/Moovit/MoovitTabBar';
-import MoovitHome from '@/components/Moovit/MoovitHome';
-import MoovitRouteResults from '@/components/Moovit/MoovitRouteResults';
-import MoovitRouteDetail from '@/components/Moovit/MoovitRouteDetail';
-import MoovitDeparturesModal from '@/components/Moovit/MoovitDeparturesModal';
+import TransitDock, { TransitTabType } from '@/components/Navigation/TransitDock';
+import TransitHeader from '@/components/Navigation/TransitHeader';
+import TransitHomeHub from '@/components/Transit/TransitHomeHub';
+import TransitRouteResults from '@/components/Transit/TransitRouteResults';
+import TransitRouteDetail from '@/components/Transit/TransitRouteDetail';
+import TransitDeparturesModal from '@/components/Transit/TransitDeparturesModal';
 import StationsExplorerPanel from '@/components/Stations/StationsExplorerPanel';
 import { StationItem, SP_ALL_STATIONS } from '@/lib/stationsData';
 import { TrafficIncident } from '@/types/traffic';
 import LineItineraryPanel from '@/components/BusSearch/LineItineraryPanel';
 import FavoritesDrawer from '@/components/Favorites/FavoritesDrawer';
 import TokenConfigModal from '@/components/UI/TokenConfigModal';
+import { voiceService } from '@/lib/voiceService';
 import {
   Bus,
   Map as MapIcon,
   Play,
   Square,
-  Share2,
   ChevronUp,
-  ChevronDown,
-  X
+  Volume2,
+  VolumeX,
+  Radio
 } from 'lucide-react';
 
 const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
@@ -45,30 +47,42 @@ const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#121316',
-        color: '#9CA3AF',
+        backgroundColor: '#07090E',
+        color: '#94A3B8',
         gap: '12px'
       }}
     >
-      <div className="animate-spin">
-        <Bus size={32} color="#FF6600" />
-      </div>
-      <span style={{ fontSize: '13px' }}>Carregando mapa Moovit SP...</span>
+      <div style={{ width: '32px', height: '32px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: '#06B6D4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <span style={{ fontSize: '13px', fontWeight: 600, color: '#38BDF8' }}>Carregando Radar BusaÍ SP...</span>
     </div>
   )
 });
 
+// Utilitário de cálculo de distância (Haversine em metros)
+function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<MoovitTabType>('DIRECOES');
+  const [activeTab, setActiveTab] = useState<TransitTabType>('ROTAS');
   const [screenMode, setScreenMode] = useState<'HOME' | 'RESULTS' | 'DETAIL'>('HOME');
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [isDeparturesModalOpen, setIsDeparturesModalOpen] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isPercursoActive, setIsPercursoActive] = useState(false);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(false);
 
-  const [origem, setOrigem] = useState('Local atual');
+  const [origem, setOrigem] = useState('Minha Localização');
   const [destino, setDestino] = useState('Rua Flor de Maio, 40');
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+  const [userAccuracyMeters, setUserAccuracyMeters] = useState<number | null>(null);
 
   const [routes, setRoutes] = useState<RoutePlan[]>([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
@@ -83,15 +97,28 @@ export default function HomePage() {
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
 
-  // GPS & Incidentes de Trânsito ao Vivo
+  // GPS Contínuo & Incidentes de Trânsito ao Vivo
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserCoords([pos.coords.latitude, pos.coords.longitude]),
-        () => setUserCoords([-23.5158, -46.6182]),
-        { enableHighAccuracy: true, timeout: 6000 }
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setUserCoords([pos.coords.latitude, pos.coords.longitude]);
+          setUserAccuracyMeters(pos.coords.accuracy);
+        },
+        () => {
+          // Sem permissão/sinal de GPS: não substituímos por uma localização
+          // fixa (isso mostraria uma posição errada como se fosse real). O
+          // mapa e a busca de rota tratam userCoords === null explicitamente.
+          setUserCoords(null);
+          setUserAccuracyMeters(null);
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 8000 }
       );
+      return () => navigator.geolocation.clearWatch(watchId);
     }
+  }, []);
+
+  useEffect(() => {
     fetchFavorites().then(setFavorites);
 
     const fetchIncidents = async () => {
@@ -110,7 +137,28 @@ export default function HomePage() {
     return () => clearInterval(incInterval);
   }, []);
 
-  // Buscar linhas
+  // Monitorar aproximação por voz durante o Percurso Ativo
+  useEffect(() => {
+    if (!isPercursoActive || !userCoords || isVoiceMuted) return;
+    const currentRoute = routes[selectedRouteIndex];
+    if (!currentRoute) return;
+
+    // Verificar distância até o destino final
+    if (currentRoute.destination?.lat && currentRoute.destination?.lng) {
+      const distToDest = getDistanceMeters(
+        userCoords[0],
+        userCoords[1],
+        currentRoute.destination.lat,
+        currentRoute.destination.lng
+      );
+
+      if (distToDest < 300) {
+        voiceService.announceApproachingDestination(currentRoute.destination.name);
+      }
+    }
+  }, [isPercursoActive, userCoords, routes, selectedRouteIndex, isVoiceMuted]);
+
+  // Buscar posição dos veículos da SPTrans
   const loadVeiculos = useCallback(async (linha: SPTransLinha) => {
     setIsLoadingVehicles(true);
     try {
@@ -159,9 +207,10 @@ export default function HomePage() {
 
       if (json.success && json.data) {
         const searchResult: RouteSearchResult = json.data;
-        const alts = searchResult.alternatives && searchResult.alternatives.length > 0
-          ? searchResult.alternatives
-          : [searchResult.primaryRoute];
+        const alts =
+          searchResult.alternatives && searchResult.alternatives.length > 0
+            ? searchResult.alternatives
+            : [searchResult.primaryRoute];
         setRoutes(alts);
         setSelectedRouteIndex(0);
         setSelectedLine(alts[0].recommendedLine);
@@ -202,6 +251,12 @@ export default function HomePage() {
     setFavorites(updated);
   };
 
+  const handleToggleVoice = () => {
+    const nextState = !isVoiceMuted;
+    setIsVoiceMuted(nextState);
+    voiceService.setMuted(nextState);
+  };
+
   return (
     <div
       style={{
@@ -209,7 +264,7 @@ export default function HomePage() {
         width: '100vw',
         height: '100dvh',
         overflow: 'hidden',
-        background: '#121316'
+        background: '#07090E'
       }}
     >
       {/* 1. MAPA PERSISTENTE NO FUNDO */}
@@ -231,29 +286,39 @@ export default function HomePage() {
           onRefresh={() => selectedLine && loadVeiculos(selectedLine)}
           activeRoute={activeRoute}
           userCoords={userCoords}
+          userAccuracyMeters={userAccuracyMeters}
           isPercursoActive={isPercursoActive}
           onStartPercurso={() => {
             setIsPercursoActive(true);
             setIsMapFullscreen(true);
+            if (!isVoiceMuted && activeRoute) {
+              voiceService.announceBoarding(
+                `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
+                activeRoute.destination.name
+              );
+            }
           }}
-          onStopPercurso={() => setIsPercursoActive(false)}
+          onStopPercurso={() => {
+            setIsPercursoActive(false);
+            voiceService.stop();
+          }}
           stations={SP_ALL_STATIONS}
           selectedStation={selectedStation}
           onRouteToStation={(st) => {
             setDestino(`${st.name}, ${st.address}`);
-            setActiveTab('DIRECOES');
+            setActiveTab('ROTAS');
             handleCalculateRoutes(`${st.name}, ${st.address}`);
           }}
           incidents={incidents}
         />
       </div>
 
-      {/* 2. BOTÕES FLUTUANTES SOBRE O MAPA NO MODO DETALHES (Screenshot 3) */}
-      {screenMode === 'DETAIL' && isMapFullscreen && activeRoute && (
+      {/* 2. BOTÕES FLUTUANTES SOBRE O MAPA NO MODO PERCURSO/FULLSCREEN */}
+      {isMapFullscreen && (
         <div
           style={{
             position: 'absolute',
-            top: isPercursoActive ? '80px' : '16px',
+            top: '16px',
             left: '16px',
             zIndex: 960,
             display: 'flex',
@@ -264,72 +329,69 @@ export default function HomePage() {
         >
           {isPercursoActive ? (
             <button
-              onClick={() => setIsPercursoActive(false)}
+              onClick={() => {
+                setIsPercursoActive(false);
+                voiceService.stop();
+              }}
               style={{
-                background: '#EF4444',
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                 border: 'none',
                 borderRadius: '9999px',
                 padding: '12px 18px',
                 color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: 900,
+                fontSize: '13.5px',
+                fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 cursor: 'pointer',
-                boxShadow: '0 6px 20px rgba(239, 68, 68, 0.4)'
+                boxShadow: '0 8px 24px rgba(239, 68, 68, 0.45)'
               }}
             >
-              <Square size={16} fill="#fff" />
-              <span>Parar Percurso</span>
+              <Square size={15} fill="#fff" />
+              <span>Parar Navegação ao Vivo</span>
             </button>
           ) : (
             <button
-              onClick={() => setIsPercursoActive(true)}
-              style={{
-                background: '#10B981',
-                border: 'none',
-                borderRadius: '9999px',
-                padding: '12px 18px',
-                color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: 900,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)'
+              onClick={() => {
+                setIsPercursoActive(true);
+                if (!isVoiceMuted && activeRoute) {
+                  voiceService.announceBoarding(
+                    `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
+                    activeRoute.destination.name
+                  );
+                }
               }}
+              className="bus-btn-voice"
+              style={{ padding: '12px 18px', fontSize: '13.5px' }}
             >
-              <Play size={16} fill="#fff" />
-              <span>Iniciar Percurso</span>
+              <Volume2 size={16} />
+              <span>Iniciar com Voz</span>
             </button>
           )}
 
           <button
             onClick={() => setIsMapFullscreen(false)}
+            className="bus-glass-panel"
             style={{
-              background: '#1C1E24',
-              border: '1px solid #2D313C',
               borderRadius: '9999px',
               padding: '10px 16px',
-              color: '#FFFFFF',
+              color: '#F8FAFC',
               fontSize: '12px',
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.6)'
+              cursor: 'pointer'
             }}
           >
-            <ChevronUp size={16} />
-            <span>Ver Instruções da Viagem</span>
+            <ChevronUp size={16} color="#06B6D4" />
+            <span>Ver Painel da Viagem</span>
           </button>
         </div>
       )}
 
-      {/* 3. PAINEL PRINCIPAL MOOVIT (Desktop à Esquerda / Mobile Central) */}
+      {/* 3. PAINEL PRINCIPAL BUSAÍ SP (Desktop à Esquerda / Mobile Adaptativo) */}
       {!isMapFullscreen && (
         <div
           className="floating-main-panel"
@@ -340,21 +402,30 @@ export default function HomePage() {
             zIndex: 950,
             width: 'calc(100% - 32px)',
             maxWidth: '440px',
-            maxHeight: 'calc(100dvh - 85px)',
+            maxHeight: 'calc(100dvh - 96px)',
             overflowY: 'auto',
-            borderRadius: '18px',
+            borderRadius: '20px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: '12px',
             pointerEvents: 'auto',
-            scrollbarWidth: 'thin'
+            scrollbarWidth: 'none',
+            paddingBottom: '8px'
           }}
         >
-          {activeTab === 'DIRECOES' && screenMode === 'HOME' && (
-            <MoovitHome
-              onSearchClick={() => {
-                setScreenMode('RESULTS');
-              }}
+          {/* Header Compacto com Telemetria e Toggle de Voz */}
+          <TransitHeader
+            isVoiceMuted={isVoiceMuted}
+            onToggleVoice={handleToggleVoice}
+            onOpenSettings={() => setIsTokenModalOpen(true)}
+            hasGps={!!userCoords}
+            activeVehiclesCount={veiculos.length}
+          />
+
+          {/* Abas Principais */}
+          {activeTab === 'ROTAS' && screenMode === 'HOME' && (
+            <TransitHomeHub
+              onSearchClick={() => setScreenMode('RESULTS')}
               onSelectDestination={(dest) => {
                 setDestino(dest);
                 handleCalculateRoutes(dest);
@@ -362,11 +433,12 @@ export default function HomePage() {
               onOpenSettings={() => setIsTokenModalOpen(true)}
               favorites={favorites}
               userCoords={userCoords}
+              incidents={incidents}
             />
           )}
 
-          {activeTab === 'DIRECOES' && screenMode === 'RESULTS' && (
-            <MoovitRouteResults
+          {activeTab === 'ROTAS' && screenMode === 'RESULTS' && (
+            <TransitRouteResults
               origem={origem}
               destino={destino}
               onOrigemChange={setOrigem}
@@ -388,8 +460,8 @@ export default function HomePage() {
             />
           )}
 
-          {activeTab === 'DIRECOES' && screenMode === 'DETAIL' && activeRoute && (
-            <MoovitRouteDetail
+          {activeTab === 'ROTAS' && screenMode === 'DETAIL' && activeRoute && (
+            <TransitRouteDetail
               route={activeRoute}
               routes={routes}
               selectedRouteIndex={selectedRouteIndex}
@@ -403,11 +475,16 @@ export default function HomePage() {
               onToggleFavorite={handleToggleRouteFavorite}
               isFavorited={isCurrentRouteFavorited}
               isPercursoActive={isPercursoActive}
-              onStopPercurso={() => setIsPercursoActive(false)}
+              onStopPercurso={() => {
+                setIsPercursoActive(false);
+                voiceService.stop();
+              }}
+              isVoiceMuted={isVoiceMuted}
+              onToggleVoice={handleToggleVoice}
             />
           )}
 
-          {activeTab === 'ESTACOES' && (
+          {activeTab === 'TRILHOS' && (
             <StationsExplorerPanel
               selectedStationId={selectedStation?.id}
               onSelectStation={(st) => {
@@ -415,7 +492,7 @@ export default function HomePage() {
               }}
               onRouteToStation={(st) => {
                 setDestino(`${st.name}, ${st.address}`);
-                setActiveTab('DIRECOES');
+                setActiveTab('ROTAS');
                 handleCalculateRoutes(`${st.name}, ${st.address}`);
               }}
             />
@@ -434,7 +511,7 @@ export default function HomePage() {
           )}
 
           {activeTab === 'FAVORITOS' && (
-            <div style={{ background: '#1C1E24', border: '1px solid #2D313C', borderRadius: '16px', padding: '16px' }}>
+            <div className="bus-glass-panel" style={{ padding: '16px' }}>
               <FavoritesDrawer
                 onSelectLinha={(linha) => {
                   setSelectedLine(linha);
@@ -450,9 +527,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 4. MODAL DE PRÓXIMAS PARTIDAS (Screenshot 5) */}
+      {/* 4. MODAL DE PRÓXIMAS PARTIDAS */}
       {isDeparturesModalOpen && activeRoute && (
-        <MoovitDeparturesModal
+        <TransitDeparturesModal
           route={activeRoute}
           onClose={() => setIsDeparturesModalOpen(false)}
         />
@@ -464,12 +541,12 @@ export default function HomePage() {
         onClose={() => setIsTokenModalOpen(false)}
       />
 
-      {/* 6. TAB BAR INFERIOR MOOVIT (5 ABAS) */}
-      <MoovitTabBar
+      {/* 6. DOCK FLUTUANTE DE NAVEGAÇÃO INFERIOR */}
+      <TransitDock
         activeTab={activeTab}
         onChangeTab={(tab) => {
           setActiveTab(tab);
-          if (tab === 'DIRECOES') setScreenMode('HOME');
+          if (tab === 'ROTAS') setScreenMode('HOME');
           setIsMapFullscreen(false);
         }}
         favoritesCount={favorites.length}

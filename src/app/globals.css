@@ -1,29 +1,51 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  /* Identidade BusaÍ SP: preto quase puro com leve tom quente + vermelho
-     da frota SPTrans como cor de marca (em vez do azul/cinza-neutro
-     característico de apps de referência como o Moovit). */
-  --moovit-bg: #0A0909;
-  --moovit-surface: #161213;
-  --moovit-surface-elevated: #211B1C;
-  --moovit-surface-hover: #2C2426;
-  --moovit-border: #332A2B;
-  --moovit-border-light: rgba(255, 255, 255, 0.08);
+  /* ==========================================================================
+     BUSAÍ SP - DESIGN SYSTEM (MetroPulse / TransitNeo SP)
+     Identidade visual moderna com estética Glassmorphic Dark e acentos elétricos.
+     ========================================================================== */
+  
+  /* Cores de Fundo & Superfícies */
+  --bus-bg: #07090E;
+  --bus-surface: rgba(13, 17, 23, 0.88);
+  --bus-surface-solid: #0D1117;
+  --bus-surface-elevated: rgba(22, 27, 34, 0.94);
+  --bus-surface-hover: rgba(30, 41, 59, 0.85);
+  --bus-surface-glass: rgba(15, 23, 42, 0.75);
+  
+  /* Bordas */
+  --bus-border: rgba(255, 255, 255, 0.08);
+  --bus-border-highlight: rgba(6, 182, 212, 0.35);
+  --bus-border-subtle: rgba(255, 255, 255, 0.05);
 
-  --moovit-orange: #F5A623;
-  --moovit-orange-dark: #C77F0F;
-  --moovit-blue: #E30613;
-  --moovit-blue-light: #FF3B30;
-  --moovit-green: #10B981;
-  --moovit-green-bright: #00D084;
-  --moovit-purple: #9333EA;
-  --moovit-sptrans-red: #E30613;
+  /* Acentos de Marca & Transporte */
+  --bus-cyan: #06B6D4;
+  --bus-cyan-glow: rgba(6, 182, 212, 0.25);
+  --bus-indigo: #6366F1;
+  --bus-blue: #3B82F6;
+  --bus-emerald: #10B981;
+  --bus-amber: #F59E0B;
+  --bus-rose: #F43F5E;
+  --bus-red: #EF4444;
+  --bus-purple: #A855F7;
 
-  --moovit-text: #FFFFFF;
-  --moovit-text-secondary: #A89A9A;
-  --moovit-text-muted: #78696A;
+  /* Tipografia */
+  --bus-text-primary: #F8FAFC;
+  --bus-text-secondary: #94A3B8;
+  --bus-text-muted: #64748B;
+  --bus-text-dim: #475569;
 
+  /* Geometria e Sombras */
+  --bus-radius-sm: 8px;
+  --bus-radius-md: 14px;
+  --bus-radius-lg: 20px;
+  --bus-radius-full: 9999px;
+  --bus-shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+  --bus-shadow-glow: 0 0 20px rgba(6, 182, 212, 0.2);
+  --bus-shadow-dock: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+  /* Safe Area Mobile */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }
@@ -39,13 +61,16 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: var(--moovit-bg);
-  color: var(--moovit-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bus-bg);
+  color: var(--bus-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar */
+/* ==========================================================================
+   SCROLLBAR MODERNO
+   ========================================================================== */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -54,206 +79,329 @@ html, body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--bus-radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Moovit Pill Buttons */
-.moovit-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--moovit-surface-elevated);
-  border: 1px solid var(--moovit-border);
-  color: var(--moovit-text);
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.moovit-pill:hover {
-  background: var(--moovit-surface-hover);
-  border-color: #4B5563;
-}
-.moovit-pill.active {
-  background: rgba(227, 6, 19, 0.18);
-  border-color: var(--moovit-blue-light);
-  color: var(--moovit-blue-light);
+/* ==========================================================================
+   CLASSES UTILITÁRIAS DE DESIGN SYSTEM (BusAISP)
+   ========================================================================== */
+
+/* Cartão com Efeito de Vidro (Glassmorphism) */
+.bus-glass-panel {
+  background: var(--bus-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--bus-border);
+  box-shadow: var(--bus-shadow-card);
+  border-radius: var(--bus-radius-lg);
 }
 
-/* Moovit Route Card */
-.moovit-card {
-  background: var(--moovit-surface);
-  border: 1px solid var(--moovit-border);
-  border-radius: 14px;
-  padding: 16px;
+/* Cartão Interativo */
+.bus-card {
+  background: var(--bus-surface-elevated);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--bus-border);
+  border-radius: var(--bus-radius-md);
+  padding: 14px 16px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-.moovit-card:hover {
-  background: var(--moovit-surface-elevated);
-  border-color: #4B5563;
-  transform: translateY(-1px);
-}
-.moovit-card.selected {
-  background: var(--moovit-surface-elevated);
-  border: 2px solid var(--moovit-blue-light);
-  box-shadow: 0 6px 24px rgba(227, 6, 19, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Transit Badge */
-.moovit-bus-badge {
+.bus-card:hover {
+  background: var(--bus-surface-hover);
+  border-color: rgba(6, 182, 212, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.bus-card.active {
+  border-color: var(--bus-cyan);
+  box-shadow: 0 0 0 1px var(--bus-cyan), 0 8px 24px rgba(6, 182, 212, 0.2);
+}
+
+/* Badges de Linha / Transporte */
+.bus-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(227, 6, 19, 0.22);
-  border: 1px solid var(--moovit-sptrans-red);
-  color: #FFFFFF;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #38BDF8;
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
 }
 
-/* Campo de Input Padrão (usado em buscas de linha, parada e rota) */
-.input-field {
+.bus-badge-metro {
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #A5B4FC;
+}
+
+.bus-badge-live {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34D399;
+}
+
+/* Chips / Pílulas de Filtro */
+.bus-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bus-surface-elevated);
+  border: 1px solid var(--bus-border);
+  color: var(--bus-text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--bus-radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.bus-pill:hover {
+  background: var(--bus-surface-hover);
+  color: var(--bus-text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.bus-pill.active {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: var(--bus-cyan);
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+}
+
+/* Input Futurista */
+.bus-input {
   width: 100%;
   height: 44px;
   padding: 0 14px;
-  border-radius: 10px;
-  background: var(--moovit-surface-elevated);
-  border: 1px solid var(--moovit-border);
-  color: var(--moovit-text);
-  font-size: 13px;
+  border-radius: var(--bus-radius-md);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--bus-border);
+  color: var(--bus-text-primary);
+  font-size: 13.5px;
   outline: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: all 0.2s ease;
 }
 
-.input-field::placeholder {
-  color: var(--moovit-text-muted);
+.bus-input:focus {
+  border-color: var(--bus-cyan);
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
 }
 
-.input-field:focus {
-  border-color: var(--moovit-sptrans-red);
-  background: var(--moovit-surface-hover);
+.bus-input::placeholder {
+  color: var(--bus-text-muted);
 }
 
-/* Leaflet Container Customization */
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  background-color: #0b0f17 !important;
-}
-
-.leaflet-popup-content-wrapper {
-  background: #1C1E24 !important;
-  color: #FFFFFF !important;
-  border: 1px solid #2D313C !important;
-  border-radius: 12px !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7) !important;
-  padding: 4px !important;
-}
-
-.leaflet-popup-tip {
-  background: #1C1E24 !important;
-}
-
-.leaflet-popup-close-button {
-  color: #9CA3AF !important;
-  padding: 8px !important;
-}
-
-/* Bus Marker Styling */
-.bus-marker-container {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  display: flex;
+/* Botão de Destaque / Ação */
+.bus-btn-primary {
+  background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--bus-radius-full);
+  padding: 12px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.35);
+  transition: all 0.2s ease;
 }
 
-.bus-marker-pulse {
-  position: absolute;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(227, 6, 19, 0.35);
-  animation: markerPulse 2s infinite;
+.bus-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(6, 182, 212, 0.45);
 }
 
-.bus-marker-icon {
-  position: relative;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #E30613;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+.bus-btn-primary:active {
+  transform: translateY(1px);
+}
+
+/* Botão de Navegação com Voz */
+.bus-btn-voice {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--bus-radius-full);
+  padding: 12px 20px;
+  font-size: 13.5px;
   font-weight: 800;
-  font-size: 11px;
-  transition: transform 0.3s ease;
-}
-
-.bus-marker-arrow {
-  position: absolute;
-  top: -6px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 7px solid #FFFFFF;
-}
-
-.stop-marker-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #1E293B;
-  border: 2px solid #38BDF8;
-  color: #38BDF8;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  gap: 8px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
 }
-.stop-marker-icon:hover {
-  transform: scale(1.15);
+
+.bus-btn-voice:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+}
+
+/* ==========================================================================
+   ANIMAÇÕES E EFEITOS DE RADAR
+   ========================================================================== */
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
 }
 
 @keyframes markerPulse {
-  0% { transform: scale(0.8); opacity: 0.8; }
-  50% { transform: scale(1.4); opacity: 0; }
-  100% { transform: scale(0.8); opacity: 0; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease forwards;
+}
+
+/* ==========================================================================
+   LEAFLET CUSTOMIZATION
+   ========================================================================== */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #07090E !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(13, 17, 23, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  color: #F8FAFC !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(13, 17, 23, 0.95) !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background: rgba(13, 17, 23, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+}
+
+.leaflet-control-zoom a {
+  background: transparent !important;
+  color: #F8FAFC !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==========================================================================
+   3D PERSPECTIVE NAVIGATION & NIGHT MODE MAP
+   ========================================================================== */
+.map-perspective-viewport {
+  perspective: 1100px;
+  perspective-origin: 50% 82%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #07090E;
+}
+
+.map-perspective-nav {
+  transform: rotateX(54deg) scale(1.38) translateY(-42px);
+  transform-origin: 50% 82%;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.map-perspective-aerial {
+  transform: rotateX(34deg) scale(1.18) translateY(-18px);
+  transform-origin: 50% 82%;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.map-perspective-2d {
+  transform: rotateX(0deg) scale(1) translateY(0);
+  transform-origin: 50% 82%;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* Gradiente Atmosférico de Horizonte 3D */
+.map-horizon-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background: linear-gradient(180deg, rgba(7, 9, 14, 0.95) 0%, rgba(7, 9, 14, 0.5) 45%, transparent 100%);
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.4s ease;
 }

@@ -18,8 +18,6 @@ export default function FavoritesDrawer({
 }: FavoritesDrawerProps) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'linha' | 'parada' | 'trilho'>('ALL');
-  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
-  const [newLabelText, setNewLabelText] = useState('');
 
   const loadFavs = async () => {
     const list = await fetchFavorites();
@@ -68,21 +66,18 @@ export default function FavoritesDrawer({
 
   return (
     <div
+      className="animate-slide-up"
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
-        width: '100%',
-        maxWidth: '700px',
-        margin: '0 auto',
-        padding: '16px 12px 100px 12px'
+        width: '100%'
       }}
     >
       {/* Top Banner */}
       <div
-        className="glass-panel"
+        className="bus-glass-panel"
         style={{
-          borderRadius: '16px',
           padding: '18px 20px',
           display: 'flex',
           flexDirection: 'column',
@@ -101,22 +96,22 @@ export default function FavoritesDrawer({
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)'
+                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)'
               }}
             >
               <Star size={20} fill="#fff" />
             </div>
             <div>
-              <h2 style={{ fontSize: '17px', fontWeight: 800 }}>Meus Favoritos</h2>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#F8FAFC' }}>Meus Favoritos</h2>
+              <p style={{ fontSize: '11px', color: '#94A3B8' }}>
                 Acesso rápido para Casa, Trabalho e rotas frequentes
               </p>
             </div>
           </div>
 
-          <button onClick={onOpenSearch} className="btn-primary" style={{ padding: '8px 14px', fontSize: '12px' }}>
-            <Plus size={15} />
-            Adicionar
+          <button onClick={onOpenSearch} className="bus-btn-primary" style={{ padding: '6px 12px', fontSize: '11.5px', borderRadius: '8px' }}>
+            <Plus size={14} />
+            <span>Adicionar</span>
           </button>
         </div>
 
@@ -130,17 +125,8 @@ export default function FavoritesDrawer({
             <button
               key={tab.id}
               onClick={() => setActiveFilter(tab.id as any)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: activeFilter === tab.id ? 'var(--accent-sptrans)' : 'rgba(255, 255, 255, 0.04)',
-                color: activeFilter === tab.id ? '#fff' : 'var(--text-secondary)',
-                fontWeight: 600,
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
+              className={`bus-pill ${activeFilter === tab.id ? 'active' : ''}`}
+              style={{ fontSize: '11.5px', padding: '4px 10px' }}
             >
               {tab.label}
             </button>
@@ -151,10 +137,9 @@ export default function FavoritesDrawer({
       {/* Lista de Favoritos */}
       {filtered.length === 0 ? (
         <div
-          className="glass-panel"
+          className="bus-glass-panel"
           style={{
-            borderRadius: '16px',
-            padding: '40px 20px',
+            padding: '36px 20px',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
@@ -171,20 +156,20 @@ export default function FavoritesDrawer({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--text-muted)'
+              color: '#64748B'
             }}
           >
             <Star size={26} />
           </div>
           <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>
               Nenhum favorito salvo
             </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '280px' }}>
-              Salve linhas e paradas clicando no ícone de estrela ⭐ para acompanhar o ônibus com 1 toque.
+            <p style={{ fontSize: '12px', color: '#94A3B8', maxWidth: '280px' }}>
+              Salve linhas e paradas clicando no ícone de estrela de favoritos para acompanhar o ônibus com 1 toque.
             </p>
           </div>
-          <button onClick={onOpenSearch} className="btn-secondary" style={{ marginTop: '8px' }}>
+          <button onClick={onOpenSearch} className="bus-btn-primary" style={{ marginTop: '8px', fontSize: '12.5px' }}>
             Explorar Linhas de SP
           </button>
         </div>
@@ -193,15 +178,12 @@ export default function FavoritesDrawer({
           {filtered.map((item) => (
             <div
               key={item.id || item.ref_code}
-              className="glass-panel"
+              className="bus-card"
               style={{
-                borderRadius: '14px',
-                padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                padding: '12px 14px'
               }}
               onClick={() => handleItemClick(item)}
             >
@@ -211,8 +193,9 @@ export default function FavoritesDrawer({
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    background: item.type === 'linha' ? 'rgba(227, 6, 19, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                    color: item.type === 'linha' ? 'var(--accent-sptrans)' : '#38BDF8',
+                    background: item.type === 'linha' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                    border: item.type === 'linha' ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)',
+                    color: item.type === 'linha' ? '#38BDF8' : '#38BDF8',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
@@ -223,7 +206,7 @@ export default function FavoritesDrawer({
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                    <strong style={{ fontSize: '13.5px', color: '#F8FAFC' }}>
                       {item.title}
                     </strong>
                     {item.label && (
@@ -232,7 +215,8 @@ export default function FavoritesDrawer({
                           fontSize: '10px',
                           background: 'rgba(245, 158, 11, 0.15)',
                           color: '#FBBF24',
-                          padding: '2px 6px',
+                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          padding: '1px 5px',
                           borderRadius: '4px',
                           fontWeight: 700
                         }}
@@ -241,7 +225,7 @@ export default function FavoritesDrawer({
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
                     {item.type === 'linha' ? 'Ônibus Municipal SPTrans' : 'Ponto de Ônibus'}
                   </div>
                 </div>
@@ -256,7 +240,7 @@ export default function FavoritesDrawer({
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: 'var(--text-muted)',
+                    color: '#64748B',
                     cursor: 'pointer',
                     padding: '6px'
                   }}
@@ -264,7 +248,7 @@ export default function FavoritesDrawer({
                 >
                   <Trash2 size={16} />
                 </button>
-                <ArrowRight size={16} color="var(--text-muted)" />
+                <ArrowRight size={16} color="#06B6D4" />
               </div>
             </div>
           ))}

@@ -23,11 +23,12 @@ import {
   TrainTrack,
   MapPin,
   AlertTriangle,
-  ShieldAlert,
-  Cone,
-  Car,
-  Flame
+  Compass,
+  Sliders,
+  Sparkles
 } from 'lucide-react';
+
+export type PerspectiveMode = 'NAV_3D' | 'AERIAL_3D' | 'FLAT_2D';
 
 export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -39,6 +40,7 @@ export interface LiveMapProps {
   isMockMode?: boolean;
   activeRoute?: RoutePlan | null;
   userCoords?: [number, number] | null;
+  userAccuracyMeters?: number | null;
   isPercursoActive?: boolean;
   onStopPercurso?: () => void;
   onStartPercurso?: () => void;
@@ -58,6 +60,7 @@ export default function LiveMap({
   isMockMode = false,
   activeRoute,
   userCoords,
+  userAccuracyMeters,
   isPercursoActive = false,
   onStopPercurso,
   onStartPercurso,
@@ -80,8 +83,10 @@ export default function LiveMap({
   const [isLocating, setIsLocating] = useState(false);
   const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
   const [showIncidents, setShowIncidents] = useState(true);
+  const [perspectiveMode, setPerspectiveMode] = useState<PerspectiveMode>('NAV_3D');
+  const [isMenu3DOpen, setIsMenu3DOpen] = useState(false);
 
-  // Inicializar o Mapa Leaflet
+  // Inicializar o Mapa Leaflet com CartoDB Dark Matter (Modo Noturno Puro)
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -94,8 +99,8 @@ export default function LiveMap({
       attributionControl: false
     });
 
-    // Dark Matter Tiles (CartoDB)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Dark Matter Tiles (CartoDB) - 100% Modo Noturno Puro
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd'
     }).addTo(map);
@@ -116,6 +121,13 @@ export default function LiveMap({
     };
   }, []);
 
+  // Quando "Iniciar Percurso" for acionado, ativar automaticamente o modo de navegação 3D
+  useEffect(() => {
+    if (isPercursoActive) {
+      setPerspectiveMode('NAV_3D');
+    }
+  }, [isPercursoActive]);
+
   // Monitorar e seguir GPS continuamente quando "Iniciar Percurso" estiver ativo
   useEffect(() => {
     if (isPercursoActive && typeof window !== 'undefined' && navigator.geolocation) {
@@ -125,6 +137,7 @@ export default function LiveMap({
           setLiveUserCoords(coords);
 
           if (mapInstanceRef.current) {
+            // Em modo de navegação 3D, posicionar levemente abaixo do centro para vislumbrar a rota à frente
             mapInstanceRef.current.setView(coords, 17, { animate: true });
           }
         },
@@ -152,7 +165,7 @@ export default function LiveMap({
 
   const effectiveCoords = liveUserCoords || userCoords;
 
-  // Atualizar marcador de localização do usuário
+  // Atualizar marcador de localização do usuário com SVG e radar de pulso
   useEffect(() => {
     if (!mapInstanceRef.current || !effectiveCoords) return;
 
@@ -163,33 +176,42 @@ export default function LiveMap({
     } else {
       const userIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: ${isPercursoActive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(56, 189, 248, 0.45)'}; animation: markerPulse 1.5s infinite;"></div>
-            <div style="width: 26px; height: 26px; border-radius: 50%; background: ${isPercursoActive ? '#10B981' : '#0284C7'}; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px;">🧭</div>
+          <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <div style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background: ${isPercursoActive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(6, 182, 212, 0.45)'}; animation: markerPulse 1.5s infinite;"></div>
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${isPercursoActive ? '#10B981' : '#06B6D4'}; border: 2.5px solid #FFFFFF; box-shadow: 0 2px 12px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #fff;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            </div>
           </div>
         `,
         className: 'user-location-marker',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
+        iconSize: [38, 38],
+        iconAnchor: [19, 19]
       });
 
       userMarkerRef.current = L.marker(effectiveCoords, { icon: userIcon, zIndexOffset: 1000 })
-        .bindPopup('<strong>📍 Sua Localização (GPS)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão em tempo real</span>')
+        .bindPopup('<strong>Sua Localização (GPS)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão em tempo real</span>')
         .addTo(map);
     }
 
+    // Raio real do círculo de precisão a partir do GPS (position.coords.accuracy, em metros).
+    // Sem leitura de precisão ainda, usamos um raio conservador em vez de inventar um valor preciso.
+    const accuracyRadius = typeof userAccuracyMeters === 'number' && userAccuracyMeters > 0
+      ? Math.min(Math.max(userAccuracyMeters, 8), 300)
+      : 50;
+
     if (userAccuracyCircleRef.current) {
       userAccuracyCircleRef.current.setLatLng(effectiveCoords);
+      userAccuracyCircleRef.current.setRadius(accuracyRadius);
     } else {
       userAccuracyCircleRef.current = L.circle(effectiveCoords, {
-        radius: 35,
-        color: isPercursoActive ? '#10B981' : '#0284C7',
+        radius: accuracyRadius,
+        color: isPercursoActive ? '#10B981' : '#06B6D4',
         fillColor: isPercursoActive ? '#34D399' : '#38BDF8',
         fillOpacity: 0.15,
         weight: 1
       }).addTo(map);
     }
-  }, [effectiveCoords, isPercursoActive]);
+  }, [effectiveCoords, isPercursoActive, userAccuracyMeters]);
 
   // Atualizar traçado no mapa com curvas perfeitas de ruas
   useEffect(() => {
@@ -202,7 +224,7 @@ export default function LiveMap({
     const map = mapInstanceRef.current;
     const allCoords: [number, number][] = [];
 
-    // 1. Caminhada a pé inicial até a parada (Linha tracejada azul clara)
+    // 1. Caminhada a pé inicial até a parada (Linha tracejada azul clara neon)
     if (activeRoute.polyline.walkToStop.length > 0) {
       const walkGlow = L.polyline(activeRoute.polyline.walkToStop, {
         color: '#38BDF8',
@@ -218,35 +240,19 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(walkGlow);
       routePolylinesGroupRef.current.addLayer(walkLine);
       allCoords.push(...activeRoute.polyline.walkToStop);
-
-      // Marcador de Início da Caminhada
-      const startWalkIcon = L.divIcon({
-        html: `
-          <div style="background: #0284C7; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 14px;">
-            🚶
-          </div>
-        `,
-        className: 'walk-start-marker',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      });
-
-      const startMarker = L.marker(activeRoute.polyline.walkToStop[0], { icon: startWalkIcon })
-        .bindPopup(`<strong>Início da Caminhada a Pé</strong><br/>Caminhe até ${activeRoute.departureStop.np}`);
-      routePolylinesGroupRef.current.addLayer(startMarker);
     }
 
-    // 2. Trajeto de Ônibus (Linha sólida vermelha SPTrans)
+    // 2. Trajeto do Ônibus (Curvas reais das ruas da rota)
     if (activeRoute.polyline.transit.length > 0) {
       const busGlow = L.polyline(activeRoute.polyline.transit, {
-        color: '#E30613',
-        weight: 9,
-        opacity: 0.35
+        color: '#06B6D4',
+        weight: 10,
+        opacity: 0.4
       });
       const busLine = L.polyline(activeRoute.polyline.transit, {
-        color: '#E30613',
-        weight: 5,
-        opacity: 0.98
+        color: '#22D3EE',
+        weight: 6,
+        opacity: 1
       });
       routePolylinesGroupRef.current.addLayer(busGlow);
       routePolylinesGroupRef.current.addLayer(busLine);
@@ -271,11 +277,11 @@ export default function LiveMap({
         });
       }
 
-      // Marcador de Embarque no Ônibus
+      // Marcador de Embarque no Ônibus (SVG)
       const boardIcon = L.divIcon({
         html: `
-          <div style="background: #E30613; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 15px;">
-            🚏
+          <div style="background: #06B6D4; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"/><circle cx="7" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
           </div>
         `,
         className: 'bus-board-marker',
@@ -288,14 +294,14 @@ export default function LiveMap({
       routePolylinesGroupRef.current.addLayer(boardMarker);
     }
 
-    // 3. Marcadores de Baldeação
+    // 3. Marcadores de Baldeação (SVG)
     if (activeRoute.transferPoints && activeRoute.transferPoints.length > 0) {
       activeRoute.transferPoints.forEach((tp) => {
         const transferHtml = `
           <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
             <div style="position: absolute; inset: 0; border-radius: 50%; background: rgba(245, 158, 11, 0.45); animation: markerPulse 2s infinite;"></div>
-            <div style="position: relative; width: 34px; height: 34px; border-radius: 50%; background: #F59E0B; color: #000000; display: flex; align-items: center; justify-content: center; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 14px rgba(0,0,0,0.7); font-size: 16px; font-weight: 900;">
-              🔄
+            <div style="position: relative; width: 34px; height: 34px; border-radius: 50%; background: #F59E0B; color: #000000; display: flex; align-items: center; justify-content: center; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 14px rgba(0,0,0,0.7);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
             </div>
           </div>
         `;
@@ -310,7 +316,7 @@ export default function LiveMap({
         transferMarker.bindPopup(`
           <div style="font-family: inherit; min-width: 230px; padding: 6px;">
             <div style="background: #F59E0B; color: #000000; font-size: 11px; font-weight: 900; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">
-              🔄 PONTO DE BALDEAÇÃO
+              PONTO DE BALDEAÇÃO
             </div>
             <strong style="color: #FFFFFF; font-size: 13px; display: block; margin-bottom: 4px;">
               ${tp.stopName}
@@ -339,11 +345,11 @@ export default function LiveMap({
       allCoords.push(...activeRoute.polyline.walkToDest);
     }
 
-    // 5. Marcador de Destino Final
+    // 5. Marcador de Destino Final (SVG)
     const destIcon = L.divIcon({
       html: `
-        <div style="background: #10B981; color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.6); font-size: 16px;">
-          🏁
+        <div style="background: #10B981; color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.7);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
         </div>
       `,
       className: 'dest-marker',
@@ -362,7 +368,7 @@ export default function LiveMap({
     }
   }, [activeRoute, isPercursoActive]);
 
-  // Atualizar Marcadores de Incidentes de Trânsito (Waze / CET / TomTom)
+  // Atualizar Marcadores de Incidentes de Trânsito
   useEffect(() => {
     if (!incidentMarkersGroupRef.current) return;
 
@@ -371,43 +377,38 @@ export default function LiveMap({
     if (!showIncidents || !incidents || incidents.length === 0) return;
 
     incidents.forEach((inc) => {
-      let iconEmoji = '⚠️';
       let bgColor = '#F59E0B';
       let pulseColor = 'rgba(245, 158, 11, 0.4)';
       let label = 'Alerta';
+      let svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
       if (inc.type === 'POLICE') {
-        iconEmoji = '🚓';
         bgColor = '#2563EB';
         pulseColor = 'rgba(37, 99, 235, 0.5)';
         label = 'BLITZ / POLÍCIA';
+        svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
       } else if (inc.type === 'ACCIDENT') {
-        iconEmoji = '💥';
         bgColor = '#DC2626';
         pulseColor = 'rgba(220, 38, 38, 0.5)';
         label = 'ACIDENTE';
+        svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
       } else if (inc.type === 'CONSTRUCTION') {
-        iconEmoji = '🚧';
         bgColor = '#EA580C';
         pulseColor = 'rgba(234, 88, 12, 0.5)';
-        label = 'OBRAS / INTERDIÇÃO';
+        label = 'OBRAS';
+        svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/></svg>';
       } else if (inc.type === 'JAM') {
-        iconEmoji = '🔴';
         bgColor = '#991B1B';
         pulseColor = 'rgba(153, 27, 27, 0.5)';
-        label = 'TRÂNSITO LENTO';
-      } else if (inc.type === 'HAZARD') {
-        iconEmoji = '⚠️';
-        bgColor = '#D97706';
-        pulseColor = 'rgba(217, 119, 6, 0.5)';
-        label = 'PERIGO NA PISTA';
+        label = 'LENTIDÃO';
+        svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>';
       }
 
       const htmlIcon = `
         <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
           <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: ${pulseColor}; animation: markerPulse 1.8s infinite;"></div>
-          <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bgColor}; border: 2px solid #FFFFFF; box-shadow: 0 4px 10px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff;">
-            ${iconEmoji}
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bgColor}; border: 2px solid #FFFFFF; box-shadow: 0 4px 10px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; color: #fff;">
+            ${svgIcon}
           </div>
         </div>
       `;
@@ -425,7 +426,7 @@ export default function LiveMap({
         <div style="font-family: inherit; min-width: 230px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="background: ${bgColor}; color: #FFFFFF; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
-              ${iconEmoji} ${label}
+              ${label}
             </span>
             <span style="font-size: 10px; color: #94A3B8; font-weight: 700;">
               Fonte: ${inc.source}
@@ -437,7 +438,7 @@ export default function LiveMap({
           </strong>
 
           <div style="color: #38BDF8; font-size: 11px; font-weight: 700; margin-bottom: 6px;">
-            📍 ${inc.street}
+            ${inc.street}
           </div>
 
           <div style="font-size: 12px; color: #CBD5E1; background: #1E293B; padding: 6px 8px; border-radius: 6px; margin-bottom: 6px; line-height: 1.4;">
@@ -445,7 +446,7 @@ export default function LiveMap({
           </div>
 
           <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94A3B8;">
-            <span>⏱️ Atualizado às ${inc.updatedAt}</span>
+            <span>Atualizado às ${inc.updatedAt}</span>
             <span style="color: #10B981; font-weight: 800;">Confiança: 10/10</span>
           </div>
         </div>
@@ -493,21 +494,21 @@ export default function LiveMap({
       const popupContent = `
         <div style="font-family: inherit; min-width: 210px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <strong style="color: ${isRouteLine ? '#10B981' : '#E30613'}; font-size: 14px;">
-              ${isRouteLine ? '🟢 Ônibus a Caminho' : 'Ônibus'} #${v.p}
+            <strong style="color: ${isRouteLine ? '#10B981' : '#38BDF8'}; font-size: 14px;">
+              ${isRouteLine ? 'Ônibus a Caminho' : 'Ônibus'} #${v.p}
             </strong>
-            ${v.a ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">♿ ACESSÍVEL</span>' : ''}
+            ${v.a ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ACESSÍVEL</span>' : ''}
           </div>
           
           <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
             <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : 'SPTrans'}</strong></div>
-            <div style="background: #1E293B; border-left: 3px solid ${isRouteLine ? '#10B981' : '#E30613'}; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
-              <span style="font-size: 10px; color: #FCA5A5; font-weight: 700; display: block;">DESTINO LETREIRO:</span>
+            <div style="background: #1E293B; border-left: 3px solid ${isRouteLine ? '#10B981' : '#06B6D4'}; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
+              <span style="font-size: 10px; color: #38BDF8; font-weight: 700; display: block;">DESTINO LETREIRO:</span>
               <strong style="color: #FFFFFF; font-size: 12px;">${destinoText}</strong>
             </div>
             ${activeRoute ? `
               <div style="background: rgba(16, 185, 129, 0.15); color: #34D399; padding: 4px 6px; border-radius: 4px; font-weight: 700; font-size: 11px;">
-                ⏱️ Previsão no ponto (${activeRoute.departureStop.np}): ~${activeRoute.nextBusEtaMinutes >= 0 ? `${activeRoute.nextBusEtaMinutes} min` : 'a caminho'}
+                Previsão no ponto (${activeRoute.departureStop.np}): ~${activeRoute.nextBusEtaMinutes >= 0 ? `${activeRoute.nextBusEtaMinutes} min` : 'a caminho'}
               </div>
             ` : ''}
             <div style="display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 11px; margin-top: 2px;">
@@ -565,7 +566,7 @@ export default function LiveMap({
     });
   }, [paradas, onSelectParada]);
 
-  // Atualizar marcadores de Estações e Terminais
+  // Atualizar marcadores de Estações e Terminais (SVG)
   useEffect(() => {
     if (!stationMarkersGroupRef.current || !mapInstanceRef.current) return;
 
@@ -575,14 +576,16 @@ export default function LiveMap({
 
     stations.forEach((st) => {
       const isSelected = selectedStation?.id === st.id;
-      const bgColor = st.type === 'METRO' ? '#003399' : st.type === 'CPTM' ? '#A61327' : '#E30613';
-      const iconEmoji = st.type === 'TERMINAL_BUS' ? '🚏' : st.type === 'METRO' ? '🚇' : '🚆';
+      const bgColor = st.type === 'METRO' ? '#003399' : st.type === 'CPTM' ? '#A61327' : '#06B6D4';
+      const svgIcon = st.type === 'TERMINAL_BUS'
+        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"/><circle cx="7" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>'
+        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M4 11h16"/><path d="M12 4v7"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>';
 
       const htmlIcon = `
         <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          ${isSelected ? `<div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 102, 0, 0.5); animation: markerPulse 1.5s infinite;"></div>` : ''}
-          <div style="background: ${bgColor}; width: ${isSelected ? '36px' : '30px'}; height: ${isSelected ? '36px' : '30px'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.6); font-size: ${isSelected ? '16px' : '13px'}; color: #fff; font-weight: 800;">
-            ${iconEmoji}
+          ${isSelected ? `<div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(6, 182, 212, 0.5); animation: markerPulse 1.5s infinite;"></div>` : ''}
+          <div style="background: ${bgColor}; width: ${isSelected ? '36px' : '30px'}; height: ${isSelected ? '36px' : '30px'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.6); color: #fff;">
+            ${svgIcon}
           </div>
         </div>
       `;
@@ -607,7 +610,7 @@ export default function LiveMap({
             ${st.name}
           </strong>
           <div style="color: #38BDF8; font-size: 12px; font-weight: 600; margin-bottom: 6px;">
-            📍 ${st.address}
+            ${st.address}
           </div>
           <div style="font-size: 11px; color: #94A3B8; margin-bottom: 8px;">
             ${st.neighborhood}
@@ -654,10 +657,29 @@ export default function LiveMap({
     );
   };
 
+  const getPerspectiveClass = () => {
+    switch (perspectiveMode) {
+      case 'NAV_3D':
+        return 'map-perspective-nav';
+      case 'AERIAL_3D':
+        return 'map-perspective-aerial';
+      case 'FLAT_2D':
+      default:
+        return 'map-perspective-2d';
+    }
+  };
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* Container Leaflet */}
-      <div ref={mapContainerRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
+    <div className="map-perspective-viewport">
+      {/* Gradiente de Horizonte Atmosférico Noturno (visível em modo 3D) */}
+      {perspectiveMode !== 'FLAT_2D' && <div className="map-horizon-overlay" />}
+
+      {/* Container Leaflet com Perspectiva 3D Suave */}
+      <div
+        ref={mapContainerRef}
+        className={getPerspectiveClass()}
+        style={{ width: '100%', height: '100%', zIndex: 1 }}
+      />
 
       {/* Barra HUD Flutuante de Percurso Ativo no Topo do Mapa */}
       {isPercursoActive && activeRoute && (
@@ -670,7 +692,9 @@ export default function LiveMap({
             maxWidth: '520px',
             margin: '0 auto',
             zIndex: 1000,
-            background: '#0F172A',
+            background: 'rgba(13, 17, 23, 0.94)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             border: '2px solid #10B981',
             borderRadius: '16px',
             padding: '12px 16px',
@@ -678,7 +702,7 @@ export default function LiveMap({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.85), 0 0 16px rgba(16, 185, 129, 0.3)',
             animation: 'fadeIn 0.2s ease'
           }}
         >
@@ -687,25 +711,27 @@ export default function LiveMap({
               style={{
                 background: '#10B981',
                 color: '#fff',
-                width: '32px',
-                height: '32px',
+                width: '34px',
+                height: '34px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: '0 0 12px rgba(16, 185, 129, 0.6)'
               }}
             >
               <Navigation size={18} className="animate-pulse" />
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 900, color: '#34D399', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span>🟢 PERCURSO ATIVO</span>
+              <div style={{ fontSize: '11px', fontWeight: 900, color: '#34D399', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+                <span>NAVEGAÇÃO 3D ATIVA</span>
                 <span>·</span>
                 <span>GPS SEGUINDO</span>
               </div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#FFFFFF' }}>
                 {activeRoute.steps[0]?.instruction || 'Siga o trajeto no mapa'}
               </div>
             </div>
@@ -743,24 +769,148 @@ export default function LiveMap({
           bottom: '84px',
           display: 'flex',
           flexDirection: 'column',
+          alignItems: 'flex-end',
           gap: '10px',
           zIndex: 999
         }}
       >
+        {/* Menu Flutuante de Seleção de Perspectiva 3D */}
+        {isMenu3DOpen && (
+          <div
+            className="bus-glass-panel animate-slide-up"
+            style={{
+              padding: '6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '160px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.85)',
+              border: '1px solid rgba(6, 182, 212, 0.3)'
+            }}
+          >
+            <div style={{ padding: '4px 8px', fontSize: '10.5px', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.4px' }}>
+              MODO DA CÂMERA
+            </div>
+
+            <button
+              onClick={() => {
+                setPerspectiveMode('NAV_3D');
+                setIsMenu3DOpen(false);
+              }}
+              style={{
+                background: perspectiveMode === 'NAV_3D' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
+                color: perspectiveMode === 'NAV_3D' ? '#FFFFFF' : '#CBD5E1',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>3D Navegação (54°)</span>
+              {perspectiveMode === 'NAV_3D' && <Sparkles size={13} />}
+            </button>
+
+            <button
+              onClick={() => {
+                setPerspectiveMode('AERIAL_3D');
+                setIsMenu3DOpen(false);
+              }}
+              style={{
+                background: perspectiveMode === 'AERIAL_3D' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
+                color: perspectiveMode === 'AERIAL_3D' ? '#FFFFFF' : '#CBD5E1',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>3D Aéreo (34°)</span>
+              {perspectiveMode === 'AERIAL_3D' && <Sparkles size={13} />}
+            </button>
+
+            <button
+              onClick={() => {
+                setPerspectiveMode('FLAT_2D');
+                setIsMenu3DOpen(false);
+              }}
+              style={{
+                background: perspectiveMode === 'FLAT_2D' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
+                color: perspectiveMode === 'FLAT_2D' ? '#FFFFFF' : '#CBD5E1',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>2D Plana (0°)</span>
+              {perspectiveMode === 'FLAT_2D' && <Sparkles size={13} />}
+            </button>
+          </div>
+        )}
+
+        {/* Botão de Alternância de Perspectiva 3D */}
+        <button
+          onClick={() => setIsMenu3DOpen(!isMenu3DOpen)}
+          className="bus-pill"
+          style={{
+            background: perspectiveMode !== 'FLAT_2D'
+              ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.85) 0%, rgba(59, 130, 246, 0.85) 100%)'
+              : 'rgba(13, 17, 23, 0.9)',
+            border: perspectiveMode !== 'FLAT_2D' ? '1.5px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.1)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontWeight: 900,
+            fontSize: '11.5px',
+            boxShadow: perspectiveMode !== 'FLAT_2D' ? '0 0 16px rgba(6, 182, 212, 0.6)' : 'none'
+          }}
+          title={`Perspectiva atual: ${perspectiveMode}. Clique para alterar.`}
+          aria-label="Perspectiva 3D"
+        >
+          <span>{perspectiveMode === 'NAV_3D' ? '3D' : perspectiveMode === 'AERIAL_3D' ? '3D+' : '2D'}</span>
+        </button>
+
         {/* Toggle de Camada de Incidentes (Waze/CET) */}
         <button
           onClick={() => setShowIncidents(!showIncidents)}
-          className={`btn-icon ${showIncidents ? 'active' : ''}`}
+          className="bus-pill"
           style={{
-            background: showIncidents ? '#DC2626' : '#1C1E24',
+            background: showIncidents ? '#DC2626' : 'rgba(13, 17, 23, 0.9)',
             color: '#FFFFFF',
-            border: showIncidents ? '1.5px solid #EF4444' : '1px solid #2D313C',
-            position: 'relative'
+            border: showIncidents ? '1.5px solid #EF4444' : '1px solid rgba(255, 255, 255, 0.1)',
+            position: 'relative',
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
           title={showIncidents ? 'Ocultar Incidentes de Trânsito' : 'Exibir Incidentes de Trânsito'}
           aria-label="Incidentes de Trânsito"
         >
-          <AlertTriangle size={19} />
+          <AlertTriangle size={18} />
           {incidents.length > 0 && (
             <span
               style={{
@@ -787,20 +937,43 @@ export default function LiveMap({
 
         <button
           onClick={handleLocateMe}
-          className="btn-icon"
+          className="bus-pill"
+          style={{
+            background: 'rgba(13, 17, 23, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
           title="Minha Localização GPS"
           aria-label="Localização atual"
         >
-          <Locate size={20} className={isLocating ? 'animate-spin' : ''} color="#38BDF8" />
+          <Locate size={19} className={isLocating ? 'animate-spin' : ''} color="#38BDF8" />
         </button>
 
         <button
           onClick={onRefresh}
-          className="btn-icon"
+          className="bus-pill"
+          style={{
+            background: 'rgba(13, 17, 23, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#F8FAFC'
+          }}
           title="Atualizar posições dos ônibus"
           aria-label="Atualizar posições"
         >
-          <RefreshCw size={19} className={isLoading ? 'animate-spin' : ''} />
+          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
         </button>
       </div>
 
@@ -808,19 +981,21 @@ export default function LiveMap({
       <div
         style={{
           position: 'absolute',
-          bottom: '76px',
+          bottom: '84px',
           left: '16px',
           zIndex: 990,
-          background: '#0F172A',
-          border: '1px solid #334155',
+          background: 'rgba(13, 17, 23, 0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
           padding: '6px 14px',
           borderRadius: '9999px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          fontSize: '11px',
+          fontSize: '11.5px',
           color: '#CBD5E1',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+          boxShadow: '0 4px 16px rgba(0,0,0,0.6)'
         }}
       >
         <span

@@ -504,10 +504,39 @@ export async function buildMultiLegPlan(
     departureSuggestion += ` (${transferCount} ${transferCount === 1 ? 'baldeação' : 'baldeações'})`;
   }
 
-  // Estimativa de CO2 e Tarifa Bilhete Único SPTrans
+  // Estimativa de CO2
   const carbonGrams = Math.round((totalDistanceMeters / 1000) * 22);
-  const farePrice = transferCount > 0 ? 'R$ 5,30 (Integração BU)' : 'R$ 5,30';
-  const fareType: 'BILHETE_UNICO' | 'TOP_METRO' | 'INTEGRACAO' = 'BILHETE_UNICO';
+
+  // Cálculo exato de tarifa conforme linhas e modais utilizados
+  const isSunday = new Date().getDay() === 0;
+  const isRailLine = (lineCode: string) => {
+    const lc = lineCode.toLowerCase();
+    return lc.includes('linha') || lc.includes('metro') || lc.includes('cptm');
+  };
+
+  const hasRail = legs.some(l => isRailLine(l.line.lt));
+  const hasBus = legs.some(l => !isRailLine(l.line.lt));
+
+  let farePrice = 'R$ 4,40';
+  let fareType: 'BILHETE_UNICO' | 'TOP_METRO' | 'INTEGRACAO' = 'BILHETE_UNICO';
+
+  if (isSunday && hasBus && !hasRail) {
+    farePrice = 'Gratuito (Domingão Tarifa Zero)';
+  } else if (hasBus && hasRail) {
+    farePrice = isSunday ? 'R$ 5,00 (Trilhos SP)' : 'R$ 8,20 (Integração Ônibus + Metrô)';
+    fareType = 'INTEGRACAO';
+  } else if (hasRail && !hasBus) {
+    farePrice = 'R$ 5,00 (Metrô / CPTM)';
+    fareType = 'TOP_METRO';
+  } else {
+    // Linha municipal de ônibus SPTrans
+    if (transferCount > 0) {
+      farePrice = 'R$ 4,40 (Até 4 ônibus em 3h com Bilhete Único)';
+    } else {
+      const lineName = firstLeg.line.lt ? `Linha ${firstLeg.line.lt}` : 'SPTrans';
+      farePrice = `R$ 4,40 (${lineName})`;
+    }
+  }
 
   // Estimativa de tráfego
   const trafficStatus: 'FLUINDO' | 'MODERADO' | 'INTENSO' =

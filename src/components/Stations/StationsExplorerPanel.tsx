@@ -63,14 +63,14 @@ export default function StationsExplorerPanel({
     switch (status) {
       case 'NORMAL':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
             <CheckCircle2 size={13} />
             <span>Normal</span>
           </span>
         );
       case 'VELOCIDADE_REDUZIDA':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#FBBF24', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
             <AlertTriangle size={13} />
             <span>Velocidade Reduzida</span>
           </span>
@@ -78,14 +78,14 @@ export default function StationsExplorerPanel({
       case 'OPERACAO_PARCIAL':
       case 'PARALISADA':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#F87171', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
             <XCircle size={13} />
             <span>Paralisada / Parcial</span>
           </span>
         );
       default:
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
             <CheckCircle2 size={13} />
             <span>{status}</span>
           </span>
@@ -116,21 +116,17 @@ export default function StationsExplorerPanel({
     return true;
   });
 
+  const stationFilterOptions = [
+    { id: 'ALL', label: 'Todas as Estações', icon: Layers },
+    { id: 'METRO', label: 'Metrô SP', icon: TrainTrack },
+    { id: 'CPTM', label: 'Trens CPTM', icon: TrainTrack },
+    { id: 'TERMINAL_BUS', label: 'Terminais SPTrans', icon: Bus }
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
       {/* Top Toggle: Status da Operação vs Estações no Mapa */}
-      <div
-        style={{
-          background: '#1C1E24',
-          border: '1px solid #2D313C',
-          borderRadius: '16px',
-          padding: '14px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
-        }}
-      >
+      <div className="bus-glass-panel" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
@@ -138,22 +134,22 @@ export default function StationsExplorerPanel({
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #003399, #EE1D23)',
+                background: 'linear-gradient(135deg, #6366F1 0%, #3B82F6 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                boxShadow: '0 4px 12px rgba(0, 51, 153, 0.4)'
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)'
               }}
             >
               <TrainTrack size={18} />
             </div>
             <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
-                Estações e Status dos Serviços
+              <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                Estações & Trilhos SP
               </h2>
-              <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0 }}>
-                Metrô · CPTM · ViaMobilidade · Terminais SPTrans
+              <p style={{ fontSize: '11px', color: '#94A3B8', margin: 0 }}>
+                Metrô · CPTM · ViaMobilidade · Terminais
               </p>
             </div>
           </div>
@@ -161,15 +157,15 @@ export default function StationsExplorerPanel({
           <button
             onClick={fetchRails}
             style={{
-              background: '#262932',
-              border: '1px solid #323642',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '8px',
               width: '34px',
               height: '34px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
+              color: '#38BDF8',
               cursor: 'pointer'
             }}
             title="Atualizar Status dos Serviços"
@@ -178,8 +174,8 @@ export default function StationsExplorerPanel({
           </button>
         </div>
 
-        {/* Abas Alternadoras Superiores: Status das Linhas / Estações no Mapa */}
-        <div style={{ display: 'flex', gap: '8px', background: '#121316', padding: '4px', borderRadius: '10px' }}>
+        {/* Abas Alternadoras Superiores */}
+        <div style={{ display: 'flex', gap: '8px', background: 'rgba(0, 0, 0, 0.3)', padding: '4px', borderRadius: '12px' }}>
           <button
             onClick={() => setSubView('STATUS')}
             style={{
@@ -187,8 +183,8 @@ export default function StationsExplorerPanel({
               padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
-              background: subView === 'STATUS' ? 'var(--moovit-sptrans-red)' : 'transparent',
-              color: subView === 'STATUS' ? '#FFFFFF' : '#9CA3AF',
+              background: subView === 'STATUS' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
+              color: subView === 'STATUS' ? '#FFFFFF' : '#94A3B8',
               fontWeight: 800,
               fontSize: '12px',
               cursor: 'pointer',
@@ -196,7 +192,8 @@ export default function StationsExplorerPanel({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: subView === 'STATUS' ? '0 4px 12px rgba(6, 182, 212, 0.3)' : 'none'
             }}
           >
             <TrainTrack size={15} />
@@ -210,8 +207,8 @@ export default function StationsExplorerPanel({
               padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
-              background: subView === 'ESTACOES' ? '#FF6600' : 'transparent',
-              color: subView === 'ESTACOES' ? '#FFFFFF' : '#9CA3AF',
+              background: subView === 'ESTACOES' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
+              color: subView === 'ESTACOES' ? '#FFFFFF' : '#94A3B8',
               fontWeight: 800,
               fontSize: '12px',
               cursor: 'pointer',
@@ -219,7 +216,8 @@ export default function StationsExplorerPanel({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: subView === 'ESTACOES' ? '0 4px 12px rgba(6, 182, 212, 0.3)' : 'none'
             }}
           >
             <MapPin size={15} />
@@ -234,10 +232,8 @@ export default function StationsExplorerPanel({
           {/* Card Resumo de Operação */}
           {railsData && (
             <div
+              className="bus-glass-panel"
               style={{
-                background: '#1C1E24',
-                border: '1px solid #2D313C',
-                borderRadius: '14px',
                 padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center',
@@ -245,8 +241,8 @@ export default function StationsExplorerPanel({
                 fontSize: '12px'
               }}
             >
-              <div style={{ color: '#D1D5DB' }}>
-                Total: <strong style={{ color: '#fff' }}>{railsData.summary.total} Linhas Monitoradas</strong>
+              <div style={{ color: '#CBD5E1' }}>
+                Rede: <strong style={{ color: '#F8FAFC' }}>{railsData.summary.total} Linhas Ativas</strong>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10B981', fontWeight: 700 }}>
@@ -256,7 +252,7 @@ export default function StationsExplorerPanel({
                 {railsData.summary.withIssues > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#F59E0B', fontWeight: 700 }}>
                     <AlertTriangle size={14} />
-                    <span>{railsData.summary.withIssues} com lentidão</span>
+                    <span>{railsData.summary.withIssues} lentas</span>
                   </div>
                 )}
               </div>
@@ -264,27 +260,18 @@ export default function StationsExplorerPanel({
           )}
 
           {/* Filtros de Operadora */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
             {[
               { id: 'TODAS', label: 'Todas' },
               { id: 'METRO', label: 'Metrô SP' },
               { id: 'CPTM', label: 'CPTM' },
-              { id: 'CONCESSIONARIAS', label: 'ViaQuatro / ViaMobilidade' }
+              { id: 'CONCESSIONARIAS', label: 'ViaQuatro / Mobilidade' }
             ].map((f) => (
               <button
                 key={f.id}
                 onClick={() => setSelectedRailFilter(f.id)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: selectedRailFilter === f.id ? 'var(--moovit-sptrans-red)' : '#262932',
-                  color: selectedRailFilter === f.id ? '#FFFFFF' : '#9CA3AF',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
+                className={`bus-pill ${selectedRailFilter === f.id ? 'active' : ''}`}
+                style={{ fontSize: '11.5px', padding: '5px 12px' }}
               >
                 {f.label}
               </button>
@@ -300,18 +287,12 @@ export default function StationsExplorerPanel({
                 <div
                   key={line.id}
                   onClick={() => setSelectedLineDetail(isSelected ? null : line)}
+                  className="bus-card"
                   style={{
-                    background: '#1C1E24',
-                    border: '1px solid #2D313C',
-                    borderRadius: '14px',
-                    padding: '14px 16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px',
-                    cursor: 'pointer',
-                    borderLeft: `4px solid ${line.hexColor}`,
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                    borderLeft: `4px solid ${line.hexColor}`
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -334,11 +315,11 @@ export default function StationsExplorerPanel({
                       </div>
 
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#FFFFFF' }}>
+                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#F8FAFC' }}>
                           {line.name}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>
-                          {line.operator} · Atualizado: {line.updatedAt}
+                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                          {line.operator} · {line.updatedAt}
                         </div>
                       </div>
                     </div>
@@ -372,61 +353,35 @@ export default function StationsExplorerPanel({
       {subView === 'ESTACOES' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Input de Busca de Estações */}
-          <div
-            style={{
-              background: '#1C1E24',
-              border: '1px solid #2D313C',
-              borderRadius: '12px',
-              padding: '10px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}
-          >
-            <Search size={16} color="#9CA3AF" />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={16} color="#06B6D4" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nome, linha ou endereço..."
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#FFFFFF',
-                fontSize: '13px',
-                fontWeight: 500,
-                outline: 'none',
-                width: '100%'
-              }}
+              placeholder="Buscar por estação, linha ou bairro..."
+              className="bus-input"
+              style={{ paddingLeft: '36px', height: '42px', fontSize: '13px' }}
             />
           </div>
 
-          {/* Filtros em Pílulas */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-            {[
-              { id: 'ALL', label: 'Todas' },
-              { id: 'METRO', label: '🚇 Metrô' },
-              { id: 'CPTM', label: '🚆 Trem CPTM' },
-              { id: 'TERMINAL_BUS', label: '🚏 Terminais SPTrans' }
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFilterType(f.id as any)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: filterType === f.id ? '#FF6600' : '#262932',
-                  color: filterType === f.id ? '#FFFFFF' : '#9CA3AF',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+          {/* Filtros em Pílulas com Ícones SVG */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+            {stationFilterOptions.map((f) => {
+              const Icon = f.icon;
+              const isActive = filterType === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setFilterType(f.id as any)}
+                  className={`bus-pill ${isActive ? 'active' : ''}`}
+                  style={{ fontSize: '11.5px', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Icon size={13} color={isActive ? '#38BDF8' : '#94A3B8'} />
+                  <span>{f.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Lista de Estações e Endereços */}
@@ -438,17 +393,11 @@ export default function StationsExplorerPanel({
                 <div
                   key={station.id}
                   onClick={() => onSelectStation(station)}
+                  className={`bus-card ${isSelected ? 'active' : ''}`}
                   style={{
-                    background: isSelected ? '#262932' : '#1C1E24',
-                    border: isSelected ? '1.5px solid #FF6600' : '1px solid #2D313C',
-                    borderRadius: '14px',
-                    padding: '14px 16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                    gap: '8px'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
@@ -463,7 +412,7 @@ export default function StationsExplorerPanel({
                               ? '#003399'
                               : station.type === 'CPTM'
                               ? '#A61327'
-                              : '#E30613',
+                              : '#06B6D4',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -474,10 +423,10 @@ export default function StationsExplorerPanel({
                       </div>
 
                       <div>
-                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
                           {station.name}
                         </h3>
-                        <div style={{ fontSize: '11px', color: 'var(--moovit-sptrans-red)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: '#06B6D4', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                           <MapPin size={12} />
                           <span>{station.address}</span>
                         </div>
@@ -489,19 +438,11 @@ export default function StationsExplorerPanel({
                         e.stopPropagation();
                         onRouteToStation(station);
                       }}
+                      className="bus-btn-primary"
                       style={{
-                        background: 'var(--moovit-sptrans-red)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '6px 10px',
-                        color: '#FFFFFF',
+                        padding: '6px 12px',
                         fontSize: '11px',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
+                        borderRadius: '8px'
                       }}
                       title="Traçar Rota"
                     >
@@ -511,8 +452,8 @@ export default function StationsExplorerPanel({
                   </div>
 
                   {/* Bairro & Linhas Atendidas */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #2D313C', paddingTop: '8px', marginTop: '2px' }}>
-                    <span style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>
                       {station.neighborhood}
                     </span>
 

@@ -10,7 +10,16 @@ import {
   Bus,
   Star,
   Activity,
-  ChevronRight
+  ChevronRight,
+  Radio,
+  Sparkles,
+  ArrowLeftRight,
+  ShieldCheck,
+  Zap,
+  SlidersHorizontal,
+  Navigation,
+  MapPin,
+  X
 } from 'lucide-react';
 
 interface LineItineraryPanelProps {
@@ -33,16 +42,30 @@ export default function LineItineraryPanel({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SPTransLinha[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<'POPULAR' | 'TRUNK' | 'NIGHT'>('POPULAR');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Linhas populares de SP para acesso rápido
-  const POPULAR_LINES = [
-    { lt: '1703', tl: 10, tp: 'Jd. Hebron', ts: 'Shopping Center Norte', cl: 1703 },
-    { lt: '8700', tl: 10, tp: 'Terminal Campo Limpo', ts: 'Praça Ramos de Azevedo', cl: 8700 },
-    { lt: '8000', tl: 10, tp: 'Terminal Lapa', ts: 'Praça Ramos de Azevedo', cl: 8000 },
-    { lt: '106A', tl: 10, tp: 'Metrô Santana', ts: 'Itaim Bibi', cl: 106 },
-    { lt: '2012', tl: 10, tp: 'Jd. Fontális', ts: 'Metrô Santana', cl: 2012 }
-  ];
+  // Linhas Populares & Estruturais de São Paulo
+  const POPULAR_LINES: Record<'POPULAR' | 'TRUNK' | 'NIGHT', Array<{ lt: string; tl: number; tp: string; ts: string; cl: number; tag: string }>> = {
+    POPULAR: [
+      { lt: '1703', tl: 10, tp: 'Jd. Hebron', ts: 'Shopping Center Norte', cl: 1703, tag: 'Zona Norte' },
+      { lt: '8700', tl: 10, tp: 'Terminal Campo Limpo', ts: 'Praça Ramos de Azevedo', cl: 8700, tag: 'Zona Sul / Centro' },
+      { lt: '8000', tl: 10, tp: 'Terminal Lapa', ts: 'Praça Ramos de Azevedo', cl: 8000, tag: 'Zona Oeste' },
+      { lt: '2012', tl: 10, tp: 'Jd. Fontális', ts: 'Metrô Santana', cl: 2012, tag: 'Alimentadora' }
+    ],
+    TRUNK: [
+      { lt: '106A', tl: 10, tp: 'Metrô Santana', ts: 'Itaim Bibi', cl: 106, tag: 'Corredor Norte-Sul' },
+      { lt: '6000', tl: 10, tp: 'Terminal Parelheiros', ts: 'Terminal Santo Amaro', cl: 6000, tag: 'Corredor Sul' },
+      { lt: '4310', tl: 10, tp: 'ET Itaquera', ts: 'Terminal Parque D. Pedro II', cl: 4310, tag: 'Radial Leste' },
+      { lt: '5110', tl: 10, tp: 'Terminal São Mateus', ts: 'Terminal Mercado', cl: 5110, tag: 'Expresso Tiradentes' }
+    ],
+    NIGHT: [
+      { lt: 'N101', tl: 11, tp: 'Terminal Santana', ts: 'Terminal Pq. D. Pedro II', cl: 101, tag: 'Rede Noturna' },
+      { lt: 'N201', tl: 11, tp: 'Metrô Tucuruvi', ts: 'Terminal Pq. D. Pedro II', cl: 201, tag: 'Rede Noturna' },
+      { lt: 'N501', tl: 11, tp: 'Terminal Sacomã', ts: 'Terminal Pq. D. Pedro II', cl: 501, tag: 'Rede Noturna' },
+      { lt: 'N701', tl: 11, tp: 'Terminal Santo Amaro', ts: 'Terminal Pq. D. Pedro II', cl: 701, tag: 'Rede Noturna' }
+    ]
+  };
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
@@ -62,182 +85,257 @@ export default function LineItineraryPanel({
         } finally {
           setIsSearching(false);
         }
-      }, 300);
+      }, 280);
     } else {
       setSearchResults([]);
       setIsSearching(false);
     }
   };
 
+  const accessibleVehiclesCount = veiculos.filter(v => v.a).length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-      {/* Header do Painel */}
-      <div className="glass-panel" style={{ borderRadius: '16px', padding: '16px 18px', background: '#0F172A', border: '1px solid #334155' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+      {/* 1. COCKPIT DE BUSCA DE LINHAS & RADAR */}
+      <div
+        className="bus-glass-panel"
+        style={{
+          padding: '16px 18px',
+          background: 'linear-gradient(180deg, rgba(13, 17, 23, 0.95) 0%, rgba(15, 23, 42, 0.9) 100%)',
+          border: '1px solid rgba(6, 182, 212, 0.3)',
+          position: 'relative'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+                boxShadow: '0 0 16px rgba(6, 182, 212, 0.5)'
+              }}
+            >
+              <Bus size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.3px' }}>
+                Radar de Frotas & Linhas SP
+              </div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                Telemetria GPS Olho Vivo em tempo real
+              </div>
+            </div>
+          </div>
+
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #E30613, #99000B)',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#10B981',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              padding: '3px 8px',
+              borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              boxShadow: '0 4px 12px rgba(227, 6, 19, 0.4)'
+              gap: '4px'
             }}
           >
-            <Bus size={19} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>Linhas & Itinerários</h3>
-            <p style={{ fontSize: '11px', color: '#94A3B8' }}>
-              Acompanhe qualquer linha municipal e veículos em tempo real
-            </p>
+            <Radio size={11} className="animate-pulse" />
+            <span>AO VIVO</span>
           </div>
         </div>
 
-        {/* Input de Busca de Linhas */}
+        {/* Input de Busca Estilizado */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search
-            size={16}
-            color="#94A3B8"
-            style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}
+            size={17}
+            color="#06B6D4"
+            style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }}
           />
           <input
             type="text"
-            className="input-field"
-            style={{ paddingLeft: '36px', height: '42px', fontSize: '13px', background: '#1E293B', border: '1px solid #334155' }}
-            placeholder="Digite o número da linha ou bairro (ex: 1703, Santana, 8700)..."
+            className="bus-input"
+            style={{
+              paddingLeft: '40px',
+              paddingRight: searchTerm ? '40px' : '14px',
+              height: '44px',
+              fontSize: '13.5px',
+              fontWeight: 500
+            }}
+            placeholder="Digite número, letreiro ou bairro (ex: 1703, Paulista, 8700)..."
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
-        </div>
-
-        {/* Atalhos Rápidos de Linhas */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginTop: '10px', paddingBottom: '2px' }}>
-          {POPULAR_LINES.map((pl) => (
+          {searchTerm && (
             <button
-              key={pl.lt}
-              onClick={() => {
-                onSelectLine({
-                  cl: pl.cl,
-                  lc: false,
-                  lt: pl.lt,
-                  tl: pl.tl,
-                  sl: 1,
-                  tp: pl.tp,
-                  ts: pl.ts
-                });
-              }}
+              onClick={() => handleSearchChange('')}
               style={{
-                padding: '4px 10px',
-                borderRadius: '8px',
-                background: selectedLine?.lt === pl.lt ? 'rgba(227, 6, 19, 0.3)' : '#1E293B',
-                border: selectedLine?.lt === pl.lt ? '1px solid #E30613' : '1px solid #334155',
-                color: selectedLine?.lt === pl.lt ? '#fff' : '#CBD5E1',
-                fontSize: '11px',
-                fontWeight: 700,
+                position: 'absolute',
+                right: '12px',
+                background: 'none',
+                border: 'none',
+                color: '#94A3B8',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap'
+                padding: '4px'
               }}
             >
-              🚌 {pl.lt}-{pl.tl}
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {/* Categorias Rápidas */}
+        <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
+          {[
+            { id: 'POPULAR', label: 'Mais Buscadas' },
+            { id: 'TRUNK', label: 'Corredores & Radiais' },
+            { id: 'NIGHT', label: 'Linhas Noturnas' }
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id as any)}
+              className={`bus-pill ${activeCategory === cat.id ? 'active' : ''}`}
+              style={{ fontSize: '11px', padding: '5px 10px', flex: 1, justifyContent: 'center' }}
+            >
+              {cat.label}
             </button>
           ))}
         </div>
+
+        {/* Linhas Rápidas da Categoria Selecionada */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '10px' }}>
+          {POPULAR_LINES[activeCategory].map((pl) => {
+            const isSelected = selectedLine?.lt === pl.lt;
+
+            return (
+              <div
+                key={pl.lt}
+                onClick={() => {
+                  onSelectLine({
+                    cl: pl.cl,
+                    lc: false,
+                    lt: pl.lt,
+                    tl: pl.tl,
+                    sl: 1,
+                    tp: pl.tp,
+                    ts: pl.ts
+                  });
+                }}
+                className={`bus-card ${isSelected ? 'active' : ''}`}
+                style={{
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="bus-badge" style={{ fontSize: '13px', padding: '2px 7px' }}>
+                    {pl.lt}-{pl.tl}
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#38BDF8', fontWeight: 700 }}>
+                    {pl.tag}
+                  </span>
+                </div>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {pl.ts}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Resultados da Busca */}
+      {/* 2. RESULTADOS DA PESQUISA DINÂMICA */}
       {searchTerm.trim().length >= 2 && (
-        <div className="glass-panel" style={{ borderRadius: '14px', padding: '12px', background: '#0F172A', border: '1px solid #334155' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '8px' }}>
-            {isSearching ? 'Buscando linhas na SPTrans...' : `Linhas encontradas (${searchResults.length}):`}
+        <div className="bus-glass-panel animate-slide-up" style={{ padding: '14px' }}>
+          <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#38BDF8', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Search size={13} />
+            <span>
+              {isSearching ? 'Pesquisando linhas no banco da SPTrans...' : `Linhas encontradas (${searchResults.length}):`}
+            </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
             {searchResults.map((l, idx) => (
               <div
                 key={idx}
                 onClick={() => onSelectLine(l)}
+                className="bus-card"
                 style={{
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  background: '#1E293B',
-                  border: '1px solid #334155',
-                  cursor: 'pointer',
+                  padding: '12px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'background 0.2s'
+                  justifyContent: 'space-between'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(227, 6, 19, 0.25)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#1E293B')}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div
-                    style={{
-                      background: 'var(--accent-sptrans)',
-                      color: '#fff',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontWeight: 800,
-                      fontSize: '12px'
-                    }}
-                  >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="bus-badge" style={{ fontSize: '14px', padding: '6px 10px' }}>
                     {l.lt}-{l.tl}
                   </div>
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC' }}>
                       {l.tp} → {l.ts}
                     </div>
-                    <div style={{ fontSize: '10px', color: '#94A3B8' }}>
-                      Sentido: {l.sl === 1 ? 'Principal (Ida)' : 'Secundário (Volta)'}
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                      Sentido: <strong>{l.sl === 1 ? 'Principal (Ida)' : 'Secundário (Volta)'}</strong>
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={14} color="#94A3B8" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#38BDF8', fontWeight: 700, fontSize: '11px' }}>
+                  <span>Radar</span>
+                  <ChevronRight size={14} />
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Cartão de Detalhes da Linha Ativa no Mapa */}
+      {/* 3. PAINEL DE TELEMETRIA AO VIVO DA LINHA ATIVA */}
       {selectedLine && (
         <div
-          className="glass-panel"
+          className="bus-glass-panel animate-slide-up"
           style={{
-            borderRadius: '16px',
             padding: '16px',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, rgba(13, 17, 23, 0.96) 100%)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
-            background: '#0F172A',
-            border: '1px solid #334155'
+            gap: '14px'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Header do Letreiro Eletrônico LED */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
                 style={{
-                  background: 'var(--accent-sptrans)',
-                  color: '#fff',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                  color: '#FFFFFF',
+                  fontSize: '18px',
                   fontWeight: 900,
-                  fontSize: '15px'
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  boxShadow: '0 0 16px rgba(6, 182, 212, 0.5)'
                 }}
               >
                 {selectedLine.lt}-{selectedLine.tl}
               </div>
+
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
-                  {selectedLine.tp} ⇄ {selectedLine.ts}
+                <div style={{ fontSize: '14.5px', fontWeight: 900, color: '#F8FAFC' }}>
+                  {selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp}
                 </div>
-                <div style={{ fontSize: '11px', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                  <Activity size={12} />
-                  <span>{isLoadingVehicles ? 'Atualizando GPS...' : `${veiculos.length} veículos em circulação`}</span>
+                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                  Partindo de: {selectedLine.sl === 1 ? selectedLine.tp : selectedLine.ts}
                 </div>
               </div>
             </div>
@@ -246,59 +344,109 @@ export default function LineItineraryPanel({
               <button
                 onClick={onToggleFavoriteLine}
                 style={{
-                  background: '#1E293B',
-                  border: '1px solid #334155',
+                  background: isLineFavorited ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                  border: isLineFavorited ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '8px',
                   padding: '8px',
                   cursor: 'pointer',
-                  color: isLineFavorited ? '#FBBF24' : '#94A3B8'
+                  color: isLineFavorited ? '#F59E0B' : '#94A3B8'
                 }}
                 title="Favoritar Linha"
               >
-                <Star size={18} fill={isLineFavorited ? '#FBBF24' : 'none'} />
+                <Star size={18} fill={isLineFavorited ? '#F59E0B' : 'none'} />
               </button>
             )}
           </div>
 
-          {/* Veículos em Tempo Real */}
-          <div
-            style={{
-              background: '#1E293B',
-              borderRadius: '10px',
-              padding: '10px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              border: '1px solid #334155'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-              <span style={{ color: '#94A3B8' }}>Status da Frota:</span>
-              <span style={{ color: '#38BDF8', fontWeight: 700 }}>🟢 GPS ao vivo no mapa</span>
+          {/* Cards de Métricas da Linha */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            <div
+              style={{
+                background: 'rgba(0, 0, 0, 0.35)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '10px',
+                padding: '8px 10px',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>FROTA ATIVA</div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: '#38BDF8', marginTop: '2px' }}>
+                {isLoadingVehicles ? '...' : veiculos.length}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(0, 0, 0, 0.35)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '10px',
+                padding: '8px 10px',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>ACESSÍVEIS</div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: '#10B981', marginTop: '2px' }}>
+                {isLoadingVehicles ? '...' : accessibleVehiclesCount}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(0, 0, 0, 0.35)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '10px',
+                padding: '8px 10px',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>SINAL GPS</div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#34D399', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+                100%
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de Veículos Transmitindo Telemetria */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Veículos em Circulação no Mapa:</span>
+              <span style={{ color: '#38BDF8', fontSize: '11px' }}>{veiculos.length} operando</span>
             </div>
 
             {veiculos.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
                 {veiculos.map((v, i) => (
-                  <span
+                  <div
                     key={i}
                     style={{
-                      background: 'rgba(227, 6, 19, 0.25)',
-                      color: '#FCA5A5',
-                      border: '1px solid rgba(227, 6, 19, 0.5)',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 700
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
                     }}
                   >
-                    🚌 #{v.p}
-                  </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Bus size={13} color="#06B6D4" />
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#F8FAFC' }}>
+                        #{v.p}
+                      </span>
+                    </div>
+
+                    {v.a && (
+                      <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10B981', background: 'rgba(16, 185, 129, 0.15)', padding: '1px 4px', borderRadius: '4px' }}>
+                        Acessível
+                      </span>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (
-              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-                Nenhum veículo transmitindo GPS neste exato momento para esta linha.
+              <div style={{ fontSize: '11.5px', color: '#94A3B8', padding: '8px 0' }}>
+                Nenhum veículo transmitindo GPS neste momento para esta linha.
               </div>
             )}
           </div>
