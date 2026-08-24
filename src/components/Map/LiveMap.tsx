@@ -141,9 +141,16 @@ export default function LiveMap({
         watchPositionIdRef.current = null;
       }
     }
-  }, [isPercursoActive]);
-
   const effectiveCoords = liveUserCoords || userCoords;
+  const hasAutoCenteredRef = useRef(false);
+
+  // Centralizar automaticamente no GPS do usuário assim que as coordenadas forem detectadas
+  useEffect(() => {
+    if (effectiveCoords && mapInstanceRef.current && !hasAutoCenteredRef.current && !activeRoute && !selectedStation) {
+      hasAutoCenteredRef.current = true;
+      mapInstanceRef.current.setView(effectiveCoords, 15, { animate: true });
+    }
+  }, [effectiveCoords, activeRoute, selectedStation]);
 
   // Atualizar marcador de localização do usuário com SVG e radar de pulso
   useEffect(() => {
@@ -612,6 +619,10 @@ export default function LiveMap({
   }, [stations, selectedStation]);
 
   const handleLocateMe = () => {
+    if (effectiveCoords && mapInstanceRef.current) {
+      mapInstanceRef.current.setView(effectiveCoords, 16, { animate: true });
+    }
+
     if (!navigator.geolocation) {
       alert('Geolocalização não é suportada pelo seu navegador.');
       return;
@@ -631,9 +642,11 @@ export default function LiveMap({
       (err) => {
         console.warn('Erro ao obter localização:', err);
         setIsLocating(false);
-        alert('Não foi possível obter sua localização. Verifique as permissões de GPS.');
+        if (!effectiveCoords) {
+          alert('Não foi possível obter sua localização. Verifique as permissões de GPS.');
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
@@ -691,9 +704,9 @@ export default function LiveMap({
             <div>
               <div style={{ fontSize: '11px', fontWeight: 900, color: '#34D399', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
-                <span>NAVEGAÇÃO 3D ATIVA</span>
+                <span>NAVEGAÇÃO GPS ATIVA</span>
                 <span>·</span>
-                <span>GPS SEGUINDO</span>
+                <span>EM ANDAMENTO</span>
               </div>
               <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#FFFFFF' }}>
                 {activeRoute.steps[0]?.instruction || 'Siga o trajeto no mapa'}
@@ -825,40 +838,42 @@ export default function LiveMap({
         </button>
       </div>
 
-      {/* Legenda de Destino e Frota Flutuante */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '84px',
-          left: '16px',
-          zIndex: 990,
-          background: 'rgba(13, 17, 23, 0.85)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: '6px 14px',
-          borderRadius: '9999px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '11.5px',
-          color: '#CBD5E1',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.6)'
-        }}
-      >
-        <span
+      {/* Legenda de Destino e Frota Flutuante (Oculta durante percurso ativo para não colidir com controles) */}
+      {!isPercursoActive && selectedLine && (
+        <div
           style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#10B981',
-            boxShadow: '0 0 8px rgba(16, 185, 129, 0.8)'
+            position: 'absolute',
+            bottom: '84px',
+            left: '16px',
+            zIndex: 990,
+            background: 'rgba(13, 17, 23, 0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '11.5px',
+            color: '#CBD5E1',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.6)'
           }}
-        />
-        <span>
-          <strong>Linha:</strong> {selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : '1703-10'} · {veiculos.length} veículos transmitindo GPS
-        </span>
-      </div>
+        >
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#10B981',
+              boxShadow: '0 0 8px rgba(16, 185, 129, 0.8)'
+            }}
+          />
+          <span>
+            <strong>Linha:</strong> {selectedLine.lt}-{selectedLine.tl} · {veiculos.length} veículos transmitindo GPS
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -99,19 +99,28 @@ export default function HomePage() {
   // GPS Contínuo & Incidentes de Trânsito ao Vivo
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
+      // 1. Obter posição inicial imediatamente com alta precisão
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords([pos.coords.latitude, pos.coords.longitude]);
+          setUserAccuracyMeters(pos.coords.accuracy);
+        },
+        (err) => {
+          console.warn('[GPS] Erro ao obter posição inicial:', err?.message);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+
+      // 2. Monitorar continuamente atualizações
       const watchId = navigator.geolocation.watchPosition(
         (pos) => {
           setUserCoords([pos.coords.latitude, pos.coords.longitude]);
           setUserAccuracyMeters(pos.coords.accuracy);
         },
         () => {
-          // Sem permissão/sinal de GPS: não substituímos por uma localização
-          // fixa (isso mostraria uma posição errada como se fosse real). O
-          // mapa e a busca de rota tratam userCoords === null explicitamente.
-          setUserCoords(null);
-          setUserAccuracyMeters(null);
+          // Manter coordenadas anteriores se houver oscilação transitória de sinal
         },
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 8000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 }
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
@@ -314,59 +323,94 @@ export default function HomePage() {
 
       {/* 2. BOTÕES FLUTUANTES SOBRE O MAPA NO MODO PERCURSO/FULLSCREEN */}
       {isMapFullscreen && (
-        <div
-          style={{
-            position: 'absolute',
-            // Quando a navegação está ativa, o próprio LiveMap já mostra sua barra HUD
-            // (instrução + botão Parar) no topo — deixamos espaço abaixo dela para não
-            // sobrepor os dois controles de "parar" na mesma região da tela.
-            top: isPercursoActive ? '84px' : '16px',
-            left: '16px',
-            zIndex: 960,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            animation: 'fadeIn 0.2s ease'
-          }}
-        >
+        <>
+          {/* Se a navegação NÃO estiver ativa, botões no topo */}
           {!isPercursoActive && (
-            <button
-              onClick={() => {
-                setIsPercursoActive(true);
-                if (!isVoiceMuted && activeRoute) {
-                  voiceService.announceBoarding(
-                    `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
-                    activeRoute.destination.name
-                  );
-                }
+            <div
+              style={{
+                position: 'absolute',
+                top: '16px',
+                left: '16px',
+                zIndex: 960,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                animation: 'fadeIn 0.2s ease'
               }}
-              className="bus-btn-voice"
-              style={{ padding: '12px 18px', fontSize: '13.5px' }}
             >
-              <Volume2 size={16} />
-              <span>Iniciar com Voz</span>
-            </button>
+              {activeRoute && (
+                <button
+                  onClick={() => {
+                    setIsPercursoActive(true);
+                    if (!isVoiceMuted && activeRoute) {
+                      voiceService.announceBoarding(
+                        `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
+                        activeRoute.destination.name
+                      );
+                    }
+                  }}
+                  className="bus-btn-voice"
+                  style={{ padding: '12px 18px', fontSize: '13.5px' }}
+                >
+                  <Volume2 size={16} />
+                  <span>Iniciar com Voz</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setIsMapFullscreen(false)}
+                className="bus-glass-panel"
+                style={{
+                  borderRadius: '9999px',
+                  padding: '10px 16px',
+                  color: '#F8FAFC',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                <ChevronUp size={16} color="#06B6D4" />
+                <span>Ver Painel da Viagem</span>
+              </button>
+            </div>
           )}
 
-          <button
-            onClick={() => setIsMapFullscreen(false)}
-            className="bus-glass-panel"
-            style={{
-              borderRadius: '9999px',
-              padding: '10px 16px',
-              color: '#F8FAFC',
-              fontSize: '12px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            <ChevronUp size={16} color="#06B6D4" />
-            <span>Ver Painel da Viagem</span>
-          </button>
-        </div>
+          {/* Se a navegação ESTIVER ativa, posicionar o botão na base esquerda (abaixo do HUD do topo) */}
+          {isPercursoActive && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '84px',
+                left: '16px',
+                zIndex: 995,
+                animation: 'fadeIn 0.2s ease'
+              }}
+            >
+              <button
+                onClick={() => setIsMapFullscreen(false)}
+                className="bus-glass-panel"
+                style={{
+                  borderRadius: '9999px',
+                  padding: '10px 16px',
+                  color: '#F8FAFC',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.7)'
+                }}
+              >
+                <ChevronUp size={16} color="#06B6D4" />
+                <span>Ver Painel da Viagem</span>
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* 3. PAINEL PRINCIPAL BUSAÍ SP (Desktop à Esquerda / Mobile Adaptativo) */}
