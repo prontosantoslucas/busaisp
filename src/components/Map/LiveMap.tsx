@@ -14,21 +14,10 @@ import { TrafficIncident } from '@/types/traffic';
 import {
   RefreshCw,
   Locate,
-  Footprints,
-  Layers,
   Square,
   Navigation,
-  Play,
-  Radio,
-  TrainTrack,
-  MapPin,
-  AlertTriangle,
-  Compass,
-  Sliders,
-  Sparkles
+  AlertTriangle
 } from 'lucide-react';
-
-export type PerspectiveMode = 'NAV_3D' | 'AERIAL_3D' | 'FLAT_2D';
 
 export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -83,8 +72,6 @@ export default function LiveMap({
   const [isLocating, setIsLocating] = useState(false);
   const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
   const [showIncidents, setShowIncidents] = useState(true);
-  const [perspectiveMode, setPerspectiveMode] = useState<PerspectiveMode>('NAV_3D');
-  const [isMenu3DOpen, setIsMenu3DOpen] = useState(false);
 
   // Inicializar o Mapa Leaflet com CartoDB Dark Matter (Modo Noturno Puro)
   useEffect(() => {
@@ -120,13 +107,6 @@ export default function LiveMap({
       mapInstanceRef.current = null;
     };
   }, []);
-
-  // Quando "Iniciar Percurso" for acionado, ativar automaticamente o modo de navegação 3D
-  useEffect(() => {
-    if (isPercursoActive) {
-      setPerspectiveMode('NAV_3D');
-    }
-  }, [isPercursoActive]);
 
   // Monitorar e seguir GPS continuamente quando "Iniciar Percurso" estiver ativo
   useEffect(() => {
@@ -657,27 +637,11 @@ export default function LiveMap({
     );
   };
 
-  const getPerspectiveClass = () => {
-    switch (perspectiveMode) {
-      case 'NAV_3D':
-        return 'map-perspective-nav';
-      case 'AERIAL_3D':
-        return 'map-perspective-aerial';
-      case 'FLAT_2D':
-      default:
-        return 'map-perspective-2d';
-    }
-  };
-
   return (
     <div className="map-perspective-viewport">
-      {/* Gradiente de Horizonte Atmosférico Noturno (visível em modo 3D) */}
-      {perspectiveMode !== 'FLAT_2D' && <div className="map-horizon-overlay" />}
-
-      {/* Container Leaflet com Perspectiva 3D Suave */}
+      {/* Container Leaflet */}
       <div
         ref={mapContainerRef}
-        className={getPerspectiveClass()}
         style={{ width: '100%', height: '100%', zIndex: 1 }}
       />
 
@@ -774,122 +738,6 @@ export default function LiveMap({
           zIndex: 999
         }}
       >
-        {/* Menu Flutuante de Seleção de Perspectiva 3D */}
-        {isMenu3DOpen && (
-          <div
-            className="bus-glass-panel animate-slide-up"
-            style={{
-              padding: '6px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-              minWidth: '160px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.85)',
-              border: '1px solid rgba(6, 182, 212, 0.3)'
-            }}
-          >
-            <div style={{ padding: '4px 8px', fontSize: '10.5px', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.4px' }}>
-              MODO DA CÂMERA
-            </div>
-
-            <button
-              onClick={() => {
-                setPerspectiveMode('NAV_3D');
-                setIsMenu3DOpen(false);
-              }}
-              style={{
-                background: perspectiveMode === 'NAV_3D' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
-                color: perspectiveMode === 'NAV_3D' ? '#FFFFFF' : '#CBD5E1',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <span>3D Navegação (54°)</span>
-              {perspectiveMode === 'NAV_3D' && <Sparkles size={13} />}
-            </button>
-
-            <button
-              onClick={() => {
-                setPerspectiveMode('AERIAL_3D');
-                setIsMenu3DOpen(false);
-              }}
-              style={{
-                background: perspectiveMode === 'AERIAL_3D' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
-                color: perspectiveMode === 'AERIAL_3D' ? '#FFFFFF' : '#CBD5E1',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <span>3D Aéreo (34°)</span>
-              {perspectiveMode === 'AERIAL_3D' && <Sparkles size={13} />}
-            </button>
-
-            <button
-              onClick={() => {
-                setPerspectiveMode('FLAT_2D');
-                setIsMenu3DOpen(false);
-              }}
-              style={{
-                background: perspectiveMode === 'FLAT_2D' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
-                color: perspectiveMode === 'FLAT_2D' ? '#FFFFFF' : '#CBD5E1',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <span>2D Plana (0°)</span>
-              {perspectiveMode === 'FLAT_2D' && <Sparkles size={13} />}
-            </button>
-          </div>
-        )}
-
-        {/* Botão de Alternância de Perspectiva 3D */}
-        <button
-          onClick={() => setIsMenu3DOpen(!isMenu3DOpen)}
-          className="bus-pill"
-          style={{
-            background: perspectiveMode !== 'FLAT_2D'
-              ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.85) 0%, rgba(59, 130, 246, 0.85) 100%)'
-              : 'rgba(13, 17, 23, 0.9)',
-            border: perspectiveMode !== 'FLAT_2D' ? '1.5px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.1)',
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-            fontWeight: 900,
-            fontSize: '11.5px',
-            boxShadow: perspectiveMode !== 'FLAT_2D' ? '0 0 16px rgba(6, 182, 212, 0.6)' : 'none'
-          }}
-          title={`Perspectiva atual: ${perspectiveMode}. Clique para alterar.`}
-          aria-label="Perspectiva 3D"
-        >
-          <span>{perspectiveMode === 'NAV_3D' ? '3D' : perspectiveMode === 'AERIAL_3D' ? '3D+' : '2D'}</span>
-        </button>
-
         {/* Toggle de Camada de Incidentes (Waze/CET) */}
         <button
           onClick={() => setShowIncidents(!showIncidents)}

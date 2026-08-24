@@ -27,7 +27,6 @@ import {
   Bus,
   Map as MapIcon,
   Play,
-  Square,
   ChevronUp,
   Volume2,
   VolumeX,
@@ -318,7 +317,10 @@ export default function HomePage() {
         <div
           style={{
             position: 'absolute',
-            top: '16px',
+            // Quando a navegação está ativa, o próprio LiveMap já mostra sua barra HUD
+            // (instrução + botão Parar) no topo — deixamos espaço abaixo dela para não
+            // sobrepor os dois controles de "parar" na mesma região da tela.
+            top: isPercursoActive ? '84px' : '16px',
             left: '16px',
             zIndex: 960,
             display: 'flex',
@@ -327,31 +329,7 @@ export default function HomePage() {
             animation: 'fadeIn 0.2s ease'
           }}
         >
-          {isPercursoActive ? (
-            <button
-              onClick={() => {
-                setIsPercursoActive(false);
-                voiceService.stop();
-              }}
-              style={{
-                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                border: 'none',
-                borderRadius: '9999px',
-                padding: '12px 18px',
-                color: '#FFFFFF',
-                fontSize: '13.5px',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(239, 68, 68, 0.45)'
-              }}
-            >
-              <Square size={15} fill="#fff" />
-              <span>Parar Navegação ao Vivo</span>
-            </button>
-          ) : (
+          {!isPercursoActive && (
             <button
               onClick={() => {
                 setIsPercursoActive(true);
