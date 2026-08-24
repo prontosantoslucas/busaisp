@@ -52,6 +52,11 @@ export async function GET(request: NextRequest) {
   const destLat = searchParams.get('destLat');
   const destLng = searchParams.get('destLng');
 
+  // Minutos a partir de agora para o horário de saída planejado (0 = "sair agora").
+  // O cliente calcula esse deslocamento a partir do horário de relógio escolhido.
+  const partidaMinutosParam = searchParams.get('partidaMinutos');
+  const targetOffsetMinutes = partidaMinutosParam ? Math.max(0, parseInt(partidaMinutosParam, 10) || 0) : 0;
+
   try {
     let originLoc: RouteLocation;
     let destLoc: RouteLocation;
@@ -78,7 +83,7 @@ export async function GET(request: NextRequest) {
       destLoc = await geocodeAddress(destinoStr);
     }
 
-    const routeResult = await calculateRoute(originLoc, destLoc);
+    const routeResult = await calculateRoute(originLoc, destLoc, targetOffsetMinutes);
 
     // Registra o evento de busca de forma assíncrona (não bloqueia a resposta)
     try {

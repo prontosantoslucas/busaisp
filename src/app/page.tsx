@@ -88,6 +88,8 @@ export default function HomePage() {
   const [routeSearchError, setRouteSearchError] = useState<string | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  // Horário de saída planejado ("HH:MM"); vazio = "sair agora".
+  const [scheduledTime, setScheduledTime] = useState('');
 
   const [selectedLine, setSelectedLine] = useState<SPTransLinha | null>(null);
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
@@ -193,9 +195,12 @@ export default function HomePage() {
   }, [selectedLine, loadVeiculos]);
 
   // Executar Cálculo de Rotas
-  const handleCalculateRoutes = async (destParam?: string, origParam?: string) => {
+  const handleCalculateRoutes = async (destParam?: string, origParam?: string, scheduledTimeParam?: string) => {
     const destToUse = destParam || destino;
     const origToUse = origParam || origem;
+    // Usa o valor explícito quando fornecido (evita ler o estado antigo antes do
+    // re-render, no caso de troca de horário disparar o cálculo imediatamente).
+    const timeToUse = scheduledTimeParam !== undefined ? scheduledTimeParam : scheduledTime;
     if (!destToUse || destToUse.trim().length < 2) return;
 
     setIsCalculating(true);
@@ -213,6 +218,16 @@ export default function HomePage() {
         origLat: String(origCoords[0]),
         origLng: String(origCoords[1])
       });
+
+      if (timeToUse) {
+        const [h, m] = timeToUse.split(':').map(Number);
+        if (!Number.isNaN(h) && !Number.isNaN(m)) {
+          const agora = new Date();
+          let offset = (h * 60 + m) - (agora.getHours() * 60 + agora.getMinutes());
+          if (offset < 0) offset += 24 * 60;
+          params.set('partidaMinutos', String(offset));
+        }
+      }
 
       const res = await fetch(`/api/rotas?${params.toString()}`);
       const json = await res.json();
@@ -488,6 +503,11 @@ export default function HomePage() {
               onCalculate={() => handleCalculateRoutes()}
               isCalculating={isCalculating}
               searchError={routeSearchError}
+              scheduledTime={scheduledTime}
+              onScheduledTimeChange={(time: string) => {
+                setScheduledTime(time);
+                handleCalculateRoutes(undefined, undefined, time);
+              }}
             />
           )}
 

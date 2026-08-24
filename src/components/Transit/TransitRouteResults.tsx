@@ -33,6 +33,8 @@ interface TransitRouteResultsProps {
   onCalculate: () => void;
   isCalculating: boolean;
   searchError?: string | null;
+  scheduledTime?: string;
+  onScheduledTimeChange?: (time: string) => void;
 }
 
 export default function TransitRouteResults({
@@ -49,9 +51,12 @@ export default function TransitRouteResults({
   onSelectRoute,
   onCalculate,
   isCalculating,
-  searchError
+  searchError,
+  scheduledTime = '',
+  onScheduledTimeChange
 }: TransitRouteResultsProps) {
   const [filterMode, setFilterMode] = useState<'ALL' | 'FASTEST' | 'LESS_WALK' | 'LESS_TRANSFERS'>('ALL');
+  const isScheduled = scheduledTime.length > 0;
 
   // Aplicar filtros
   const filteredRoutes = [...routes].sort((a, b) => {
@@ -168,6 +173,47 @@ export default function TransitRouteResults({
             <ArrowUpDown size={16} />
           </button>
         </div>
+
+        {/* Horário de Saída: agora ou planejado */}
+        {onScheduledTimeChange && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => onScheduledTimeChange('')}
+              className={`bus-pill ${!isScheduled ? 'active' : ''}`}
+              style={{ fontSize: '11.5px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              <Clock size={13} color={!isScheduled ? '#38BDF8' : '#94A3B8'} />
+              <span>Sair agora</span>
+            </button>
+
+            <div
+              className={`bus-pill ${isScheduled ? 'active' : ''}`}
+              style={{ fontSize: '11.5px', padding: '2px 10px 2px 12px', display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}
+            >
+              <Clock size={13} color={isScheduled ? '#38BDF8' : '#94A3B8'} />
+              <input
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => onScheduledTimeChange(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: isScheduled ? '#F8FAFC' : '#94A3B8',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  colorScheme: 'dark',
+                  flex: 1
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {isScheduled && (
+          <div style={{ fontSize: '10.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span>⚠️ Previsão em tempo real da SPTrans só cobre os próximos ~60 min — horários mais distantes usam o melhor dado disponível, sem garantia.</span>
+          </div>
+        )}
 
         {/* Botão Recalcular */}
         <button

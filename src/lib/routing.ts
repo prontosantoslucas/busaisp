@@ -307,7 +307,8 @@ function formatTimeHourMinute(date: Date): string {
 export async function buildMultiLegPlan(
   originLoc: RouteLocation,
   destLoc: RouteLocation,
-  legs: DiscoveredLeg[]
+  legs: DiscoveredLeg[],
+  targetOffsetMinutes: number = 0
 ): Promise<RoutePlan> {
   const firstLeg = legs[0];
   const lastLeg = legs[legs.length - 1];
@@ -322,7 +323,9 @@ export async function buildMultiLegPlan(
   let totalWalkDurationMinutes = 0;
   let totalEstimatedSteps = 0;
 
-  const now = new Date();
+  // Horário de referência do planejamento: "agora" por padrão, ou o horário futuro
+  // escolhido pelo usuário (targetOffsetMinutes minutos a partir de agora).
+  const now = new Date(Date.now() + targetOffsetMinutes * 60000);
   const departureHour = formatTimeHourMinute(now);
 
   const walkToStopMeters = Math.max(80, getDistanceMeters(originLoc.lat, originLoc.lng, firstLeg.boardStop.py, firstLeg.boardStop.px));
@@ -635,7 +638,8 @@ function directRouteToLinha(route: DirectRoute | ReachableRoute): SPTransLinha {
 async function resolveRealTimeEta(
   codigoParada: number,
   letreiro: string,
-  destinoEsperado: string
+  destinoEsperado: string,
+  targetOffsetMinutes: number = 0
 ): Promise<{ eta: number; departureEtas: number[]; prefix: string }> {
   const { previsao, isMock } = await buscarPrevisaoParada(codigoParada);
 
@@ -652,21 +656,31 @@ async function resolveRealTimeEta(
   }
 
   const agora = new Date();
-  const etas: number[] = [];
+  const etasComPrefixo: Array<{ etaMinutos: number; prefixo: string }> = [];
 
   linhaPrevisao.vs.forEach((v) => {
     const [horas, minutos] = v.t.split(':').map(Number);
     let etaMinutos = (horas * 60 + minutos) - (agora.getHours() * 60 + agora.getMinutes());
     if (etaMinutos < 0) etaMinutos += 24 * 60;
-    etas.push(etaMinutos);
+    etasComPrefixo.push({ etaMinutos, prefixo: v.p });
   });
 
-  etas.sort((a, b) => a - b);
+  etasComPrefixo.sort((a, b) => a.etaMinutos - b.etaMinutos);
+
+  // Previsão em tempo real da SPTrans só existe pra ônibus já circulando — não dá
+  // pra "prever" um horário futuro que ainda não tem veículo na rua. Quando o
+  // usuário planeja saída num horário futuro, descartamos os veículos que chegam
+  // ANTES desse horário (ele perderia esse ônibus) e usamos os que vêm depois.
+  const relevantes = targetOffsetMinutes > 2
+    ? etasComPrefixo.filter(e => e.etaMinutos >= targetOffsetMinutes - 2)
+    : etasComPrefixo;
+
+  const escolhidos = relevantes.length > 0 ? relevantes : etasComPrefixo;
 
   return {
-    eta: etas[0] ?? -1,
-    departureEtas: etas.slice(0, 3),
-    prefix: linhaPrevisao.vs[0]?.p || ''
+    eta: escolhidos[0]?.etaMinutos ?? -1,
+    departureEtas: escolhidos.slice(0, 3).map(e => e.etaMinutos),
+    prefix: escolhidos[0]?.prefixo || ''
   };
 }
 
@@ -679,9 +693,13 @@ interface FrontierEntry {
   legs: DiscoveredLeg[];
 }
 
-async function resolveLegEta(boardStop: SPTransParada, line: SPTransLinha): Promise<{ eta: number; departureEtas: number[]; prefix: string }> {
+async function resolveLegEta(
+  boardStop: SPTransParada,
+  line: SPTransLinha,
+  targetOffsetMinutes: number = 0
+): Promise<{ eta: number; departureEtas: number[]; prefix: string }> {
   try {
-    return await resolveRealTimeEta(boardStop.cp, line.lt, line.ts);
+    return await resolveRealTimeEta(boardStop.cp, line.lt, line.ts, targetOffsetMinutes);
   } catch (err) {
     return { eta: -1, departureEtas: [], prefix: '' };
   }
@@ -700,7 +718,8 @@ async function findMultiLegPlans(
   originLoc: RouteLocation,
   destLoc: RouteLocation,
   origNearby: NearbyStop[],
-  destNearby: NearbyStop[]
+  destNearby: NearbyStop[],
+  targetOffsetMinutes: number = 0
 ): Promise<RoutePlan[]> {
   const destStopIds = destNearby.map(s => s.stopId);
   const destByStopId = new Map(destNearby.map(s => [s.stopId, s]));
@@ -709,7 +728,11 @@ async function findMultiLegPlans(
   let frontier: FrontierEntry[] = origNearby.map(stop => ({ stop, legs: [] }));
   const plans: RoutePlan[] = [];
 
-  const currentHour = new Date().getHours();
+  // Madrugada é decidida pelo horário planejado da viagem, não pelo relógio real
+  // no momento da busca — se o usuário vai saír de madrugada, linha noturna deve
+  // aparecer; se vai saír de manhã, mesmo que a busca seja feita de madrugada, não.
+  const targetDate = new Date(Date.now() + targetOffsetMinutes * 60000);
+  const currentHour = targetDate.getHours();
   const isNightTime = currentHour >= 0 && currentHour < 5;
 
   for (let round = 1; round <= MAX_TRANSFER_ROUNDS && frontier.length > 0 && plans.length < MAX_ALTERNATIVES; round++) {
@@ -752,7 +775,7 @@ async function findMultiLegPlans(
         const alightStop = gtfsStopToParada(destStopInfo);
 
         const [{ eta, departureEtas, prefix }, pathCoordinates] = await Promise.all([
-          resolveLegEta(boardStop, line),
+          resolveLegEta(boardStop, line, targetOffsetMinutes),
           getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId)
         ]);
 
@@ -768,7 +791,7 @@ async function findMultiLegPlans(
           ...originEntry.legs,
           { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
         ];
-        return buildMultiLegPlan(originLoc, destLoc, legs);
+        return buildMultiLegPlan(originLoc, destLoc, legs, targetOffsetMinutes);
       })
     );
     plans.push(...newPlans);
@@ -778,12 +801,25 @@ async function findMultiLegPlans(
     // Expandir a fronteira para a próxima rodada (busca por mais uma baldeação).
     // Sem limite artificial de número de trocas aqui — o loop de rodadas
     // (MAX_TRANSFER_ROUNDS) já limita a profundidade máxima com segurança.
-    const expansion = await findRoutesFromStops(frontierStopIds, 120);
-    const expansionCandidates: Array<{ route: ReachableRoute; originEntry: FrontierEntry; line: SPTransLinha; boardStop: SPTransParada; alightStop: SPTransParada }> = [];
+    //
+    // IMPORTANTE: 500 (não 120) porque em pontos com muita linha noturna passando
+    // (ex.: terminais/corredores), as ~120 primeiras linhas retornadas pelo banco
+    // podem ser inteiramente noturnas, escondendo linhas diurnas reais que só
+    // aparecem mais abaixo na lista — o filtro de linha noturna então zera a
+    // rodada inteira mesmo havendo conexão diurna genuína. 500 é o teto real
+    // observado da função no banco (pedir mais não traz mais resultados).
+    const expansion = await findRoutesFromStops(frontierStopIds, 500);
+    const viableCandidates: Array<{
+      route: ReachableRoute;
+      originEntry: FrontierEntry;
+      line: SPTransLinha;
+      boardStop: SPTransParada;
+      alightStop: SPTransParada;
+      distAlightToDest: number;
+    }> = [];
 
     for (const route of expansion) {
       if (visited.has(route.destStopId)) continue;
-      if (expansionCandidates.length >= MAX_FRONTIER_PER_ROUND) break;
 
       const originEntry = frontierByStopId.get(route.originStopId);
       if (!originEntry) continue;
@@ -813,14 +849,27 @@ async function findMultiLegPlans(
       const distAlightToDest = getDistanceMeters(alightStop.py, alightStop.px, destLoc.lat, destLoc.lng);
       if (distAlightToDest >= distBoardToDest - 100) continue;
 
-      visited.add(route.destStopId);
-      expansionCandidates.push({ route, originEntry, line, boardStop, alightStop });
+      viableCandidates.push({ route, originEntry, line, boardStop, alightStop, distAlightToDest });
+    }
+
+    // Priorizar a fronteira por proximidade real ao destino (busca gulosa), não pela
+    // ordem arbitrária em que o banco devolve os resultados — sem isso, a busca podia
+    // "andar" por centenas de paradas de SP sem nunca convergir para o corredor certo,
+    // mesmo quando ele existe (paradas mais próximas do destino primeiro).
+    viableCandidates.sort((a, b) => a.distAlightToDest - b.distAlightToDest);
+
+    const expansionCandidates: typeof viableCandidates = [];
+    for (const candidate of viableCandidates) {
+      if (expansionCandidates.length >= MAX_FRONTIER_PER_ROUND) break;
+      if (visited.has(candidate.route.destStopId)) continue;
+      visited.add(candidate.route.destStopId);
+      expansionCandidates.push(candidate);
     }
 
     const expandedEntries = await Promise.all(
       expansionCandidates.map(async ({ route, originEntry, line, boardStop, alightStop }) => {
         const [{ eta, departureEtas, prefix }, fetchedPath] = await Promise.all([
-          resolveLegEta(boardStop, line),
+          resolveLegEta(boardStop, line, targetOffsetMinutes),
           getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId)
         ]);
 
@@ -865,7 +914,8 @@ async function findMultiLegPlans(
  */
 export async function calculateRoute(
   originLoc: RouteLocation,
-  destLoc: RouteLocation
+  destLoc: RouteLocation,
+  targetOffsetMinutes: number = 0
 ): Promise<RouteSearchResult> {
   let [origNearby, destNearby] = await Promise.all([
     findNearbyStops(originLoc.lat, originLoc.lng, 2500, 15),
@@ -888,7 +938,7 @@ export async function calculateRoute(
     throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado.');
   }
 
-  let plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby);
+  let plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby, targetOffsetMinutes);
 
   // Se não encontrar na primeira busca, tenta ampliar o raio e o limite de paradas
   if (plans.length === 0) {
@@ -896,7 +946,7 @@ export async function calculateRoute(
       findNearbyStops(originLoc.lat, originLoc.lng, 3500, 30),
       findNearbyStops(destLoc.lat, destLoc.lng, 3500, 30)
     ]);
-    plans = await findMultiLegPlans(originLoc, destLoc, expandedOrig, expandedDest);
+    plans = await findMultiLegPlans(originLoc, destLoc, expandedOrig, expandedDest, targetOffsetMinutes);
   }
 
   if (plans.length === 0) {
