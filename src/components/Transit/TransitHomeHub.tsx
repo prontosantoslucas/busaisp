@@ -35,6 +35,7 @@ interface TransitHomeHubProps {
   userCoords?: [number, number] | null;
   incidents?: TrafficIncident[];
   onStartPercursoQuick?: (route: RoutePlan) => void;
+  onOpenNews?: () => void;
 }
 
 export default function TransitHomeHub({
@@ -44,7 +45,8 @@ export default function TransitHomeHub({
   favorites = [],
   userCoords,
   incidents = [],
-  onStartPercursoQuick
+  onStartPercursoQuick,
+  onOpenNews
 }: TransitHomeHubProps) {
   const [frequentIndex, setFrequentIndex] = useState(0);
   const [liveRoutePlan, setLiveRoutePlan] = useState<RoutePlan | null>(null);
@@ -89,6 +91,12 @@ export default function TransitHomeHub({
   const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : POPULAR_DESTINATIONS;
   const currentFrequent = activeDestinationsList[frequentIndex % activeDestinationsList.length];
 
+  // Coordenadas arredondadas a ~111m: o GPS (watchPosition) gera um array novo a cada
+  // leitura mesmo com jitter de poucos metros, o que reiniciaria esta busca sem parar
+  // e travaria o spinner de carregamento para sempre (nunca dava tempo dela terminar).
+  const roundedLat = userCoords ? Math.round(userCoords[0] * 1000) / 1000 : null;
+  const roundedLng = userCoords ? Math.round(userCoords[1] * 1000) / 1000 : null;
+
   // Carregar telemetria em tempo real para o destino ativo
   useEffect(() => {
     if (!currentFrequent) return;
@@ -124,7 +132,7 @@ export default function TransitHomeHub({
     return () => {
       isMounted = false;
     };
-  }, [frequentIndex, currentFrequent?.destinationName, userCoords]);
+  }, [frequentIndex, currentFrequent?.destinationName, roundedLat, roundedLng]);
 
   // Autocomplete de Endereços
   useEffect(() => {
@@ -445,27 +453,38 @@ export default function TransitHomeHub({
             </div>
           </div>
         ) : (
-          <div style={{ padding: '16px 0', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
-            Selecione um destino acima para traçar a rota ideal.
+          <div style={{ padding: '14px 0', textAlign: 'center', color: '#94A3B8', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontWeight: 600, color: '#F8FAFC' }}>Previsão em Tempo Real</span>
+            <span style={{ fontSize: '12px' }}>Toque em um dos destinos rápidos acima para calcular o trajeto e próximo ônibus.</span>
           </div>
         )}
       </div>
 
-      {/* 3. ALERTAS DE TRÂNSITO EM SÃO PAULO */}
+      {/* 3. ALERTAS DE TRÂNSITO EM SÃO PAULO (Clique abre a aba Notícias & Alertas) */}
       {incidents.length > 0 && (
         <div
           className="bus-glass-panel"
+          onClick={onOpenNews}
           style={{
             padding: '12px 14px',
             border: '1px solid rgba(239, 68, 68, 0.25)',
-            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(13, 17, 23, 0.9) 100%)'
+            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(13, 17, 23, 0.9) 100%)',
+            cursor: onOpenNews ? 'pointer' : 'default',
+            transition: 'all 0.2s ease'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <AlertTriangle size={15} color="#EF4444" />
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#F87171' }}>
-              Alertas de Trânsito em SP ({incidents.length})
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={15} color="#EF4444" />
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#F87171' }}>
+                Alertas de Trânsito em SP ({incidents.length})
+              </span>
+            </div>
+            {onOpenNews && (
+              <span style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                Ver todos <ChevronRight size={13} />
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -477,12 +496,15 @@ export default function TransitHomeHub({
                   color: '#CBD5E1',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}
               >
-                <Flame size={13} color="#F59E0B" />
-                <span style={{ fontWeight: 600 }}>{inc.street || inc.title}:</span>
-                <span style={{ color: '#94A3B8' }}>{inc.description?.slice(0, 45)}...</span>
+                <Flame size={13} color="#F59E0B" style={{ flexShrink: 0 }} />
+                <span style={{ fontWeight: 700, color: '#F8FAFC', flexShrink: 0 }}>{inc.street || inc.title}:</span>
+                <span style={{ color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inc.description}</span>
               </div>
             ))}
           </div>

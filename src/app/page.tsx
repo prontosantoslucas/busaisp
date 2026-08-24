@@ -17,6 +17,7 @@ import TransitRouteResults from '@/components/Transit/TransitRouteResults';
 import TransitRouteDetail from '@/components/Transit/TransitRouteDetail';
 import TransitDeparturesModal from '@/components/Transit/TransitDeparturesModal';
 import StationsExplorerPanel from '@/components/Stations/StationsExplorerPanel';
+import TransitNewsPanel from '@/components/News/TransitNewsPanel';
 import { StationItem, SP_ALL_STATIONS } from '@/lib/stationsData';
 import { TrafficIncident } from '@/types/traffic';
 import LineItineraryPanel from '@/components/BusSearch/LineItineraryPanel';
@@ -456,6 +457,7 @@ export default function HomePage() {
               favorites={favorites}
               userCoords={userCoords}
               incidents={incidents}
+              onOpenNews={() => setActiveTab('NOTICIAS')}
             />
           )}
 
@@ -503,6 +505,15 @@ export default function HomePage() {
               }}
               isVoiceMuted={isVoiceMuted}
               onToggleVoice={handleToggleVoice}
+            />
+          )}
+
+          {activeTab === 'NOTICIAS' && (
+            <TransitNewsPanel
+              incidents={incidents}
+              onSelectIncidentOnMap={(inc) => {
+                setIsMapFullscreen(true);
+              }}
             />
           )}
 
@@ -572,6 +583,7 @@ export default function HomePage() {
           setIsMapFullscreen(false);
         }}
         favoritesCount={favorites.length}
+        incidentsCount={incidents.length}
       />
     </div>
   );

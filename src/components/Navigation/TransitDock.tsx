@@ -5,21 +5,24 @@ import {
   Compass,
   Bus,
   TrainTrack,
-  Star
+  Star,
+  Newspaper
 } from 'lucide-react';
 
-export type TransitTabType = 'ROTAS' | 'LINHAS' | 'TRILHOS' | 'FAVORITOS';
+export type TransitTabType = 'ROTAS' | 'LINHAS' | 'NOTICIAS' | 'TRILHOS' | 'FAVORITOS';
 
 interface TransitDockProps {
   activeTab: TransitTabType;
   onChangeTab: (tab: TransitTabType) => void;
   favoritesCount?: number;
+  incidentsCount?: number;
 }
 
 export default function TransitDock({
   activeTab,
   onChangeTab,
-  favoritesCount = 0
+  favoritesCount = 0,
+  incidentsCount = 0
 }: TransitDockProps) {
   const tabs = [
     {
@@ -29,12 +32,18 @@ export default function TransitDock({
     },
     {
       id: 'LINHAS' as TransitTabType,
-      label: 'Linhas & Radar',
+      label: 'Linhas',
       icon: Bus
     },
     {
+      id: 'NOTICIAS' as TransitTabType,
+      label: 'Notícias',
+      icon: Newspaper,
+      badge: incidentsCount > 0 ? incidentsCount : null
+    },
+    {
       id: 'TRILHOS' as TransitTabType,
-      label: 'Estações SP',
+      label: 'Estações',
       icon: TrainTrack
     },
     {

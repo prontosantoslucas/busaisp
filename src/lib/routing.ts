@@ -738,8 +738,9 @@ async function findMultiLegPlans(
       const line = directRouteToLinha(route);
       if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
 
-      // Se já temos rotas diurnas e estamos de dia, pular linhas noturnas
-      if (!isNightTime && isNightLine(line.lt) && plans.length >= 2) continue;
+      // Linha noturna (prefixo "N") não circula fora do horário de madrugada — nunca
+      // recomendar uma linha que o usuário não conseguiria de fato embarcar agora.
+      if (!isNightTime && isNightLine(line.lt)) continue;
 
       directCandidates.push({ route, originEntry, destStopInfo, line });
       if (directCandidates.length >= MAX_ALTERNATIVES) break;
@@ -789,6 +790,10 @@ async function findMultiLegPlans(
 
       const line = directRouteToLinha(route);
       if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
+
+      // Mesma regra da rodada de rotas diretas: não usar linha noturna como perna de
+      // baldeação fora do horário em que ela realmente circula.
+      if (!isNightTime && isNightLine(line.lt)) continue;
 
       const boardStop = gtfsStopToParada(originEntry.stop);
       const alightStop: SPTransParada = {
