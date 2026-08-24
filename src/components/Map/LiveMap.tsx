@@ -141,6 +141,8 @@ export default function LiveMap({
         watchPositionIdRef.current = null;
       }
     }
+  }, [isPercursoActive]);
+
   const effectiveCoords = liveUserCoords || userCoords;
   const hasAutoCenteredRef = useRef(false);
 

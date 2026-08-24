@@ -32,6 +32,7 @@ interface TransitRouteResultsProps {
   onSelectRoute: (index: number) => void;
   onCalculate: () => void;
   isCalculating: boolean;
+  searchError?: string | null;
 }
 
 export default function TransitRouteResults({
@@ -47,7 +48,8 @@ export default function TransitRouteResults({
   selectedRouteIndex,
   onSelectRoute,
   onCalculate,
-  isCalculating
+  isCalculating,
+  searchError
 }: TransitRouteResultsProps) {
   const [filterMode, setFilterMode] = useState<'ALL' | 'FASTEST' | 'LESS_WALK' | 'LESS_TRANSFERS'>('ALL');
 
@@ -311,7 +313,7 @@ export default function TransitRouteResults({
           })
         ) : (
           <div className="bus-glass-panel" style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>
-            Nenhuma rota encontrada para este trajeto. Tente ajustar os endereços.
+            {searchError || 'Nenhuma rota encontrada para este trajeto. Tente ajustar os endereços.'}
           </div>
         )}
       </div>

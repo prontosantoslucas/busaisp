@@ -23,7 +23,8 @@ import {
   Home,
   ShoppingBag,
   Briefcase,
-  TrainTrack
+  TrainTrack,
+  Newspaper
 } from 'lucide-react';
 import { TrafficIncident } from '@/types/traffic';
 
@@ -460,53 +461,54 @@ export default function TransitHomeHub({
         )}
       </div>
 
-      {/* 3. ALERTAS DE TRÂNSITO EM SÃO PAULO (Clique abre a aba Notícias & Alertas) */}
-      {incidents.length > 0 && (
+      {/* 3. ATALHO ELEGANTE PARA NOTÍCIAS AO VIVO */}
+      {onOpenNews && (
         <div
           className="bus-glass-panel"
           onClick={onOpenNews}
           style={{
             padding: '12px 14px',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(13, 17, 23, 0.9) 100%)',
-            cursor: onOpenNews ? 'pointer' : 'default',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'linear-gradient(135deg, rgba(13, 17, 23, 0.92) 0%, rgba(22, 27, 34, 0.88) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={15} color="#EF4444" />
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#F87171' }}>
-                Alertas de Trânsito em SP ({incidents.length})
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
+                background: 'rgba(6, 182, 212, 0.15)',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#38BDF8',
+                flexShrink: 0
+              }}
+            >
+              <Newspaper size={15} />
             </div>
-            {onOpenNews && (
-              <span style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
-                Ver todos <ChevronRight size={13} />
-              </span>
-            )}
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC' }}>
+                Notícias & Ocorrências ao Vivo
+              </div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                {incidents.length > 0
+                  ? `${incidents.length} ocorrências e comunicados ativos em SP`
+                  : 'Acompanhe trânsito, metrô e SPTrans'}
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {incidents.slice(0, 2).map((inc, i) => (
-              <div
-                key={i}
-                style={{
-                  fontSize: '12px',
-                  color: '#CBD5E1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                <Flame size={13} color="#F59E0B" style={{ flexShrink: 0 }} />
-                <span style={{ fontWeight: 700, color: '#F8FAFC', flexShrink: 0 }}>{inc.street || inc.title}:</span>
-                <span style={{ color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inc.description}</span>
-              </div>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#38BDF8', fontSize: '11.5px', fontWeight: 700 }}>
+            <span>Abrir</span>
+            <ChevronRight size={15} />
           </div>
         </div>
       )}

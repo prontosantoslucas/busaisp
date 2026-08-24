@@ -85,6 +85,7 @@ export default function HomePage() {
   const [userAccuracyMeters, setUserAccuracyMeters] = useState<number | null>(null);
 
   const [routes, setRoutes] = useState<RoutePlan[]>([]);
+  const [routeSearchError, setRouteSearchError] = useState<string | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -199,6 +200,8 @@ export default function HomePage() {
 
     setIsCalculating(true);
     setScreenMode('RESULTS');
+    setRouteSearchError(null);
+    setRoutes([]);
 
     try {
       const origCoords = userCoords || [-23.5158, -46.6182];
@@ -224,9 +227,12 @@ export default function HomePage() {
         setSelectedRouteIndex(0);
         setSelectedLine(alts[0].recommendedLine);
         loadVeiculos(alts[0].recommendedLine);
+      } else {
+        setRouteSearchError(json.error || 'Não foi possível calcular uma rota para esse destino.');
       }
     } catch (e) {
       console.error('Erro ao calcular rotas:', e);
+      setRouteSearchError('Não foi possível conectar ao serviço de rotas. Tente novamente.');
     } finally {
       setIsCalculating(false);
     }
@@ -481,6 +487,7 @@ export default function HomePage() {
               onSelectRoute={handleSelectRouteFromList}
               onCalculate={() => handleCalculateRoutes()}
               isCalculating={isCalculating}
+              searchError={routeSearchError}
             />
           )}
 

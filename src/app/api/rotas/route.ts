@@ -102,13 +102,20 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    console.error('[API /api/rotas] Erro ao calcular rota:', error);
+    const message = error.message || 'Erro ao calcular rota de transporte';
+
+    // "Nenhuma rota encontrada" é um resultado legítimo da busca (não achou linha
+    // conectando os pontos), não uma falha do servidor — não deve virar HTTP 500.
+    const isNoRouteFound =
+      message.includes('Nenhuma linha encontrada') || message.includes('Nenhuma parada de ônibus encontrada');
+
+    if (!isNoRouteFound) {
+      console.error('[API /api/rotas] Erro ao calcular rota:', error);
+    }
+
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'Erro ao calcular rota de transporte'
-      },
-      { status: 500 }
+      { success: false, error: message },
+      { status: isNoRouteFound ? 200 : 500 }
     );
   }
 }
