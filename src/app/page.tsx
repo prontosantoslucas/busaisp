@@ -207,7 +207,7 @@ export default function HomePage() {
       style={{
         position: 'relative',
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         overflow: 'hidden',
         background: '#121316'
       }}
@@ -340,7 +340,7 @@ export default function HomePage() {
             zIndex: 950,
             width: 'calc(100% - 32px)',
             maxWidth: '440px',
-            maxHeight: 'calc(100vh - 85px)',
+            maxHeight: 'calc(100dvh - 85px)',
             overflowY: 'auto',
             borderRadius: '18px',
             display: 'flex',

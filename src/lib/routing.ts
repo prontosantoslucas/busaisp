@@ -360,9 +360,9 @@ export async function buildMultiLegPlan(
 
     const etas = leg.departureEtas && leg.departureEtas.length > 0
       ? leg.departureEtas
-      : (hasRealTimeEta ? [leg.etaMinutes, leg.etaMinutes + 12, leg.etaMinutes + 25] : [8, 20, 35]);
+      : (hasRealTimeEta ? [leg.etaMinutes] : []);
 
-    const stopCount = leg.stopCount || (leg.detailedStops && leg.detailedStops.length > 0 ? leg.detailedStops.length - 1 : 18);
+    const stopCount = leg.stopCount || (leg.detailedStops && leg.detailedStops.length > 0 ? leg.detailedStops.length - 1 : undefined);
     const intermediateStops = leg.detailedStops ? leg.detailedStops.map(s => ({ name: s.name, lat: s.lat, lng: s.lng })) : [];
 
     steps.push({
@@ -490,11 +490,11 @@ export async function buildMultiLegPlan(
   const hasFirstLegEta = firstLeg.etaMinutes >= 0;
   const departureEtas = firstLeg.departureEtas && firstLeg.departureEtas.length > 0
     ? firstLeg.departureEtas
-    : (hasFirstLegEta ? [firstLeg.etaMinutes, firstLeg.etaMinutes + 12, firstLeg.etaMinutes + 24] : [8, 18, 30]);
+    : (hasFirstLegEta ? [firstLeg.etaMinutes] : []);
 
   let departureSuggestion = '';
   if (!hasFirstLegEta) {
-    departureSuggestion = `Sai em ⏱️ ${departureEtas.join(', ')} min de ${firstLeg.boardStop.np}`;
+    departureSuggestion = `Sem previsão em tempo real para a linha ${firstLeg.line.lt} agora — confira o horário no ponto ${firstLeg.boardStop.np}.`;
   } else if (firstLeg.etaMinutes <= walkToStopMinutes + 1) {
     departureSuggestion = `⚡ Saia agora! Ônibus #${firstLeg.vehiclePrefix} chega em ${firstLeg.etaMinutes} min na parada.`;
   } else {
@@ -641,9 +641,9 @@ async function resolveRealTimeEta(
   };
 }
 
-const MAX_TRANSFER_ROUNDS = 3;
-const MAX_FRONTIER_PER_ROUND = 25;
-const MAX_ALTERNATIVES = 5;
+const MAX_TRANSFER_ROUNDS = 4;
+const MAX_FRONTIER_PER_ROUND = 40;
+const MAX_ALTERNATIVES = 10;
 
 interface FrontierEntry {
   stop: NearbyStop;
@@ -700,6 +700,7 @@ async function findMultiLegPlans(
       return 0;
     });
 
+    const directCandidates: Array<{ route: DirectRoute; originEntry: FrontierEntry; destStopInfo: NearbyStop; line: SPTransLinha }> = [];
     for (const route of directRoutes) {
       const originEntry = frontierByStopId.get(route.originStopId);
       const destStopInfo = destByStopId.get(route.destStopId);
@@ -711,49 +712,54 @@ async function findMultiLegPlans(
       // Se já temos rotas diurnas e estamos de dia, pular linhas noturnas
       if (!isNightTime && isNightLine(line.lt) && plans.length >= 2) continue;
 
-      const boardStop = gtfsStopToParada(originEntry.stop);
-      const alightStop = gtfsStopToParada(destStopInfo);
-      const { eta, departureEtas, prefix } = await resolveLegEta(boardStop, line);
-
-      // Traçado e lista detalhada das paradas da linha
-      const pathCoordinates = await getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId);
-      const detailedStops = pathCoordinates.map((c, sIdx) => ({
-        stopId: `${route.tripId}_${sIdx}`,
-        name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
-        lat: c[0],
-        lng: c[1],
-        sequence: sIdx + 1
-      }));
-
-      const legs: DiscoveredLeg[] = [
-        ...originEntry.legs,
-        { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
-      ];
-      const plan = await buildMultiLegPlan(originLoc, destLoc, legs);
-      plans.push(plan);
-
-      if (plans.length >= MAX_ALTERNATIVES) break;
+      directCandidates.push({ route, originEntry, destStopInfo, line });
+      if (directCandidates.length >= MAX_ALTERNATIVES) break;
     }
 
-    // Se já encontramos 3 ou mais rotas diretas (0 baldeações), não precisa buscar 2 e 3 baldeações
-    if (plans.length >= 3 && round === 1) break;
+    const newPlans = await Promise.all(
+      directCandidates.map(async ({ route, originEntry, destStopInfo, line }) => {
+        const boardStop = gtfsStopToParada(originEntry.stop);
+        const alightStop = gtfsStopToParada(destStopInfo);
+
+        const [{ eta, departureEtas, prefix }, pathCoordinates] = await Promise.all([
+          resolveLegEta(boardStop, line),
+          getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId)
+        ]);
+
+        const detailedStops = pathCoordinates.map((c, sIdx) => ({
+          stopId: `${route.tripId}_${sIdx}`,
+          name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
+          lat: c[0],
+          lng: c[1],
+          sequence: sIdx + 1
+        }));
+
+        const legs: DiscoveredLeg[] = [
+          ...originEntry.legs,
+          { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
+        ];
+        return buildMultiLegPlan(originLoc, destLoc, legs);
+      })
+    );
+    plans.push(...newPlans);
+
     if (plans.length >= MAX_ALTERNATIVES || round === MAX_TRANSFER_ROUNDS) break;
 
+    // Expandir a fronteira para a próxima rodada (busca por mais uma baldeação).
+    // Sem limite artificial de número de trocas aqui — o loop de rodadas
+    // (MAX_TRANSFER_ROUNDS) já limita a profundidade máxima com segurança.
     const expansion = await findRoutesFromStops(frontierStopIds, 120);
-    const nextFrontierByStopId = new Map<string, FrontierEntry>();
+    const expansionCandidates: Array<{ route: ReachableRoute; originEntry: FrontierEntry; line: SPTransLinha; boardStop: SPTransParada; alightStop: SPTransParada }> = [];
 
     for (const route of expansion) {
       if (visited.has(route.destStopId)) continue;
-      if (nextFrontierByStopId.size >= MAX_FRONTIER_PER_ROUND) break;
+      if (expansionCandidates.length >= MAX_FRONTIER_PER_ROUND) break;
 
       const originEntry = frontierByStopId.get(route.originStopId);
       if (!originEntry) continue;
 
       const line = directRouteToLinha(route);
       if (originEntry.legs.some(l => l.line.lt === line.lt)) continue;
-
-      // Evitar acumular mais de 1 baldeação se não for estritamente necessário
-      if (originEntry.legs.length >= 2) continue;
 
       const boardStop = gtfsStopToParada(originEntry.stop);
       const alightStop: SPTransParada = {
@@ -763,26 +769,55 @@ async function findMultiLegPlans(
         py: route.destStopLat,
         px: route.destStopLng
       };
-      const { eta, departureEtas, prefix } = await resolveLegEta(boardStop, line);
 
-      const pathCoordinates = await getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId);
-      const detailedStops = pathCoordinates.map((c, sIdx) => ({
-        stopId: `${route.tripId}_${sIdx}`,
-        name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
-        lat: c[0],
-        lng: c[1],
-        sequence: sIdx + 1
-      }));
+      // Regra de sanidade: uma perna de baldeação não pode ser um pulo curtinho e inútil (< 400m).
+      const legDistance = getDistanceMeters(boardStop.py, boardStop.px, alightStop.py, alightStop.px);
+      if (legDistance < 400) continue;
 
-      const legs: DiscoveredLeg[] = [
-        ...originEntry.legs,
-        { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
-      ];
+      // Regra de progresso: a parada de descida precisa representar avanço real em direção ao destino.
+      const distBoardToDest = getDistanceMeters(boardStop.py, boardStop.px, destLoc.lat, destLoc.lng);
+      const distAlightToDest = getDistanceMeters(alightStop.py, alightStop.px, destLoc.lat, destLoc.lng);
+      if (distAlightToDest >= distBoardToDest - 100) continue;
+
       visited.add(route.destStopId);
-      nextFrontierByStopId.set(route.destStopId, {
-        stop: { stopId: route.destStopId, name: route.destStopName, lat: route.destStopLat, lng: route.destStopLng, distanceMeters: 0 },
-        legs
-      });
+      expansionCandidates.push({ route, originEntry, line, boardStop, alightStop });
+    }
+
+    const expandedEntries = await Promise.all(
+      expansionCandidates.map(async ({ route, originEntry, line, boardStop, alightStop }) => {
+        const [{ eta, departureEtas, prefix }, fetchedPath] = await Promise.all([
+          resolveLegEta(boardStop, line),
+          getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId)
+        ]);
+
+        const pathCoordinates: [number, number][] = fetchedPath && fetchedPath.length > 0
+          ? fetchedPath
+          : [[boardStop.py, boardStop.px], [alightStop.py, alightStop.px]];
+
+        const detailedStops = pathCoordinates.map((c, sIdx) => ({
+          stopId: `${route.tripId}_${sIdx}`,
+          name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
+          lat: c[0],
+          lng: c[1],
+          sequence: sIdx + 1
+        }));
+
+        const legs: DiscoveredLeg[] = [
+          ...originEntry.legs,
+          { line, boardStop, alightStop, tripId: route.tripId, originStopId: route.originStopId, destStopId: route.destStopId, pathCoordinates, detailedStops, stopCount: Math.max(1, pathCoordinates.length - 1), etaMinutes: eta, departureEtas, vehiclePrefix: prefix }
+        ];
+
+        const frontierEntry: FrontierEntry = {
+          stop: { stopId: route.destStopId, name: route.destStopName, lat: route.destStopLat, lng: route.destStopLng, distanceMeters: 0 },
+          legs
+        };
+        return { stopId: route.destStopId, entry: frontierEntry };
+      })
+    );
+
+    const nextFrontierByStopId = new Map<string, FrontierEntry>();
+    for (const { stopId, entry } of expandedEntries) {
+      nextFrontierByStopId.set(stopId, entry);
     }
 
     frontier = Array.from(nextFrontierByStopId.values());
@@ -792,8 +827,7 @@ async function findMultiLegPlans(
 }
 
 /**
- * Motor de Roteirização Multimodal Ultrarrápido — limitado aos 5 melhores resultados.
- * Ordenado por menor tempo total estimado, menor caminhada e menor baldeação.
+ * Motor de Roteirização Multimodal Inteligente — Priorização Absoluta de Rotas Diretas.
  */
 export async function calculateRoute(
   originLoc: RouteLocation,
@@ -835,17 +869,20 @@ export async function calculateRoute(
     throw new Error('Nenhuma linha encontrada conectando a origem ao destino.');
   }
 
-  // Ordenação de Qualidade: Menor Tempo -> Menor Caminhada -> Menos Baldeações
+  // Ordenação única: menor tempo total -> menor caminhada -> menos baldeações.
+  // Uma rota com 1 baldeação pode ser mais rápida que uma direta com caminhada
+  // longa, então ela deve poder aparecer primeiro — não priorizamos rotas
+  // diretas artificialmente.
   plans.sort((a, b) =>
     a.totalDurationMinutes - b.totalDurationMinutes ||
     a.totalWalkDistanceMeters - b.totalWalkDistanceMeters ||
     a.transferCount - b.transferCount
   );
 
-  const top5 = plans.slice(0, MAX_ALTERNATIVES);
+  const finalPlans = plans.slice(0, MAX_ALTERNATIVES);
 
   return {
-    primaryRoute: top5[0],
-    alternatives: top5
+    primaryRoute: finalPlans[0],
+    alternatives: finalPlans
   };
 }

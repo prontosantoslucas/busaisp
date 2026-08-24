@@ -237,7 +237,7 @@ export default function MoovitRouteDetail({
         {route.steps.map((step, idx) => {
           if (step.type === 'BUS') {
             const isStopsExpanded = expandedStops[idx] ?? false;
-            const stopCountText = step.stopCount ? `${step.stopCount} Paradas` : '20 Paradas';
+            const stopCountText = step.stopCount ? `${step.stopCount} Paradas` : 'algumas paradas';
             const targetStopName = step.alightStopName || route.arrivalStop.np;
 
             return (
@@ -292,11 +292,17 @@ export default function MoovitRouteDetail({
                     </div>
 
                     {/* Previsão ao Vivo */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34D399', fontSize: '13px', fontWeight: 800, marginTop: '4px' }}>
-                      <Radio size={14} />
-                      <span>{step.departureEtas?.[0] ?? route.departureEtas[0] ?? 6} min</span>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #34D399', display: 'inline-block' }} />
-                    </div>
+                    {(step.departureEtas?.[0] ?? route.departureEtas[0]) !== undefined ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34D399', fontSize: '13px', fontWeight: 800, marginTop: '4px' }}>
+                        <Radio size={14} />
+                        <span>{step.departureEtas?.[0] ?? route.departureEtas[0]} min</span>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #34D399', display: 'inline-block' }} />
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
+                        Sem previsão em tempo real — confira o horário no ponto
+                      </div>
+                    )}
 
                     {/* Linha de Paradas Expansível */}
                     <div

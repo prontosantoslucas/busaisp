@@ -21,7 +21,7 @@ export default function MoovitDeparturesModal({
   onClose
 }: MoovitDeparturesModalProps) {
   const line = route.recommendedLine;
-  const etas = route.departureEtas && route.departureEtas.length > 0 ? route.departureEtas : [1, 21, 42];
+  const etas = route.departureEtas || [];
 
   const now = new Date();
   const currentHourText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -118,8 +118,13 @@ export default function MoovitDeparturesModal({
           </div>
         </div>
 
-        {/* Lista de Partidas em Tempo Real (Screenshot 5) */}
+        {/* Lista de Partidas em Tempo Real */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto' }}>
+          {etas.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '12px', color: '#9CA3AF', fontSize: '13px' }}>
+              Sem previsão em tempo real para esta linha agora. Confira o horário no ponto de embarque.
+            </div>
+          )}
           {etas.map((eta, idx) => {
             const departureDate = new Date(now.getTime() + eta * 60000);
             const departureTimeStr = `${String(departureDate.getHours()).padStart(2, '0')}:${String(departureDate.getMinutes()).padStart(2, '0')}`;

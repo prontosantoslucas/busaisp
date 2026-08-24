@@ -523,6 +523,7 @@ export default function MoovitRouteResults({
         {!isCalculating && sortedRoutes.map((route, idx) => {
           const isSelected = idx === selectedRouteIndex;
           const { departureHour, arrivalHour } = formatRouteTimes(route);
+          const isDirect = route.transferCount === 0;
 
           return (
             <div
@@ -534,11 +535,46 @@ export default function MoovitRouteResults({
                 flexDirection: 'column',
                 gap: '10px',
                 padding: '16px',
-                borderLeft: isSelected ? '4px solid var(--moovit-sptrans-red)' : '1px solid #2D313C',
-                cursor: 'pointer'
+                borderRadius: '14px',
+                background: '#1C1E24',
+                border: isSelected ? '1.5px solid #FF6600' : '1px solid #2D313C',
+                borderLeft: isSelected ? '4px solid #FF6600' : isDirect ? '4px solid #10B981' : '4px solid #3B82F6',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
-              {/* Linha Superior: Cadeia Visual + Duração Total com Seta */}
+              {/* Badge Superior: Direto vs Baldeação e Status de Tempo */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: isDirect ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                    color: isDirect ? '#34D399' : '#60A5FA',
+                    border: isDirect ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {isDirect ? '✨ Linha Direta (0 trocas)' : `🔄 ${route.transferCount} ${route.transferCount === 1 ? 'baldeação' : 'baldeações'}`}
+                </span>
+
+                {route.nextBusEtaMinutes !== undefined && route.nextBusEtaMinutes >= 0 ? (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Sparkles size={12} color="#38BDF8" />
+                    <span>Embarque em ~{route.nextBusEtaMinutes} min</span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                    {route.departureEtas && route.departureEtas.length > 0 ? `Saídas: a cada ${route.departureEtas[0]} min` : 'Horário regular'}
+                  </span>
+                )}
+              </div>
+
+              {/* Linha Principal: Cadeia Visual + Duração Total com Seta */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 {/* Cadeia de Trajeto */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
@@ -554,13 +590,13 @@ export default function MoovitRouteResults({
                       {step.type === 'BUS' && (
                         <div
                           style={{
-                            background: 'rgba(227, 6, 19, 0.22)',
-                            border: '1px solid var(--moovit-sptrans-red)',
+                            background: '#1E3A8A',
+                            border: '1px solid #3B82F6',
                             color: '#FFFFFF',
-                            padding: '3px 8px',
+                            padding: '4px 9px',
                             borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 800,
+                            fontSize: '13px',
+                            fontWeight: 900,
                             display: 'flex',
                             alignItems: 'center',
                             gap: '4px'
@@ -580,21 +616,21 @@ export default function MoovitRouteResults({
 
                 {/* Duração Total e Seta */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '70px', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#FFFFFF' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 900, color: '#FFFFFF' }}>
                     {route.totalDurationMinutes} min
                   </span>
-                  <ArrowRight size={18} color="var(--moovit-sptrans-red)" />
+                  <ArrowRight size={18} color="#FF6600" />
                 </div>
               </div>
 
-              {/* Linha Inferior: Horário e Ponto de Embarque */}
-              <div style={{ fontSize: '12px', color: '#9CA3AF', lineHeight: 1.4 }}>
-                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>
-                  às {departureHour} (chega às {arrivalHour})
-                </span>
-                <span style={{ display: 'block', color: '#CBD5E1', marginTop: '2px' }}>
-                  Embarque em <strong>{route.departureStop.np}</strong> {route.departureStop.ed ? `- ${route.departureStop.ed}` : ''}
-                </span>
+              {/* Linha Inferior: Horário de Partida/Chegada e Ponto de Embarque */}
+              <div style={{ fontSize: '12px', color: '#9CA3AF', lineHeight: 1.4, borderTop: '1px solid #262932', paddingTop: '8px' }}>
+                <div style={{ color: '#F3F4F6', fontWeight: 600 }}>
+                  Partida às <strong>{departureHour}</strong> · Chegada prevista às <strong>{arrivalHour}</strong>
+                </div>
+                <div style={{ color: '#94A3B8', marginTop: '2px', fontSize: '11px' }}>
+                  📍 Embarque na parada: <strong style={{ color: '#E2E8F0' }}>{route.departureStop.np}</strong>
+                </div>
               </div>
             </div>
           );
