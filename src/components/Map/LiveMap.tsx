@@ -11,12 +11,15 @@ import {
 import { StationItem } from '@/lib/stationsData';
 import { RoutePlan } from '@/lib/routing';
 import { TrafficIncident } from '@/types/traffic';
+import StopArrivalsModal from '@/components/Map/StopArrivalsModal';
 import {
   RefreshCw,
   Locate,
   Square,
   Navigation,
-  AlertTriangle
+  AlertTriangle,
+  MapPin,
+  X
 } from 'lucide-react';
 
 export interface LiveMapProps {
@@ -72,6 +75,9 @@ export default function LiveMap({
   const [isLocating, setIsLocating] = useState(false);
   const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
   const [showIncidents, setShowIncidents] = useState(true);
+  const [tappedParada, setTappedParada] = useState<SPTransParada | null>(null);
+  const [isLocatingTappedStop, setIsLocatingTappedStop] = useState(false);
+  const [isArrivalsModalOpen, setIsArrivalsModalOpen] = useState(false);
 
   // Inicializar o Mapa Leaflet com CartoDB Dark Matter (Modo Noturno Puro)
   useEffect(() => {
@@ -99,6 +105,24 @@ export default function LiveMap({
     stationMarkersGroupRef.current = L.layerGroup().addTo(map);
     incidentMarkersGroupRef.current = L.layerGroup().addTo(map);
     routePolylinesGroupRef.current = L.layerGroup().addTo(map);
+
+    // Toque em qualquer ponto do mapa: buscar a parada de ônibus real mais próxima
+    // ("Linhas que passam neste ponto"), não exige que o usuário acerte um marcador exato.
+    map.on('click', async (e: L.LeafletMouseEvent) => {
+      setIsLocatingTappedStop(true);
+      setTappedParada(null);
+      try {
+        const res = await fetch(`/api/onibus?tipo=parada_proxima&lat=${e.latlng.lat}&lng=${e.latlng.lng}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setTappedParada(json.data);
+        }
+      } catch (err) {
+        console.error('[LiveMap] Erro ao buscar parada mais próxima:', err);
+      } finally {
+        setIsLocatingTappedStop(false);
+      }
+    });
 
     mapInstanceRef.current = map;
 
@@ -549,6 +573,7 @@ export default function LiveMap({
 
       marker.on('click', () => {
         onSelectParada(p);
+        setTappedParada(p);
       });
 
       stopMarkersGroupRef.current?.addLayer(marker);
@@ -875,6 +900,102 @@ export default function LiveMap({
             <strong>Linha:</strong> {selectedLine.lt}-{selectedLine.tl} · {veiculos.length} veículos transmitindo GPS
           </span>
         </div>
+      )}
+
+      {/* Cartão flutuante: "Linhas que passam neste ponto" — aparece ao tocar em qualquer
+          lugar do mapa (a parada real mais próxima é localizada automaticamente). */}
+      {isLocatingTappedStop && (
+        <div
+          className="bus-glass-panel animate-fade-in"
+          style={{
+            position: 'absolute',
+            bottom: '84px',
+            left: '16px',
+            right: '16px',
+            maxWidth: '420px',
+            margin: '0 auto',
+            zIndex: 995,
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '12.5px',
+            color: '#94A3B8'
+          }}
+        >
+          <div style={{ width: '16px', height: '16px', border: '2px solid rgba(6, 182, 212, 0.3)', borderTopColor: '#06B6D4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <span>Procurando parada mais próxima deste ponto...</span>
+        </div>
+      )}
+
+      {!isLocatingTappedStop && tappedParada && !isArrivalsModalOpen && (
+        <div
+          className="bus-glass-panel animate-slide-up"
+          style={{
+            position: 'absolute',
+            bottom: '84px',
+            left: '16px',
+            right: '16px',
+            maxWidth: '420px',
+            margin: '0 auto',
+            zIndex: 995,
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            border: '1px solid rgba(6, 182, 212, 0.35)',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.7)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '9px',
+                background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+                flexShrink: 0
+              }}
+            >
+              <MapPin size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: 700 }}>PARADA MAIS PRÓXIMA</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {tappedParada.np}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <button
+              onClick={() => setIsArrivalsModalOpen(true)}
+              className="bus-btn-primary"
+              style={{ padding: '8px 12px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
+            >
+              Linhas neste ponto
+            </button>
+            <button
+              onClick={() => setTappedParada(null)}
+              style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '4px' }}
+              aria-label="Fechar"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isArrivalsModalOpen && tappedParada && (
+        <StopArrivalsModal
+          parada={tappedParada}
+          onClose={() => setIsArrivalsModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import {
   buscarPrevisaoLinha,
   authenticateSPTrans
 } from '@/lib/sptrans';
+import { findNearbyStops } from '@/lib/gtfs';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -50,6 +51,43 @@ export async function GET(request: NextRequest) {
         data: paradas,
         isMock,
         count: paradas.length,
+        timestamp
+      });
+    }
+
+    // 3b. Parada mais próxima de um ponto do mapa (toque do usuário)
+    if (tipo === 'parada_proxima') {
+      const lat = parseFloat(searchParams.get('lat') || '');
+      const lng = parseFloat(searchParams.get('lng') || '');
+
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        return NextResponse.json(
+          { success: false, error: 'Parâmetros lat/lng inválidos.' },
+          { status: 400 }
+        );
+      }
+
+      const nearby = await findNearbyStops(lat, lng, 350, 1);
+      const stop = nearby[0];
+
+      if (!stop) {
+        return NextResponse.json({
+          success: true,
+          data: null,
+          timestamp
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          cp: Number(stop.stopId),
+          np: stop.name,
+          ed: '',
+          py: stop.lat,
+          px: stop.lng,
+          distanceMeters: stop.distanceMeters
+        },
         timestamp
       });
     }
