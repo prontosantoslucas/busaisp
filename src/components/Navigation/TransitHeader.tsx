@@ -6,7 +6,9 @@ import {
   VolumeX,
   Navigation,
   Settings,
-  Radio
+  Radio,
+  Map as MapIcon,
+  Layers
 } from 'lucide-react';
 
 interface TransitHeaderProps {
@@ -15,6 +17,8 @@ interface TransitHeaderProps {
   onOpenSettings: () => void;
   hasGps: boolean;
   activeVehiclesCount?: number;
+  onToggleMap?: () => void;
+  isMapFullscreen?: boolean;
 }
 
 export default function TransitHeader({
@@ -22,7 +26,9 @@ export default function TransitHeader({
   onToggleVoice,
   onOpenSettings,
   hasGps,
-  activeVehiclesCount = 0
+  activeVehiclesCount = 0,
+  onToggleMap,
+  isMapFullscreen = false
 }: TransitHeaderProps) {
   return (
     <header
@@ -31,11 +37,11 @@ export default function TransitHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '10px 14px',
-        background: 'rgba(13, 17, 23, 0.75)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
+        background: 'rgba(13, 17, 23, 0.85)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '18px',
         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
         width: '100%'
       }}
@@ -44,38 +50,39 @@ export default function TransitHeader({
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div
           style={{
-            width: '32px',
-            height: '32px',
+            width: '34px',
+            height: '34px',
             borderRadius: '10px',
             background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 14px rgba(6, 182, 212, 0.4)'
+            boxShadow: '0 0 14px rgba(6, 182, 212, 0.4)',
+            flexShrink: 0
           }}
         >
           <Navigation size={18} color="#FFFFFF" />
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 900, letterSpacing: '-0.3px', color: '#F8FAFC' }}>
+            <span style={{ fontSize: '15.5px', fontWeight: 900, letterSpacing: '-0.3px', color: '#FFFFFF' }}>
               BusaÍ<span style={{ color: '#06B6D4' }}>SP</span>
             </span>
             <span
               style={{
                 fontSize: '9.5px',
                 fontWeight: 800,
-                background: 'rgba(6, 182, 212, 0.15)',
+                background: 'rgba(6, 182, 212, 0.18)',
                 color: '#38BDF8',
-                padding: '1px 5px',
+                padding: '1px 6px',
                 borderRadius: '4px',
-                border: '1px solid rgba(6, 182, 212, 0.3)'
+                border: '1px solid rgba(6, 182, 212, 0.35)'
               }}
             >
               PRO
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#94A3B8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#CBD5E1' }}>
             <span
               style={{
                 width: '6px',
@@ -88,8 +95,8 @@ export default function TransitHeader({
             <span>{hasGps ? 'GPS Ativo' : 'Buscando GPS...'}</span>
             {activeVehiclesCount > 0 && (
               <>
-                <span style={{ color: '#475569' }}>•</span>
-                <span style={{ color: '#10B981', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{ color: '#64748B' }}>•</span>
+                <span style={{ color: '#34D399', display: 'flex', alignItems: 'center', gap: '3px' }}>
                   <Radio size={10} /> {activeVehiclesCount} ônibus
                 </span>
               </>
@@ -98,37 +105,61 @@ export default function TransitHeader({
         </div>
       </div>
 
-      {/* Ações Rápidas: Toggle de Voz e Configurações */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Ações Rápidas: Mapa, Voz e Configurações */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {onToggleMap && (
+          <button
+            onClick={onToggleMap}
+            title={isMapFullscreen ? 'Ver painel de navegação' : 'Ver mapa em tela cheia'}
+            style={{
+              background: isMapFullscreen ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+              border: isMapFullscreen ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: isMapFullscreen ? '#38BDF8' : '#CBD5E1',
+              borderRadius: '10px',
+              padding: '7px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <MapIcon size={14} />
+            <span>{isMapFullscreen ? 'Painel' : 'Mapa'}</span>
+          </button>
+        )}
+
         <button
           onClick={onToggleVoice}
           title={isVoiceMuted ? 'Ativar avisos de voz' : 'Desativar avisos de voz'}
           style={{
-            background: isVoiceMuted ? 'rgba(255, 255, 255, 0.05)' : 'rgba(16, 185, 129, 0.15)',
-            border: isVoiceMuted ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(16, 185, 129, 0.4)',
+            background: isVoiceMuted ? 'rgba(255, 255, 255, 0.05)' : 'rgba(16, 185, 129, 0.18)',
+            border: isVoiceMuted ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(16, 185, 129, 0.45)',
             color: isVoiceMuted ? '#94A3B8' : '#34D399',
             borderRadius: '10px',
             padding: '7px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             fontSize: '12px',
             fontWeight: 700,
             cursor: 'pointer',
             transition: 'all 0.15s ease'
           }}
         >
-          {isVoiceMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          {isVoiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
           <span style={{ display: 'inline-block' }}>{isVoiceMuted ? 'Mudo' : 'Voz'}</span>
         </button>
 
         <button
           onClick={onOpenSettings}
-          title="Configurar Chave SPTrans"
+          title="Configurações"
           style={{
             background: 'rgba(255, 255, 255, 0.05)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#94A3B8',
+            color: '#CBD5E1',
             borderRadius: '10px',
             padding: '7px',
             display: 'flex',
