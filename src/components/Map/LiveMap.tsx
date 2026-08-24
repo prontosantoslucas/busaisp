@@ -40,6 +40,7 @@ export interface LiveMapProps {
   selectedStation?: StationItem | null;
   onRouteToStation?: (station: StationItem) => void;
   incidents?: TrafficIncident[];
+  focusCoords?: [number, number] | null;
 }
 
 export default function LiveMap({
@@ -59,7 +60,8 @@ export default function LiveMap({
   stations = [],
   selectedStation,
   onRouteToStation,
-  incidents = []
+  incidents = [],
+  focusCoords
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -92,8 +94,10 @@ export default function LiveMap({
       attributionControl: false
     });
 
-    // Dark Matter Tiles (CartoDB) - 100% Modo Noturno Puro
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Dark Matter Tiles (CartoDB) sem rótulos/áreas do provedor — o app já desenha
+    // seus próprios marcadores e labels por cima, então a versão "com rótulos"
+    // (dark_all) só adiciona poluição visual (parques, POIs, etc. da própria tile).
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd'
     }).addTo(map);
@@ -177,6 +181,13 @@ export default function LiveMap({
       mapInstanceRef.current.setView(effectiveCoords, 15, { animate: true });
     }
   }, [effectiveCoords, activeRoute, selectedStation]);
+
+  // Ir até um ponto específico do mapa (ex.: local de um incidente selecionado nas Notícias)
+  useEffect(() => {
+    if (focusCoords && mapInstanceRef.current) {
+      mapInstanceRef.current.setView(focusCoords, 17, { animate: true });
+    }
+  }, [focusCoords]);
 
   // Atualizar marcador de localização do usuário com SVG e radar de pulso
   useEffect(() => {

@@ -284,6 +284,34 @@ export default function TransitRouteDetail({
               Embarque em <strong>{route.departureStop.np}</strong>
             </div>
 
+            {/* Tempo de espera: ônibus indicado + próximos, em tempo real */}
+            {route.departureEtas && route.departureEtas.length > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    color: route.departureEtas[0] <= 3 ? '#10B981' : '#F8FAFC',
+                    background: route.departureEtas[0] <= 3 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                    padding: '3px 9px',
+                    borderRadius: '6px',
+                    border: route.departureEtas[0] <= 3 ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  {route.departureEtas[0] <= 1 ? 'Chegando agora' : `Chega em ${route.departureEtas[0]} min`}
+                </span>
+                {route.departureEtas.length > 1 && (
+                  <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+                    depois: {route.departureEtas.slice(1).join(', ')} min
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '6px' }}>
+                Sem previsão em tempo real agora — confira o horário no ponto.
+              </div>
+            )}
+
             {/* Paradas Intermediárias Expansíveis */}
             {route.allRouteStops && route.allRouteStops.length > 0 && (
               <div style={{ marginTop: '8px' }}>

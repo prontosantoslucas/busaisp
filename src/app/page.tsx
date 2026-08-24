@@ -95,6 +95,7 @@ export default function HomePage() {
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
   const [selectedStation, setSelectedStation] = useState<StationItem | null>(null);
   const [incidents, setIncidents] = useState<TrafficIncident[]>([]);
+  const [mapFocusCoords, setMapFocusCoords] = useState<[number, number] | null>(null);
   const [veiculos, setVeiculos] = useState<SPTransVeiculo[]>([]);
   const [paradas, setParadas] = useState<SPTransParada[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
@@ -317,6 +318,7 @@ export default function HomePage() {
           activeRoute={activeRoute}
           userCoords={userCoords}
           userAccuracyMeters={userAccuracyMeters}
+          focusCoords={mapFocusCoords}
           isPercursoActive={isPercursoActive}
           onStartPercurso={() => {
             setIsPercursoActive(true);
@@ -457,13 +459,15 @@ export default function HomePage() {
             paddingBottom: '8px'
           }}
         >
-          {/* Header Compacto com Telemetria e Toggle de Voz */}
+          {/* Header Compacto com Telemetria e Toggle de Voz/Mapa */}
           <TransitHeader
             isVoiceMuted={isVoiceMuted}
             onToggleVoice={handleToggleVoice}
             onOpenSettings={() => setIsTokenModalOpen(true)}
             hasGps={!!userCoords}
             activeVehiclesCount={veiculos.length}
+            onToggleMap={() => setIsMapFullscreen(!isMapFullscreen)}
+            isMapFullscreen={isMapFullscreen}
           />
 
           {/* Abas Principais */}
@@ -540,6 +544,7 @@ export default function HomePage() {
               incidents={incidents}
               onSelectIncidentOnMap={(inc) => {
                 setIsMapFullscreen(true);
+                setMapFocusCoords([inc.lat, inc.lng]);
               }}
             />
           )}

@@ -4,7 +4,7 @@ import {
   findNearbyStops,
   findDirectRoutes,
   findRoutesFromStops,
-  getTripStopCoordinates,
+  getTripDetailedStops,
   NearbyStop,
   DirectRoute,
   ReachableRoute
@@ -774,18 +774,24 @@ async function findMultiLegPlans(
         const boardStop = gtfsStopToParada(originEntry.stop);
         const alightStop = gtfsStopToParada(destStopInfo);
 
-        const [{ eta, departureEtas, prefix }, pathCoordinates] = await Promise.all([
+        const [{ eta, departureEtas, prefix }, tripStops] = await Promise.all([
           resolveLegEta(boardStop, line, targetOffsetMinutes),
-          getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId)
+          getTripDetailedStops(route.tripId, route.originStopId, route.destStopId)
         ]);
 
-        const detailedStops = pathCoordinates.map((c, sIdx) => ({
-          stopId: `${route.tripId}_${sIdx}`,
-          name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
-          lat: c[0],
-          lng: c[1],
-          sequence: sIdx + 1
-        }));
+        const pathCoordinates: [number, number][] = tripStops.length > 0
+          ? tripStops.map(s => [s.lat, s.lng])
+          : [[boardStop.py, boardStop.px], [alightStop.py, alightStop.px]];
+
+        const detailedStops = tripStops.length > 0
+          ? tripStops.map((s, sIdx) => ({ stopId: s.stopId, name: s.name, lat: s.lat, lng: s.lng, sequence: sIdx + 1 }))
+          : pathCoordinates.map((c, sIdx) => ({
+              stopId: `${route.tripId}_${sIdx}`,
+              name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : 'Parada intermediária',
+              lat: c[0],
+              lng: c[1],
+              sequence: sIdx + 1
+            }));
 
         const legs: DiscoveredLeg[] = [
           ...originEntry.legs,
@@ -868,22 +874,24 @@ async function findMultiLegPlans(
 
     const expandedEntries = await Promise.all(
       expansionCandidates.map(async ({ route, originEntry, line, boardStop, alightStop }) => {
-        const [{ eta, departureEtas, prefix }, fetchedPath] = await Promise.all([
+        const [{ eta, departureEtas, prefix }, tripStops] = await Promise.all([
           resolveLegEta(boardStop, line, targetOffsetMinutes),
-          getTripStopCoordinates(route.tripId, route.originStopId, route.destStopId)
+          getTripDetailedStops(route.tripId, route.originStopId, route.destStopId)
         ]);
 
-        const pathCoordinates: [number, number][] = fetchedPath && fetchedPath.length > 0
-          ? fetchedPath
+        const pathCoordinates: [number, number][] = tripStops.length > 0
+          ? tripStops.map(s => [s.lat, s.lng])
           : [[boardStop.py, boardStop.px], [alightStop.py, alightStop.px]];
 
-        const detailedStops = pathCoordinates.map((c, sIdx) => ({
-          stopId: `${route.tripId}_${sIdx}`,
-          name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : `Parada intermediária`,
-          lat: c[0],
-          lng: c[1],
-          sequence: sIdx + 1
-        }));
+        const detailedStops = tripStops.length > 0
+          ? tripStops.map((s, sIdx) => ({ stopId: s.stopId, name: s.name, lat: s.lat, lng: s.lng, sequence: sIdx + 1 }))
+          : pathCoordinates.map((c, sIdx) => ({
+              stopId: `${route.tripId}_${sIdx}`,
+              name: sIdx === 0 ? boardStop.np : sIdx === pathCoordinates.length - 1 ? alightStop.np : 'Parada intermediária',
+              lat: c[0],
+              lng: c[1],
+              sequence: sIdx + 1
+            }));
 
         const legs: DiscoveredLeg[] = [
           ...originEntry.legs,
