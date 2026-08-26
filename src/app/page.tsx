@@ -78,6 +78,7 @@ export default function HomePage() {
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isPercursoActive, setIsPercursoActive] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const [origem, setOrigem] = useState('Minha Localização');
   const [destino, setDestino] = useState('Rua Flor de Maio, 40');
@@ -113,6 +114,28 @@ export default function HomePage() {
       // Ambiente sem localStorage — usa o padrão (voz ativa).
     }
   }, []);
+
+  // Restaurar tema salvo (o layout.tsx já aplica no <html> antes da 1ª pintura;
+  // aqui só sincroniza o estado do React pra manter o botão de alternância certo).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('busaisp_theme');
+      if (saved === 'light') setTheme('light');
+    } catch {
+      // Ambiente sem localStorage — usa o padrão (escuro).
+    }
+  }, []);
+
+  const handleToggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('busaisp_theme', next);
+    } catch {
+      // Ambiente sem localStorage — preferência só dura a sessão.
+    }
+  };
 
   // GPS Contínuo & Incidentes de Trânsito ao Vivo
   useEffect(() => {
@@ -486,6 +509,8 @@ export default function HomePage() {
             activeVehiclesCount={veiculos.length}
             onToggleMap={() => setIsMapFullscreen(!isMapFullscreen)}
             isMapFullscreen={isMapFullscreen}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
           />
 
           {/* Abas Principais */}

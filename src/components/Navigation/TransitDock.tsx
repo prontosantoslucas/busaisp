@@ -55,22 +55,22 @@ export default function TransitDock({
   ];
 
   return (
-    <div
+    <nav
+      aria-label="Navegação principal"
+      className="transit-bottom-dock"
       style={{
         position: 'fixed',
-        bottom: '16px',
+        bottom: 'max(12px, env(safe-area-inset-bottom, 12px))',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 9999,
-        width: 'calc(100% - 32px)',
+        width: 'calc(100% - 24px)',
         maxWidth: '460px',
         padding: '6px 8px',
-        borderRadius: '24px',
-        background: 'rgba(13, 17, 23, 0.88)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(6, 182, 212, 0.15)',
+        borderRadius: 'var(--bus-radius-lg)',
+        background: 'var(--bus-surface-elevated)',
+        border: '1px solid var(--bus-border)',
+        boxShadow: 'var(--bus-shadow-dock)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -93,16 +93,17 @@ export default function TransitDock({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '4px',
-              padding: '8px 4px',
-              background: isActive
-                ? 'linear-gradient(180deg, rgba(6, 182, 212, 0.18) 0%, rgba(59, 130, 246, 0.08) 100%)'
-                : 'transparent',
-              border: isActive ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid transparent',
-              borderRadius: '16px',
-              color: isActive ? '#38BDF8' : '#94A3B8',
+              padding: '8px 2px',
+              minHeight: '48px',
+              background: isActive ? 'var(--bus-violet-soft)' : 'transparent',
+              border: '1px solid transparent',
+              borderRadius: 'var(--bus-radius-md)',
+              color: isActive ? 'var(--bus-violet)' : 'var(--bus-text-secondary)',
               cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              outline: 'none'
+              transition: 'background-color 0.15s ease, color 0.15s ease',
+              outline: 'none',
+              touchAction: 'manipulation',
+              fontFamily: 'var(--font-body)'
             }}
           >
             {/* Indicador Ativo no Topo do Botão */}
@@ -110,42 +111,41 @@ export default function TransitDock({
               <span
                 style={{
                   position: 'absolute',
-                  top: '2px',
-                  width: '16px',
+                  top: '3px',
+                  width: '18px',
                   height: '3px',
                   borderRadius: '2px',
-                  background: 'linear-gradient(90deg, #06B6D4 0%, #3B82F6 100%)',
-                  boxShadow: '0 0 8px rgba(6, 182, 212, 0.8)'
+                  background: 'var(--bus-violet)'
                 }}
               />
             )}
 
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon
-                size={20}
+                size={21}
                 strokeWidth={isActive ? 2.5 : 2}
-                color={isActive ? '#38BDF8' : '#94A3B8'}
+                color={isActive ? 'var(--bus-violet)' : 'var(--bus-text-secondary)'}
               />
 
               {/* Badge de Contagem */}
               {tab.badge && (
                 <span
+                  className="bus-num"
                   style={{
                     position: 'absolute',
                     top: '-6px',
                     right: '-10px',
-                    background: '#06B6D4',
-                    color: '#FFFFFF',
+                    background: 'var(--bus-live)',
+                    color: 'var(--bus-text-on-accent)',
                     fontSize: '10px',
-                    fontWeight: 900,
-                    width: '16px',
-                    height: '16px',
+                    fontWeight: 700,
+                    width: '17px',
+                    height: '17px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #0D1117',
-                    boxShadow: '0 0 6px rgba(6, 182, 212, 0.6)'
+                    border: '2px solid var(--bus-surface-elevated)'
                   }}
                 >
                   {tab.badge}
@@ -155,9 +155,9 @@ export default function TransitDock({
 
             <span
               style={{
-                fontSize: '11px',
-                fontWeight: isActive ? 800 : 600,
-                letterSpacing: '-0.2px',
+                fontSize: '11.5px',
+                fontWeight: isActive ? 700 : 500,
+                letterSpacing: '-0.1px',
                 whiteSpace: 'nowrap'
               }}
             >
@@ -166,6 +166,6 @@ export default function TransitDock({
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }

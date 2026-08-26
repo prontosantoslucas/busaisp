@@ -9,17 +9,10 @@ import {
   Sparkles,
   Footprints,
   Bus,
-  Clock,
-  Radio,
   MapPin,
   Star,
-  Navigation,
   X,
-  History,
-  AlertTriangle,
-  Flame,
   ArrowRight,
-  Play,
   Home,
   ShoppingBag,
   Briefcase,
@@ -180,7 +173,7 @@ export default function TransitHomeHub({
 
   return (
     <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* 1. BARRA DE BUSCA INTELIGENTE "PARA ONDE VAMOS?" */}
+      {/* 1. BARRA DE BUSCA "PARA ONDE VAMOS?" */}
       <div
         className="bus-glass-panel"
         style={{
@@ -188,20 +181,19 @@ export default function TransitHomeHub({
           position: 'relative',
           // Sem isso, o dropdown de sugestões (absolutamente posicionado, abaixo
           // deste card) fica escondido atrás do card "RADAR AO VIVO" seguinte:
-          // backdrop-filter cria um novo contexto de empilhamento por elemento,
-          // então a ordem no DOM decide a pintura entre irmãos a menos que este
-          // card tenha um z-index explícito maior.
+          // superfícies irmãs formam contextos de empilhamento próprios, então a
+          // ordem no DOM decide a pintura a menos que este card tenha z-index maior.
           zIndex: 20
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={16} color="#06B6D4" />
-            <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#38BDF8' }}>
+            <Sparkles size={16} color="var(--bus-violet)" />
+            <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--bus-violet)' }}>
               Planejador de Viagem
             </span>
           </div>
-          <span style={{ fontSize: '11px', color: '#64748B' }}>São Paulo • SPTrans</span>
+          <span style={{ fontSize: '11px', color: 'var(--bus-text-muted)' }}>São Paulo • SPTrans</span>
         </div>
 
         <form onSubmit={handleManualSearch} style={{ position: 'relative' }}>
@@ -223,7 +215,7 @@ export default function TransitHomeHub({
             />
             <Search
               size={18}
-              color="#06B6D4"
+              color="var(--bus-violet)"
               style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }}
             />
 
@@ -236,7 +228,7 @@ export default function TransitHomeHub({
                   right: '42px',
                   background: 'none',
                   border: 'none',
-                  color: '#94A3B8',
+                  color: 'var(--bus-text-secondary)',
                   cursor: 'pointer',
                   padding: '4px'
                 }}
@@ -250,9 +242,9 @@ export default function TransitHomeHub({
               style={{
                 position: 'absolute',
                 right: '8px',
-                background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                background: 'var(--bus-violet-ink)',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: 'var(--bus-radius-sm)',
                 color: '#FFFFFF',
                 width: '30px',
                 height: '30px',
@@ -277,19 +269,17 @@ export default function TransitHomeHub({
               left: 0,
               right: 0,
               zIndex: 999,
-              background: 'rgba(13, 17, 23, 0.98)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              borderRadius: '16px',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.85)',
+              background: 'var(--bus-surface-elevated)',
+              border: '1px solid var(--bus-border-highlight)',
+              borderRadius: 'var(--bus-radius-lg)',
+              boxShadow: 'var(--bus-shadow-card)',
               maxHeight: '260px',
               overflowY: 'auto',
               padding: '6px'
             }}
           >
             {isLoadingSuggestions ? (
-              <div style={{ padding: '14px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+              <div style={{ padding: '14px', textAlign: 'center', color: 'var(--bus-text-secondary)', fontSize: '13px' }}>
                 Buscando paradas e locais em SP...
               </div>
             ) : suggestions.length > 0 ? (
@@ -299,23 +289,22 @@ export default function TransitHomeHub({
                   onClick={() => handleSelectSuggestion(item)}
                   style={{
                     padding: '10px 12px',
-                    borderRadius: '10px',
+                    borderRadius: 'var(--bus-radius-sm)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease'
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bus-surface-hover)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <MapPin size={16} color="#06B6D4" style={{ flexShrink: 0 }} />
+                  <MapPin size={16} color="var(--bus-violet)" style={{ flexShrink: 0 }} />
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.name}
                     </span>
                     {item.addressDetails && (
-                      <span style={{ fontSize: '11px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {item.addressDetails}
                       </span>
                     )}
@@ -323,14 +312,14 @@ export default function TransitHomeHub({
                 </div>
               ))
             ) : (
-              <div style={{ padding: '14px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+              <div style={{ padding: '14px', textAlign: 'center', color: 'var(--bus-text-secondary)', fontSize: '13px' }}>
                 Nenhum local encontrado para "{searchQuery}"
               </div>
             )}
           </div>
         )}
 
-        {/* Chips de Destinos Rápidos com Ícones SVG */}
+        {/* Chips de Destinos Rápidos */}
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginTop: '12px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
           {activeDestinationsList.map((dest, idx) => {
             const Icon = dest.icon;
@@ -341,7 +330,7 @@ export default function TransitHomeHub({
                 className="bus-pill"
                 style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <Icon size={14} color="#06B6D4" />
+                <Icon size={14} color="var(--bus-violet)" />
                 <span>{dest.title}</span>
               </button>
             );
@@ -354,18 +343,16 @@ export default function TransitHomeHub({
         className="bus-glass-panel"
         style={{
           padding: '16px',
-          border: '1px solid rgba(6, 182, 212, 0.25)',
-          background: 'linear-gradient(180deg, rgba(13, 17, 23, 0.92) 0%, rgba(15, 23, 42, 0.88) 100%)',
           position: 'relative'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ position: 'relative', width: '10px', height: '10px' }}>
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#10B981', animation: 'markerPulse 1.5s infinite' }} />
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'var(--bus-live)', animation: 'markerPulse 1.5s infinite' }} />
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--bus-live)' }} />
             </div>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#34D399', letterSpacing: '0.4px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--bus-live)', letterSpacing: '0.4px' }}>
               RADAR AO VIVO
             </span>
           </div>
@@ -379,9 +366,9 @@ export default function TransitHomeHub({
                   width: frequentIndex === idx ? '18px' : '6px',
                   height: '6px',
                   borderRadius: '3px',
-                  background: frequentIndex === idx ? '#06B6D4' : '#334155',
+                  background: frequentIndex === idx ? 'var(--bus-violet)' : 'var(--bus-border)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  transition: 'background-color 0.2s ease, width 0.2s ease'
                 }}
               />
             ))}
@@ -391,23 +378,23 @@ export default function TransitHomeHub({
         {/* Card Content */}
         {isLoadingLive ? (
           <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '24px', height: '24px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: '#06B6D4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            <span style={{ fontSize: '12px', color: '#94A3B8' }}>Consultando telemetria SPTrans...</span>
+            <div style={{ width: '24px', height: '24px', border: '3px solid var(--bus-violet-soft)', borderTopColor: 'var(--bus-violet)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: '12px', color: 'var(--bus-text-secondary)' }}>Consultando telemetria SPTrans...</span>
           </div>
         ) : liveRoutePlan ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>DESTINO SUGERIDO</div>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#F8FAFC' }}>
+                <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', fontWeight: 600 }}>DESTINO SUGERIDO</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                   {currentFrequent?.title}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '20px', fontWeight: 900, color: '#38BDF8', letterSpacing: '-0.5px' }}>
+                <div className="bus-num" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--bus-violet)' }}>
                   {liveRoutePlan.totalDurationMinutes} min
                 </div>
-                <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                   Chegada ~{liveRoutePlan.arrivalHour}
                 </div>
               </div>
@@ -416,9 +403,9 @@ export default function TransitHomeHub({
             {/* Linha Recomendada & Próximo Ônibus */}
             <div
               style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.07)',
-                borderRadius: '12px',
+                background: 'var(--bus-surface-sunken)',
+                border: '1px solid var(--bus-border)',
+                borderRadius: 'var(--bus-radius-md)',
                 padding: '10px 12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -431,17 +418,20 @@ export default function TransitHomeHub({
                   <span>{liveRoutePlan.recommendedLine.lt}-{liveRoutePlan.recommendedLine.tl}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#F8FAFC' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>
                     {liveRoutePlan.departureStop.np}
                   </span>
-                  <span style={{ fontSize: '11px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Footprints size={12} /> {liveRoutePlan.totalWalkDurationMinutes} min a pé até o ponto
                   </span>
                 </div>
               </div>
 
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#10B981', background: 'rgba(16, 185, 129, 0.15)', padding: '3px 7px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <span
+                  className="bus-num"
+                  style={{ fontSize: '11px', fontWeight: 700, color: 'var(--bus-live)', background: 'var(--bus-live-soft)', padding: '3px 7px', borderRadius: 'var(--bus-radius-sm)' }}
+                >
                   {liveRoutePlan.nextBusEtaMinutes <= 2 ? 'Chegando agora' : `em ${liveRoutePlan.nextBusEtaMinutes} min`}
                 </span>
               </div>
@@ -460,27 +450,24 @@ export default function TransitHomeHub({
             </div>
           </div>
         ) : (
-          <div style={{ padding: '14px 0', textAlign: 'center', color: '#94A3B8', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontWeight: 600, color: '#F8FAFC' }}>Previsão em Tempo Real</span>
+          <div style={{ padding: '14px 0', textAlign: 'center', color: 'var(--bus-text-secondary)', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--bus-text-primary)' }}>Previsão em Tempo Real</span>
             <span style={{ fontSize: '12px' }}>Toque em um dos destinos rápidos acima para calcular o trajeto e próximo ônibus.</span>
           </div>
         )}
       </div>
 
-      {/* 3. ATALHO ELEGANTE PARA NOTÍCIAS AO VIVO */}
+      {/* 3. ATALHO PARA NOTÍCIAS AO VIVO */}
       {onOpenNews && (
         <div
           className="bus-glass-panel"
           onClick={onOpenNews}
           style={{
             padding: '12px 14px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'linear-gradient(135deg, rgba(13, 17, 23, 0.92) 0%, rgba(22, 27, 34, 0.88) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            cursor: 'pointer'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -488,23 +475,22 @@ export default function TransitHomeHub({
               style={{
                 width: '30px',
                 height: '30px',
-                borderRadius: '8px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-violet-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38BDF8',
+                color: 'var(--bus-violet)',
                 flexShrink: 0
               }}
             >
               <Newspaper size={15} />
             </div>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                 Notícias & Ocorrências ao Vivo
               </div>
-              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+              <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                 {incidents.length > 0
                   ? `${incidents.length} ocorrências e comunicados ativos em SP`
                   : 'Acompanhe trânsito, metrô e SPTrans'}
@@ -512,7 +498,7 @@ export default function TransitHomeHub({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#38BDF8', fontSize: '11.5px', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--bus-violet)', fontSize: '11.5px', fontWeight: 600 }}>
             <span>Abrir</span>
             <ChevronRight size={15} />
           </div>

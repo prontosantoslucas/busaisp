@@ -8,7 +8,8 @@ import {
   Settings,
   Radio,
   Map as MapIcon,
-  Layers
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface TransitHeaderProps {
@@ -19,7 +20,23 @@ interface TransitHeaderProps {
   activeVehiclesCount?: number;
   onToggleMap?: () => void;
   isMapFullscreen?: boolean;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
+
+const actionButtonBase: React.CSSProperties = {
+  border: '1px solid var(--bus-border)',
+  borderRadius: 'var(--bus-radius-sm)',
+  padding: '7px 10px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '5px',
+  fontSize: '12px',
+  fontWeight: 600,
+  fontFamily: 'var(--font-body)',
+  cursor: 'pointer',
+  transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease'
+};
 
 export default function TransitHeader({
   isVoiceMuted,
@@ -28,7 +45,9 @@ export default function TransitHeader({
   hasGps,
   activeVehiclesCount = 0,
   onToggleMap,
-  isMapFullscreen = false
+  isMapFullscreen = false,
+  theme = 'dark',
+  onToggleTheme
 }: TransitHeaderProps) {
   return (
     <header
@@ -37,66 +56,49 @@ export default function TransitHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '10px 14px',
-        background: 'rgba(13, 17, 23, 0.85)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '18px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+        background: 'var(--bus-surface)',
+        border: '1px solid var(--bus-border)',
+        borderRadius: 'var(--bus-radius-lg)',
+        boxShadow: 'var(--bus-shadow-card)',
         width: '100%'
       }}
     >
       {/* Logo & Marca */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
         <div
           style={{
             width: '34px',
             height: '34px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+            borderRadius: 'var(--bus-radius-sm)',
+            background: 'var(--bus-violet-ink)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 14px rgba(6, 182, 212, 0.4)',
             flexShrink: 0
           }}
         >
           <Navigation size={18} color="#FFFFFF" />
         </div>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '15.5px', fontWeight: 900, letterSpacing: '-0.3px', color: '#FFFFFF' }}>
-              BusaÍ<span style={{ color: '#06B6D4' }}>SP</span>
-            </span>
-            <span
-              style={{
-                fontSize: '9.5px',
-                fontWeight: 800,
-                background: 'rgba(6, 182, 212, 0.18)',
-                color: '#38BDF8',
-                padding: '1px 6px',
-                borderRadius: '4px',
-                border: '1px solid rgba(6, 182, 212, 0.35)'
-              }}
-            >
-              PRO
+            <span className="bus-display" style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.2px', color: 'var(--bus-text-primary)' }}>
+              BusaÍ<span style={{ color: 'var(--bus-violet)' }}>SP</span>
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#CBD5E1' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
             <span
               style={{
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: hasGps ? '#10B981' : '#F59E0B',
-                boxShadow: hasGps ? '0 0 6px #10B981' : 'none'
+                background: hasGps ? 'var(--bus-emerald)' : 'var(--bus-live)'
               }}
             />
             <span>{hasGps ? 'GPS Ativo' : 'Buscando GPS...'}</span>
             {activeVehiclesCount > 0 && (
               <>
-                <span style={{ color: '#64748B' }}>•</span>
-                <span style={{ color: '#34D399', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{ color: 'var(--bus-text-dim)' }}>•</span>
+                <span className="bus-num" style={{ color: 'var(--bus-live)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                   <Radio size={10} /> {activeVehiclesCount} ônibus
                 </span>
               </>
@@ -105,25 +107,17 @@ export default function TransitHeader({
         </div>
       </div>
 
-      {/* Ações Rápidas: Mapa, Voz e Configurações */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {/* Ações Rápidas: Mapa, Voz, Tema e Configurações */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         {onToggleMap && (
           <button
             onClick={onToggleMap}
             title={isMapFullscreen ? 'Ver painel de navegação' : 'Ver mapa em tela cheia'}
             style={{
-              background: isMapFullscreen ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.06)',
-              border: isMapFullscreen ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.12)',
-              color: isMapFullscreen ? '#38BDF8' : '#CBD5E1',
-              borderRadius: '10px',
-              padding: '7px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
+              ...actionButtonBase,
+              background: isMapFullscreen ? 'var(--bus-violet-soft)' : 'var(--bus-surface-elevated)',
+              borderColor: isMapFullscreen ? 'var(--bus-violet)' : 'var(--bus-border)',
+              color: isMapFullscreen ? 'var(--bus-violet)' : 'var(--bus-text-secondary)'
             }}
           >
             <MapIcon size={14} />
@@ -135,38 +129,40 @@ export default function TransitHeader({
           onClick={onToggleVoice}
           title={isVoiceMuted ? 'Ativar avisos de voz' : 'Desativar avisos de voz'}
           style={{
-            background: isVoiceMuted ? 'rgba(255, 255, 255, 0.05)' : 'rgba(16, 185, 129, 0.18)',
-            border: isVoiceMuted ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(16, 185, 129, 0.45)',
-            color: isVoiceMuted ? '#94A3B8' : '#34D399',
-            borderRadius: '10px',
-            padding: '7px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            ...actionButtonBase,
+            background: isVoiceMuted ? 'var(--bus-surface-elevated)' : 'var(--bus-emerald-soft)',
+            borderColor: isVoiceMuted ? 'var(--bus-border)' : 'var(--bus-emerald)',
+            color: isVoiceMuted ? 'var(--bus-text-secondary)' : 'var(--bus-emerald)'
           }}
         >
           {isVoiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          <span style={{ display: 'inline-block' }}>{isVoiceMuted ? 'Mudo' : 'Voz'}</span>
+          <span>{isVoiceMuted ? 'Mudo' : 'Voz'}</span>
         </button>
+
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            style={{
+              ...actionButtonBase,
+              padding: '7px',
+              background: 'var(--bus-surface-elevated)',
+              color: 'var(--bus-text-secondary)'
+            }}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        )}
 
         <button
           onClick={onOpenSettings}
           title="Configurações"
           style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#CBD5E1',
-            borderRadius: '10px',
+            ...actionButtonBase,
             padding: '7px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            background: 'var(--bus-surface-elevated)',
+            color: 'var(--bus-text-secondary)',
+            justifyContent: 'center'
           }}
         >
           <Settings size={16} />

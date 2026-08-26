@@ -9,17 +9,11 @@ import {
   Bus,
   ChevronDown,
   ChevronUp,
-  Radio,
-  Play,
   Square,
-  CreditCard,
   MapPin,
   Clock,
   Volume2,
-  VolumeX,
-  Sparkles,
-  ArrowRight,
-  ListFilter
+  VolumeX
 } from 'lucide-react';
 import { voiceService } from '@/lib/voiceService';
 
@@ -89,7 +83,7 @@ export default function TransitRouteDetail({
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#FFFFFF',
+                color: 'var(--bus-text-primary)',
                 cursor: 'pointer',
                 padding: '4px',
                 display: 'flex',
@@ -97,40 +91,40 @@ export default function TransitRouteDetail({
               }}
               title="Voltar às rotas"
             >
-              <ArrowLeft size={20} color="#06B6D4" />
+              <ArrowLeft size={20} color="var(--bus-violet)" />
             </button>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>INDO PARA</div>
-              <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', fontWeight: 600 }}>INDO PARA</div>
+              <div className="bus-display" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {route.destination.name}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <button
               onClick={onToggleFavorite}
               style={{
-                background: isFavorited ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                border: isFavorited ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: isFavorited ? '#F59E0B' : '#94A3B8',
-                borderRadius: '8px',
+                background: isFavorited ? 'var(--bus-live-soft)' : 'var(--bus-surface-elevated)',
+                border: `1px solid ${isFavorited ? 'var(--bus-live)' : 'var(--bus-border)'}`,
+                color: isFavorited ? 'var(--bus-live)' : 'var(--bus-text-secondary)',
+                borderRadius: 'var(--bus-radius-sm)',
                 padding: '7px',
                 cursor: 'pointer'
               }}
               title={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
             >
-              <Star size={16} fill={isFavorited ? '#F59E0B' : 'none'} />
+              <Star size={16} fill={isFavorited ? 'var(--bus-live)' : 'none'} />
             </button>
 
             {onToggleVoice && (
               <button
                 onClick={onToggleVoice}
                 style={{
-                  background: isVoiceMuted ? 'rgba(255, 255, 255, 0.06)' : 'rgba(16, 185, 129, 0.2)',
-                  border: isVoiceMuted ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #10B981',
-                  color: isVoiceMuted ? '#94A3B8' : '#34D399',
-                  borderRadius: '8px',
+                  background: isVoiceMuted ? 'var(--bus-surface-elevated)' : 'var(--bus-emerald-soft)',
+                  border: `1px solid ${isVoiceMuted ? 'var(--bus-border)' : 'var(--bus-emerald)'}`,
+                  color: isVoiceMuted ? 'var(--bus-text-secondary)' : 'var(--bus-emerald)',
+                  borderRadius: 'var(--bus-radius-sm)',
                   padding: '7px',
                   cursor: 'pointer'
                 }}
@@ -148,36 +142,36 @@ export default function TransitRouteDetail({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTop: '1px solid var(--bus-border-subtle)',
             paddingTop: '10px',
             marginTop: '4px'
           }}
         >
           <div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#38BDF8', letterSpacing: '-0.5px' }}>
+            <div className="bus-num" style={{ fontSize: '22px', fontWeight: 700, color: 'var(--bus-violet)' }}>
               {route.totalDurationMinutes} min
             </div>
-            <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-              Previsão de chegada: <strong>{route.arrivalHour}</strong>
+            <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
+              Previsão de chegada: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.arrivalHour}</strong>
             </div>
           </div>
 
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
             <span
+              className="bus-num"
               style={{
                 fontSize: '11px',
-                fontWeight: 800,
-                color: '#10B981',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                fontWeight: 700,
+                color: 'var(--bus-live)',
+                background: 'var(--bus-live-soft)',
                 padding: '2px 8px',
-                borderRadius: '6px'
+                borderRadius: 'var(--bus-radius-sm)'
               }}
             >
               {route.nextBusEtaMinutes <= 2 ? 'Ônibus no ponto' : `Próximo em ${route.nextBusEtaMinutes} min`}
             </span>
-            <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>
-              Tarifa: <strong style={{ color: '#38BDF8' }}>{route.farePrice}</strong>
+            <span style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', fontWeight: 600 }}>
+              Tarifa: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.farePrice}</strong>
             </span>
           </div>
         </div>
@@ -188,19 +182,18 @@ export default function TransitRouteDetail({
         <button
           onClick={onStopPercurso}
           style={{
-            background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+            background: 'var(--bus-red)',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: 'var(--bus-radius-md)',
             padding: '14px',
             color: '#FFFFFF',
             fontSize: '14px',
-            fontWeight: 800,
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(239, 68, 68, 0.35)'
+            cursor: 'pointer'
           }}
         >
           <Square size={16} fill="#fff" />
@@ -210,7 +203,7 @@ export default function TransitRouteDetail({
         <button
           onClick={handleStartPercursoWithVoice}
           className="bus-btn-voice"
-          style={{ padding: '14px', fontSize: '14.5px', borderRadius: '16px' }}
+          style={{ padding: '14px', fontSize: '14.5px', borderRadius: 'var(--bus-radius-md)' }}
         >
           {isVoiceMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           <span>{isVoiceMuted ? 'Iniciar Percurso' : 'Iniciar Percurso com Alertas de Voz'}</span>
@@ -228,7 +221,7 @@ export default function TransitRouteDetail({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.5px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--bus-violet)', letterSpacing: '0.5px' }}>
             ITINERÁRIO DETALHADO
           </span>
           <button
@@ -244,18 +237,18 @@ export default function TransitRouteDetail({
         {/* ETAPA 1: CAMINHADA ATÉ O PONTO */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Footprints size={15} color="#94A3B8" />
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Footprints size={15} color="var(--bus-text-secondary)" />
             </div>
-            <div style={{ width: '2px', flex: 1, minHeight: '30px', background: 'rgba(255, 255, 255, 0.15)', margin: '4px 0' }} />
+            <div style={{ width: '2px', flex: 1, minHeight: '30px', background: 'var(--bus-border)', margin: '4px 0' }} />
           </div>
 
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>
               Caminhe até a parada de embarque
             </div>
-            <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '2px' }}>
-              Aprox. {route.totalWalkDurationMinutes} min ({route.totalWalkDistanceMeters}m) até <strong>{route.departureStop.np}</strong>
+            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
+              Aprox. {route.totalWalkDurationMinutes} min ({route.totalWalkDistanceMeters}m) até <strong style={{ color: 'var(--bus-text-primary)' }}>{route.departureStop.np}</strong>
             </div>
           </div>
         </div>
@@ -263,10 +256,10 @@ export default function TransitRouteDetail({
         {/* ETAPA 2: ÔNIBUS PRINCIPAL */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(6, 182, 212, 0.2)', border: '1px solid #06B6D4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bus size={15} color="#38BDF8" />
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-violet-soft)', border: '1px solid var(--bus-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Bus size={15} color="var(--bus-violet)" />
             </div>
-            <div style={{ width: '2px', flex: 1, minHeight: '40px', background: '#06B6D4', margin: '4px 0' }} />
+            <div style={{ width: '2px', flex: 1, minHeight: '40px', background: 'var(--bus-violet)', margin: '4px 0' }} />
           </div>
 
           <div style={{ flex: 1 }}>
@@ -275,39 +268,39 @@ export default function TransitRouteDetail({
                 <Bus size={13} />
                 <span>{route.recommendedLine.lt}-{route.recommendedLine.tl}</span>
               </span>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                 {route.destination.name}
               </span>
             </div>
 
-            <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px' }}>
-              Embarque em <strong>{route.departureStop.np}</strong>
+            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '4px' }}>
+              Embarque em <strong style={{ color: 'var(--bus-text-primary)' }}>{route.departureStop.np}</strong>
             </div>
 
             {/* Tempo de espera: ônibus indicado + próximos, em tempo real */}
             {route.departureEtas && route.departureEtas.length > 0 ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
                 <span
+                  className="bus-num"
                   style={{
                     fontSize: '12px',
-                    fontWeight: 900,
-                    color: route.departureEtas[0] <= 3 ? '#10B981' : '#F8FAFC',
-                    background: route.departureEtas[0] <= 3 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                    fontWeight: 700,
+                    color: 'var(--bus-live)',
+                    background: 'var(--bus-live-soft)',
                     padding: '3px 9px',
-                    borderRadius: '6px',
-                    border: route.departureEtas[0] <= 3 ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)'
+                    borderRadius: 'var(--bus-radius-sm)'
                   }}
                 >
                   {route.departureEtas[0] <= 1 ? 'Chegando agora' : `Chega em ${route.departureEtas[0]} min`}
                 </span>
                 {route.departureEtas.length > 1 && (
-                  <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+                  <span className="bus-num" style={{ fontSize: '10.5px', color: 'var(--bus-text-muted)' }}>
                     depois: {route.departureEtas.slice(1).join(', ')} min
                   </span>
                 )}
               </div>
             ) : (
-              <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '6px' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--bus-text-muted)', marginTop: '6px' }}>
                 Sem previsão em tempo real agora — confira o horário no ponto.
               </div>
             )}
@@ -320,9 +313,9 @@ export default function TransitRouteDetail({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#38BDF8',
+                    color: 'var(--bus-violet)',
                     fontSize: '11.5px',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -339,14 +332,14 @@ export default function TransitRouteDetail({
                     style={{
                       marginTop: '8px',
                       paddingLeft: '10px',
-                      borderLeft: '1px dashed rgba(6, 182, 212, 0.4)',
+                      borderLeft: '1px dashed var(--bus-border-highlight)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px'
                     }}
                   >
                     {route.allRouteStops.map((st, sIdx) => (
-                      <div key={sIdx} style={{ fontSize: '11px', color: '#94A3B8' }}>
+                      <div key={sIdx} style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                         • {st.name}
                       </div>
                     ))}
@@ -359,12 +352,12 @@ export default function TransitRouteDetail({
             <div
               style={{
                 marginTop: '10px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: '8px',
+                background: 'var(--bus-emerald-soft)',
+                border: '1px solid var(--bus-emerald)',
+                borderRadius: 'var(--bus-radius-sm)',
                 padding: '8px 10px',
                 fontSize: '11.5px',
-                color: '#34D399',
+                color: 'var(--bus-emerald)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px'
@@ -379,17 +372,17 @@ export default function TransitRouteDetail({
         {/* ETAPA 3: CHEGADA AO DESTINO */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MapPin size={15} color="#EF4444" />
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-red-soft)', border: '1px solid var(--bus-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MapPin size={15} color="var(--bus-red)" />
             </div>
           </div>
 
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
               Chegada: {route.destination.name}
             </div>
-            <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '2px' }}>
-              Previsão estimada: <strong>{route.arrivalHour}</strong>
+            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
+              Previsão estimada: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.arrivalHour}</strong>
             </div>
           </div>
         </div>
