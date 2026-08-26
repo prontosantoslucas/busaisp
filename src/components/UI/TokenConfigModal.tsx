@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Key, CheckCircle2, AlertCircle, ExternalLink, X, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Key, CheckCircle2, AlertCircle, ExternalLink, X, ShieldCheck, RefreshCw, Download, Share, PlusSquare, Smartphone } from 'lucide-react';
+import { usePWA } from '@/components/PWA/PWAProvider';
 
 interface TokenConfigModalProps {
   isOpen: boolean;
@@ -9,12 +10,27 @@ interface TokenConfigModalProps {
 }
 
 export default function TokenConfigModal({ isOpen, onClose }: TokenConfigModalProps) {
+  const { isInstallable, isInstalled, isIOS, installApp } = usePWA();
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
   const [authStatus, setAuthStatus] = useState<{
     authenticated: boolean;
     hasToken: boolean;
     message: string;
   } | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      setShowIOSInstructions((v) => !v);
+      return;
+    }
+    if (isInstallable) {
+      setIsInstalling(true);
+      await installApp();
+      setIsInstalling(false);
+    }
+  };
 
   const checkConnection = async () => {
     setIsChecking(true);
@@ -102,6 +118,76 @@ export default function TokenConfigModal({ isOpen, onClose }: TokenConfigModalPr
 
         {/* Body */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Instalar o Aplicativo (PWA — não existe APK, isto instala o app real como app) */}
+          <div
+            style={{
+              padding: '14px',
+              borderRadius: 'var(--bus-radius-md)',
+              background: isInstalled ? 'var(--bus-emerald-soft)' : 'var(--bus-violet-soft)',
+              border: `1px solid ${isInstalled ? 'var(--bus-emerald)' : 'var(--bus-border-highlight)'}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Smartphone size={20} color={isInstalled ? 'var(--bus-emerald)' : 'var(--bus-violet)'} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--bus-text-primary)' }}>
+                  {isInstalled ? 'Aplicativo já instalado' : 'Instalar BusaÍ SP no aparelho'}
+                </div>
+                <p style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px', lineHeight: 1.4 }}>
+                  {isInstalled
+                    ? 'Você já está usando o app instalado, com ícone próprio e tela cheia.'
+                    : 'Adiciona um ícone na tela inicial e abre em tela cheia, sem barra do navegador.'}
+                </p>
+              </div>
+
+              {!isInstalled && (isIOS || isInstallable) && (
+                <button
+                  onClick={handleInstallClick}
+                  className="bus-btn-primary"
+                  style={{ padding: '8px 14px', fontSize: '12px', borderRadius: 'var(--bus-radius-sm)', flexShrink: 0 }}
+                  disabled={isInstalling}
+                >
+                  {isIOS ? <Share size={14} /> : <Download size={14} />}
+                  <span>{isInstalling ? 'Instalando...' : 'Instalar'}</span>
+                </button>
+              )}
+            </div>
+
+            {!isInstalled && isIOS && showIOSInstructions && (
+              <div
+                style={{
+                  background: 'var(--bus-surface-sunken)',
+                  border: '1px solid var(--bus-border-subtle)',
+                  borderRadius: 'var(--bus-radius-sm)',
+                  padding: '10px 12px',
+                  fontSize: '11.5px',
+                  color: 'var(--bus-text-secondary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Share size={12} />
+                  <span>Toque em <strong style={{ color: 'var(--bus-text-primary)' }}>Compartilhar</strong> na barra do Safari</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlusSquare size={12} />
+                  <span>Selecione <strong style={{ color: 'var(--bus-text-primary)' }}>Adicionar à Tela de Início</strong></span>
+                </div>
+              </div>
+            )}
+
+            {!isInstalled && !isIOS && !isInstallable && (
+              <p style={{ fontSize: '11px', color: 'var(--bus-text-muted)', margin: 0 }}>
+                Seu navegador ainda não ofereceu a instalação direta. No Android, abra pelo Chrome; ela costuma aparecer após navegar um pouco pelo site.
+              </p>
+            )}
+          </div>
+
           {/* Status Atual do Olho Vivo */}
           <div
             style={{
