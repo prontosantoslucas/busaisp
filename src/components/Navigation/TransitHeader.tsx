@@ -27,13 +27,12 @@ interface TransitHeaderProps {
 const actionButtonBase: React.CSSProperties = {
   border: '1px solid var(--bus-border)',
   borderRadius: 'var(--bus-radius-sm)',
-  padding: '7px 10px',
+  width: '34px',
+  height: '34px',
   display: 'flex',
   alignItems: 'center',
-  gap: '5px',
-  fontSize: '12px',
-  fontWeight: 600,
-  fontFamily: 'var(--font-body)',
+  justifyContent: 'center',
+  flexShrink: 0,
   cursor: 'pointer',
   transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease'
 };
@@ -64,7 +63,7 @@ export default function TransitHeader({
       }}
     >
       {/* Logo & Marca */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
         <div
           style={{
             width: '34px',
@@ -85,21 +84,22 @@ export default function TransitHeader({
               BusaÍ<span style={{ color: 'var(--bus-violet)' }}>SP</span>
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--bus-text-secondary)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
             <span
               style={{
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: hasGps ? 'var(--bus-emerald)' : 'var(--bus-live)'
+                background: hasGps ? 'var(--bus-emerald)' : 'var(--bus-live)',
+                flexShrink: 0
               }}
             />
-            <span>{hasGps ? 'GPS Ativo' : 'Buscando GPS...'}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{hasGps ? 'GPS Ativo' : 'Buscando GPS...'}</span>
             {activeVehiclesCount > 0 && (
               <>
-                <span style={{ color: 'var(--bus-text-dim)' }}>•</span>
-                <span className="bus-num" style={{ color: 'var(--bus-live)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <Radio size={10} /> {activeVehiclesCount} ônibus
+                <span style={{ color: 'var(--bus-text-dim)', flexShrink: 0 }}>•</span>
+                <span className="bus-num" style={{ color: 'var(--bus-live)', display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                  <Radio size={10} /> {activeVehiclesCount}
                 </span>
               </>
             )}
@@ -120,8 +120,7 @@ export default function TransitHeader({
               color: isMapFullscreen ? 'var(--bus-violet)' : 'var(--bus-text-secondary)'
             }}
           >
-            <MapIcon size={14} />
-            <span>{isMapFullscreen ? 'Painel' : 'Mapa'}</span>
+            <MapIcon size={16} />
           </button>
         )}
 
@@ -135,8 +134,7 @@ export default function TransitHeader({
             color: isVoiceMuted ? 'var(--bus-text-secondary)' : 'var(--bus-emerald)'
           }}
         >
-          {isVoiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          <span>{isVoiceMuted ? 'Mudo' : 'Voz'}</span>
+          {isVoiceMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
 
         {onToggleTheme && (
@@ -145,7 +143,6 @@ export default function TransitHeader({
             title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
             style={{
               ...actionButtonBase,
-              padding: '7px',
               background: 'var(--bus-surface-elevated)',
               color: 'var(--bus-text-secondary)'
             }}
@@ -159,10 +156,8 @@ export default function TransitHeader({
           title="Configurações"
           style={{
             ...actionButtonBase,
-            padding: '7px',
             background: 'var(--bus-surface-elevated)',
-            color: 'var(--bus-text-secondary)',
-            justifyContent: 'center'
+            color: 'var(--bus-text-secondary)'
           }}
         >
           <Settings size={16} />
