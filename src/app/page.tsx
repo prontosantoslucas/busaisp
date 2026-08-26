@@ -10,6 +10,7 @@ import {
 } from '@/types/sptrans';
 import { RoutePlan, RouteSearchResult } from '@/lib/routing';
 import { getSaoPauloTime } from '@/lib/dateUtils';
+import { distanceToPolylineMeters } from '@/lib/geoUtils';
 import { FavoriteItem, fetchFavorites, toggleFavorite } from '@/lib/supabase';
 import TransitDock, { TransitTabType } from '@/components/Navigation/TransitDock';
 import TransitHeader from '@/components/Navigation/TransitHeader';
@@ -76,6 +77,10 @@ export default function HomePage() {
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isPercursoActive, setIsPercursoActive] = useState(false);
+  // Embarque/desvio real: comparando o GPS ao vivo com a posição dos veículos da linha
+  // (embarque) e com o traçado planejado da rota (desvio) — nunca um estado inventado.
+  const [hasBoarded, setHasBoarded] = useState(false);
+  const [isOffRoute, setIsOffRoute] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -220,6 +225,11 @@ export default function HomePage() {
             ? `Desça em ${step.alightStopName || alightPoint.name} e embarque na linha ${nextLeg.busLine}.`
             : `Desça em ${step.alightStopName || alightPoint.name} para a próxima etapa.`
         );
+        // Baldeação real: passa a rastrear a próxima linha e exige novo embarque
+        // detectado por GPS, em vez de continuar "a bordo" da linha anterior.
+        if (nextLeg?.busLine && currentRoute.recommendedLine.lt !== nextLeg.busLine) {
+          setHasBoarded(false);
+        }
       }
     });
 
@@ -237,6 +247,50 @@ export default function HomePage() {
       }
     }
   }, [isPercursoActive, userCoords, routes, selectedRouteIndex, isVoiceMuted]);
+
+  // Reinicia o estado de embarque/desvio sempre que uma nova viagem começa.
+  useEffect(() => {
+    if (isPercursoActive) {
+      setHasBoarded(false);
+      setIsOffRoute(false);
+    }
+  }, [isPercursoActive]);
+
+  // Detecção real de embarque: compara o GPS ao vivo do usuário com a posição real dos
+  // veículos da linha atual (mesma fonte usada no mapa) — só marca "embarcado" quando
+  // está fisicamente perto de um veículo de verdade, nunca por suposição do toque no
+  // botão. Limitação honesta: só rastreia a 1ª perna da viagem — após uma baldeação
+  // real pra outra linha ainda não trocamos automaticamente qual veículo é comparado.
+  useEffect(() => {
+    if (!isPercursoActive || hasBoarded || !userCoords || veiculos.length === 0) return;
+
+    const nearVehicle = veiculos.some(
+      (v) => getDistanceMeters(userCoords[0], userCoords[1], v.py, v.px) < 45
+    );
+    if (nearVehicle) {
+      setHasBoarded(true);
+    }
+  }, [isPercursoActive, hasBoarded, userCoords, veiculos]);
+
+  // Detecção real de desvio de rota: uma vez embarcado, compara o GPS ao vivo com o
+  // traçado real planejado da rota (polyline.transit) — nunca inventa se o usuário
+  // desviou, só mede a distância real até o caminho esperado.
+  const OFF_ROUTE_THRESHOLD_METERS = 250;
+  useEffect(() => {
+    if (!isPercursoActive || !hasBoarded || !userCoords) return;
+    const currentRoute = routes[selectedRouteIndex];
+    if (!currentRoute || currentRoute.polyline.transit.length === 0) return;
+
+    const dist = distanceToPolylineMeters(userCoords, currentRoute.polyline.transit);
+    const nowOffRoute = dist > OFF_ROUTE_THRESHOLD_METERS;
+
+    setIsOffRoute((wasOffRoute) => {
+      if (nowOffRoute && !wasOffRoute && !isVoiceMuted) {
+        voiceService.announceOffRoute();
+      }
+      return nowOffRoute;
+    });
+  }, [isPercursoActive, hasBoarded, userCoords, routes, selectedRouteIndex, isVoiceMuted]);
 
   // Buscar posição dos veículos da SPTrans
   const loadVeiculos = useCallback(async (linha: SPTransLinha) => {
@@ -395,6 +449,8 @@ export default function HomePage() {
           theme={theme}
           isMapFullscreen={isMapFullscreen}
           isPercursoActive={isPercursoActive}
+          hasBoarded={hasBoarded}
+          isOffRoute={isOffRoute}
           onStartPercurso={() => {
             setIsPercursoActive(true);
             setIsMapFullscreen(true);

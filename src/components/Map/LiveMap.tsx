@@ -44,6 +44,8 @@ export interface LiveMapProps {
   focusCoords?: [number, number] | null;
   theme?: 'dark' | 'light';
   isMapFullscreen?: boolean;
+  hasBoarded?: boolean;
+  isOffRoute?: boolean;
 }
 
 // Basemapas Esri "Canvas" (Light/Dark Gray) — não exigem chave de API para o volume
@@ -76,7 +78,9 @@ export default function LiveMap({
   incidents = [],
   focusCoords,
   theme = 'dark',
-  isMapFullscreen = false
+  isMapFullscreen = false,
+  hasBoarded = false,
+  isOffRoute = false
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -723,7 +727,12 @@ export default function LiveMap({
       {/* Barra HUD Flutuante de Percurso Ativo no Topo do Mapa — só quando o mapa é a
           tela em foco; nos demais casos o painel principal fica por cima do mapa, mas
           o vão transparente entre os cards do painel deixava esta barra vazar por trás. */}
-      {isPercursoActive && activeRoute && isMapFullscreen && (
+      {isPercursoActive && activeRoute && isMapFullscreen && (() => {
+        // Status real de embarque/desvio, comparado ao GPS ao vivo — nunca um estado
+        // inventado (ver efeitos de detecção em page.tsx).
+        const statusColor = isOffRoute ? 'var(--bus-red)' : hasBoarded ? 'var(--bus-emerald)' : 'var(--bus-live)';
+        const statusText = isOffRoute ? 'FORA DA ROTA PLANEJADA' : hasBoarded ? 'A BORDO' : 'AGUARDANDO EMBARQUE';
+        return (
         <div
           style={{
             position: 'absolute',
@@ -734,7 +743,7 @@ export default function LiveMap({
             margin: '0 auto',
             zIndex: 1000,
             background: 'var(--bus-surface)',
-            border: '2px solid var(--bus-emerald)',
+            border: `2px solid ${statusColor}`,
             borderRadius: 'var(--bus-radius-lg)',
             padding: '12px 16px',
             display: 'flex',
@@ -748,7 +757,7 @@ export default function LiveMap({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
-                background: 'var(--bus-emerald)',
+                background: statusColor,
                 color: '#fff',
                 width: '34px',
                 height: '34px',
@@ -759,15 +768,13 @@ export default function LiveMap({
                 flexShrink: 0
               }}
             >
-              <Navigation size={18} className="animate-pulse" />
+              {isOffRoute ? <AlertTriangle size={18} /> : <Navigation size={18} className="animate-pulse" />}
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--bus-emerald)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--bus-emerald)' }} />
-                <span>NAVEGAÇÃO GPS ATIVA</span>
-                <span>·</span>
-                <span>EM ANDAMENTO</span>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: statusColor, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor }} />
+                <span>{statusText}</span>
               </div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                 {activeRoute.steps[0]?.instruction || 'Siga o trajeto no mapa'}
@@ -796,7 +803,8 @@ export default function LiveMap({
             <span>Parar</span>
           </button>
         </div>
-      )}
+        );
+      })()}
 
       {/* Botões de Ação Flutuantes */}
       <div

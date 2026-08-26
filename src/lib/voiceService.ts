@@ -91,6 +91,10 @@ class VoiceService {
     this.speak(`Desembarque e faça baldeação. ${instructions}`);
   }
 
+  public announceOffRoute() {
+    this.speak('Atenção: você parece ter saído do trajeto planejado.');
+  }
+
   public stop() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
