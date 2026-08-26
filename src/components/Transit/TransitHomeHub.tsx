@@ -86,26 +86,31 @@ export default function TransitHomeHub({
   const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : POPULAR_DESTINATIONS;
   const currentFrequent = activeDestinationsList[frequentIndex % activeDestinationsList.length];
 
-  // Coordenadas arredondadas a ~550m: o GPS real (watchPosition) tem jitter que
-  // facilmente passa de 111m em sinal ruim (dentro de prédio, canyon urbano), o que
-  // reiniciava esta busca em loop e mantinha o spinner girando pra sempre — nunca dava
-  // tempo de uma leitura "assentar" antes da próxima chegar e reiniciar tudo de novo.
-  const roundedLat = userCoords ? Math.round(userCoords[0] * 200) / 200 : null;
-  const roundedLng = userCoords ? Math.round(userCoords[1] * 200) / 200 : null;
+  // A posição do GPS por si só não dispara mais essa busca — tentar detectar
+  // "andou o suficiente" por distância sofria com o jitter real do watchPosition
+  // (variação de sinal em prédio/canyon urbano) e reiniciava a busca sem parar.
+  // Guardamos sempre a leitura mais recente aqui e atualizamos por tempo (relógio),
+  // não por movimento.
+  const userCoordsRef = useRef(userCoords);
+  useEffect(() => {
+    userCoordsRef.current = userCoords;
+  }, [userCoords]);
 
-  // Carregar telemetria em tempo real para o destino ativo
+  const REFRESH_INTERVAL_MS = 30000;
+
+  // Carregar telemetria em tempo real para o destino ativo, e atualizar a cada
+  // 30s de relógio (não a cada leitura de GPS).
   useEffect(() => {
     if (!currentFrequent) return;
 
     let isMounted = true;
-    // Spinner só aparece na primeira carga; atualizações de GPS depois disso trocam o
-    // conteúdo silenciosamente em vez de "piscar" de volta pro estado de carregamento.
-    if (!liveRoutePlan) setIsLoadingLive(true);
 
-    // Debounce: espera o GPS assentar antes de buscar — sem isso, jitter contínuo do
-    // watchPosition dispara uma busca nova antes da anterior terminar, sem nunca convergir.
-    const debounceTimer = setTimeout(() => {
-      const origCoords = userCoords || [-23.5158, -46.6182];
+    const fetchLive = () => {
+      // Spinner só aparece na primeira carga; atualizações periódicas depois disso
+      // trocam o conteúdo silenciosamente em vez de "piscar" de volta pro loading.
+      if (!liveRoutePlan) setIsLoadingLive(true);
+
+      const origCoords = userCoordsRef.current || [-23.5158, -46.6182];
       const params = new URLSearchParams({
         origem: 'Minha Localização',
         destino: currentFrequent.destinationName,
@@ -129,14 +134,17 @@ export default function TransitHomeHub({
         .finally(() => {
           if (isMounted) setIsLoadingLive(false);
         });
-    }, 1200);
+    };
+
+    fetchLive();
+    const interval = setInterval(fetchLive, REFRESH_INTERVAL_MS);
 
     return () => {
       isMounted = false;
-      clearTimeout(debounceTimer);
+      clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frequentIndex, currentFrequent?.destinationName, roundedLat, roundedLng]);
+  }, [frequentIndex, currentFrequent?.destinationName]);
 
   // Autocomplete de Endereços
   useEffect(() => {
