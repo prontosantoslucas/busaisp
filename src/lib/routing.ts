@@ -674,8 +674,18 @@ async function resolveRealTimeEta(
 
   linhaPrevisao.vs.forEach((v) => {
     const [horas, minutos] = v.t.split(':').map(Number);
-    let etaMinutos = (horas * 60 + minutos) - (agora.getHours() * 60 + agora.getMinutes());
-    if (etaMinutos < 0) etaMinutos += 24 * 60;
+    const diffBruto = (horas * 60 + minutos) - (agora.getHours() * 60 + agora.getMinutes());
+
+    // Diferença negativa pequena (até 1h) é virada de meia-noite genuína — ex.:
+    // consulta às 23:58, previsão às 00:05 (diff -1433, vira +7, correto). Uma
+    // diferença negativa GRANDE não é "chegando amanhã": é uma previsão
+    // desatualizada/no passado da SPTrans, e "virar" ela produzia um horário
+    // absurdo pra frente (bug real observado: "em 1268 min" — 21h no futuro
+    // pra uma previsão que na verdade já tinha passado). Descarta em vez de
+    // inventar um horário.
+    if (diffBruto < -60) return;
+
+    const etaMinutos = diffBruto < 0 ? diffBruto + 24 * 60 : diffBruto;
     etasComPrefixo.push({ etaMinutos, prefixo: v.p });
   });
 

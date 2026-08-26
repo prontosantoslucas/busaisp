@@ -101,6 +101,19 @@ export default function HomePage() {
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
 
+  // Restaurar preferência de voz salva (senão o mudo "esquece" a cada recarga)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('busaisp_voice_muted');
+      if (saved === 'true') {
+        setIsVoiceMuted(true);
+        voiceService.setMuted(true);
+      }
+    } catch {
+      // Ambiente sem localStorage — usa o padrão (voz ativa).
+    }
+  }, []);
+
   // GPS Contínuo & Incidentes de Trânsito ao Vivo
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
@@ -286,6 +299,11 @@ export default function HomePage() {
     const nextState = !isVoiceMuted;
     setIsVoiceMuted(nextState);
     voiceService.setMuted(nextState);
+    try {
+      localStorage.setItem('busaisp_voice_muted', String(nextState));
+    } catch {
+      // Ambiente sem localStorage (ex.: navegação privada) — preferência só dura a sessão.
+    }
   };
 
   return (

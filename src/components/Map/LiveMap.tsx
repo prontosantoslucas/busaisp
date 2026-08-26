@@ -97,7 +97,14 @@ export default function LiveMap({
     // Dark Matter Tiles (CartoDB) sem rótulos/áreas do provedor — o app já desenha
     // seus próprios marcadores e labels por cima, então a versão "com rótulos"
     // (dark_all) só adiciona poluição visual (parques, POIs, etc. da própria tile).
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    // A CARTO passou a exigir chave de API mesmo no free tier — sem ela, o tile
+    // vem só com o aviso "API KEY REQUIRED" (era isso, não um bug de renderização).
+    const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+    const tileUrl = cartoApiKey
+      ? `https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
+      : 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+
+    L.tileLayer(tileUrl, {
       maxZoom: 19,
       subdomains: 'abcd'
     }).addTo(map);

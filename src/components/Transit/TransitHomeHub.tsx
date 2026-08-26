@@ -185,7 +185,13 @@ export default function TransitHomeHub({
         className="bus-glass-panel"
         style={{
           padding: '14px 16px',
-          position: 'relative'
+          position: 'relative',
+          // Sem isso, o dropdown de sugestões (absolutamente posicionado, abaixo
+          // deste card) fica escondido atrás do card "RADAR AO VIVO" seguinte:
+          // backdrop-filter cria um novo contexto de empilhamento por elemento,
+          // então a ordem no DOM decide a pintura entre irmãos a menos que este
+          // card tenha um z-index explícito maior.
+          zIndex: 20
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>

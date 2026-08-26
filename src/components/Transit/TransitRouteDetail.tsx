@@ -212,8 +212,8 @@ export default function TransitRouteDetail({
           className="bus-btn-voice"
           style={{ padding: '14px', fontSize: '14.5px', borderRadius: '16px' }}
         >
-          <Volume2 size={18} />
-          <span>Iniciar Percurso com Alertas de Voz</span>
+          {isVoiceMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          <span>{isVoiceMuted ? 'Iniciar Percurso' : 'Iniciar Percurso com Alertas de Voz'}</span>
         </button>
       )}
 

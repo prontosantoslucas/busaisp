@@ -248,4 +248,55 @@ describe('calculateRoute', () => {
     expect(result.alternatives).toHaveLength(2);
     expect(result.alternatives.every(plan => plan.nextBusEtaMinutes === -1)).toBe(true);
   });
+
+  it('descarta previsão de veículo desatualizada em vez de "virar" um horário absurdo no futuro', async () => {
+    vi.useFakeTimers();
+    // "Agora" = 16:12. Previsão do veículo é 13:00 (já passou há 3h12 —
+    // dado desatualizado da SPTrans), não "amanhã às 13:00".
+    vi.setSystemTime(new Date(2026, 7, 24, 16, 12, 0));
+
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '1703-10', routeShortName: '1703', routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE',
+        tripId: 'trip_1', tripHeadsign: 'SHOPPING CENTER NORTE',
+        originStopId: '340015353', originDepartureSeconds: 0, destStopId: '340015350', destArrivalSeconds: 0
+      }
+    ]);
+    (buscarPrevisaoParada as any).mockResolvedValueOnce({
+      previsao: {
+        hr: '16:12',
+        p: {
+          cp: 340015353,
+          np: 'TERMINAL JD. FONTALIS',
+          py: -23.4338,
+          px: -46.5778,
+          l: [
+            {
+              cl: 1703,
+              c: '1703-10',
+              sl: 1,
+              lt0: 'SHOPPING CENTER NORTE',
+              lt1: 'JD. FONTALIS',
+              qv: 1,
+              vs: [{ p: '21045', t: '13:00', a: true, ta: '13:00', py: -23.43, px: -46.58, destination: 'SHOPPING CENTER NORTE' }]
+            }
+          ]
+        }
+      },
+      isMock: false
+    });
+
+    const result = await calculateRoute(origin, dest);
+
+    // Sem previsão utilizável (a única disponível foi descartada por estar
+    // no passado) — nunca deve virar "em 1268 min" ou qualquer outro número
+    // inventado no futuro distante.
+    expect(result.primaryRoute.nextBusEtaMinutes).toBe(-1);
+    expect(result.primaryRoute.departureEtas).toEqual([]);
+
+    vi.useRealTimers();
+  });
 });
