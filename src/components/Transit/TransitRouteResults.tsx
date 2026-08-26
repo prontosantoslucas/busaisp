@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RoutePlan } from '@/lib/routing';
+import { RoutePlan, RouteStep } from '@/lib/routing';
 import { getEtaColorTokens } from '@/lib/etaStyle';
+import TransitDeparturesModal from '@/components/Transit/TransitDeparturesModal';
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -56,6 +57,7 @@ export default function TransitRouteResults({
   onScheduledTimeChange
 }: TransitRouteResultsProps) {
   const [filterMode, setFilterMode] = useState<'ALL' | 'FASTEST' | 'LESS_WALK' | 'LESS_TRANSFERS'>('ALL');
+  const [departuresStep, setDeparturesStep] = useState<RouteStep | null>(null);
   const isScheduled = scheduledTime.length > 0;
 
   // Aplicar filtros
@@ -316,10 +318,23 @@ export default function TransitRouteResults({
                           <span>{step.durationMinutes}m</span>
                         </div>
                       ) : step.type === 'BUS' ? (
-                        <div className="bus-badge">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeparturesStep(step);
+                          }}
+                          className="bus-badge"
+                          style={{ border: 'none', cursor: 'pointer' }}
+                          title="Ver próximas partidas desta linha"
+                        >
                           <Bus size={13} />
                           <span>{step.busLine || `${route.recommendedLine.lt}-${route.recommendedLine.tl}`}</span>
-                        </div>
+                          {step.departureEtas && step.departureEtas.length > 0 && (
+                            <span className="bus-num" style={{ fontSize: '10.5px', opacity: 0.9 }}>
+                              · {step.departureEtas[0] <= 1 ? 'agora' : `${step.departureEtas[0]}m`}
+                            </span>
+                          )}
+                        </button>
                       ) : null}
 
                       {stepIdx < route.steps.length - 1 && (
@@ -359,6 +374,16 @@ export default function TransitRouteResults({
           </div>
         )}
       </div>
+
+      {departuresStep && (
+        <TransitDeparturesModal
+          busLine={departuresStep.busLine || ''}
+          busDestination={departuresStep.busDestination || ''}
+          boardStopName={departuresStep.boardStopName || ''}
+          departureEtas={departuresStep.departureEtas || []}
+          onClose={() => setDeparturesStep(null)}
+        />
+      )}
     </div>
   );
 }

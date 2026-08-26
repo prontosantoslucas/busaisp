@@ -86,47 +86,56 @@ export default function TransitHomeHub({
   const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : POPULAR_DESTINATIONS;
   const currentFrequent = activeDestinationsList[frequentIndex % activeDestinationsList.length];
 
-  // Coordenadas arredondadas a ~111m: o GPS (watchPosition) gera um array novo a cada
-  // leitura mesmo com jitter de poucos metros, o que reiniciaria esta busca sem parar
-  // e travaria o spinner de carregamento para sempre (nunca dava tempo dela terminar).
-  const roundedLat = userCoords ? Math.round(userCoords[0] * 1000) / 1000 : null;
-  const roundedLng = userCoords ? Math.round(userCoords[1] * 1000) / 1000 : null;
+  // Coordenadas arredondadas a ~550m: o GPS real (watchPosition) tem jitter que
+  // facilmente passa de 111m em sinal ruim (dentro de prédio, canyon urbano), o que
+  // reiniciava esta busca em loop e mantinha o spinner girando pra sempre — nunca dava
+  // tempo de uma leitura "assentar" antes da próxima chegar e reiniciar tudo de novo.
+  const roundedLat = userCoords ? Math.round(userCoords[0] * 200) / 200 : null;
+  const roundedLng = userCoords ? Math.round(userCoords[1] * 200) / 200 : null;
 
   // Carregar telemetria em tempo real para o destino ativo
   useEffect(() => {
     if (!currentFrequent) return;
 
     let isMounted = true;
-    setIsLoadingLive(true);
+    // Spinner só aparece na primeira carga; atualizações de GPS depois disso trocam o
+    // conteúdo silenciosamente em vez de "piscar" de volta pro estado de carregamento.
+    if (!liveRoutePlan) setIsLoadingLive(true);
 
-    const origCoords = userCoords || [-23.5158, -46.6182];
-    const params = new URLSearchParams({
-      origem: 'Minha Localização',
-      destino: currentFrequent.destinationName,
-      lat: String(origCoords[0]),
-      lng: String(origCoords[1]),
-      origLat: String(origCoords[0]),
-      origLng: String(origCoords[1])
-    });
-
-    fetch(`/api/rotas?${params.toString()}`)
-      .then(res => res.json())
-      .then(json => {
-        if (isMounted && json.success && json.data) {
-          const primary: RoutePlan = json.data.primaryRoute || json.data.alternatives?.[0];
-          setLiveRoutePlan(primary);
-        }
-      })
-      .catch(err => {
-        console.warn('[TransitHomeHub] Erro ao carregar rota em tempo real do card:', err);
-      })
-      .finally(() => {
-        if (isMounted) setIsLoadingLive(false);
+    // Debounce: espera o GPS assentar antes de buscar — sem isso, jitter contínuo do
+    // watchPosition dispara uma busca nova antes da anterior terminar, sem nunca convergir.
+    const debounceTimer = setTimeout(() => {
+      const origCoords = userCoords || [-23.5158, -46.6182];
+      const params = new URLSearchParams({
+        origem: 'Minha Localização',
+        destino: currentFrequent.destinationName,
+        lat: String(origCoords[0]),
+        lng: String(origCoords[1]),
+        origLat: String(origCoords[0]),
+        origLng: String(origCoords[1])
       });
+
+      fetch(`/api/rotas?${params.toString()}`)
+        .then(res => res.json())
+        .then(json => {
+          if (isMounted && json.success && json.data) {
+            const primary: RoutePlan = json.data.primaryRoute || json.data.alternatives?.[0];
+            setLiveRoutePlan(primary);
+          }
+        })
+        .catch(err => {
+          console.warn('[TransitHomeHub] Erro ao carregar rota em tempo real do card:', err);
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingLive(false);
+        });
+    }, 1200);
 
     return () => {
       isMounted = false;
+      clearTimeout(debounceTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequentIndex, currentFrequent?.destinationName, roundedLat, roundedLng]);
 
   // Autocomplete de Endereços

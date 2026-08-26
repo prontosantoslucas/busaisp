@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { RoutePlan } from '@/lib/routing';
 import { getEtaColorTokens } from '@/lib/etaStyle';
 import {
   X,
@@ -10,16 +9,21 @@ import {
 } from 'lucide-react';
 
 interface TransitDeparturesModalProps {
-  route: RoutePlan;
+  busLine: string;
+  busDestination: string;
+  boardStopName: string;
+  departureEtas: number[];
   onClose: () => void;
 }
 
 export default function TransitDeparturesModal({
-  route,
+  busLine,
+  busDestination,
+  boardStopName,
+  departureEtas,
   onClose
 }: TransitDeparturesModalProps) {
-  const line = route.recommendedLine;
-  const etas = route.departureEtas || [];
+  const etas = departureEtas || [];
 
   const now = new Date();
   const currentHourText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -62,10 +66,10 @@ export default function TransitDeparturesModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="bus-badge" style={{ padding: '4px 10px', fontSize: '14px' }}>
               <Bus size={16} />
-              <span>{line.lt}-{line.tl}</span>
+              <span>{busLine}</span>
             </div>
             <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
-              {line.ts}
+              {busDestination}
             </span>
           </div>
 
@@ -92,7 +96,7 @@ export default function TransitDeparturesModal({
         <div style={{ padding: '14px 20px', background: 'var(--bus-surface-sunken)', borderBottom: '1px solid var(--bus-border-subtle)' }}>
           <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', fontWeight: 600 }}>PARADA DE EMBARQUE SELECIONADA</div>
           <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--bus-violet)', marginTop: '2px' }}>
-            {route.departureStop.np}
+            {boardStopName}
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--bus-text-muted)', marginTop: '2px' }}>
             Horário atual de referência: {currentHourText}
@@ -131,7 +135,7 @@ export default function TransitDeparturesModal({
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>
-                        {line.ts}
+                        {busDestination}
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                         <Radio size={10} /> Baseado no rastreamento GPS SPTrans

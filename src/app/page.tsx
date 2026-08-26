@@ -639,7 +639,10 @@ export default function HomePage() {
       {/* 4. MODAL DE PRÓXIMAS PARTIDAS */}
       {isDeparturesModalOpen && activeRoute && (
         <TransitDeparturesModal
-          route={activeRoute}
+          busLine={`${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`}
+          busDestination={activeRoute.recommendedLine.ts}
+          boardStopName={activeRoute.departureStop.np}
+          departureEtas={activeRoute.departureEtas || []}
           onClose={() => setIsDeparturesModalOpen(false)}
         />
       )}
