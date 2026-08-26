@@ -11,6 +11,10 @@ import {
 } from '@/lib/gtfs';
 import { getSnappedRoutePolyline } from '@/lib/osrm';
 import { formatSaoPauloTime, getSaoPauloTime, getDiffMinutesFromSaoPaulo } from '@/lib/dateUtils';
+import { getDistanceMeters } from '@/lib/geoUtils';
+import { findRailRoutePlan } from '@/lib/railRouting';
+
+export { getDistanceMeters };
 
 export interface RouteLocation {
   name: string;
@@ -86,6 +90,7 @@ export interface RoutePlan {
     transit: [number, number][];
     walkToDest: [number, number][];
   };
+  mode?: 'BUS' | 'RAIL';
 }
 
 export interface RouteSearchResult {
@@ -281,20 +286,6 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
   };
 }
 
-function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3;
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return Math.round(R * c);
-}
 
 /**
  * Constrói um RoutePlan completo com dados detalhados idênticos ao Moovit
@@ -947,33 +938,46 @@ export async function calculateRoute(
     destNearby = await findNearbyStops(destLoc.lat, destLoc.lng, 4000, 25);
   }
 
-  if (origNearby.length === 0) {
-    throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada.');
+  // Busca trilho (Metrô/CPTM) em paralelo com ônibus — só usa se origem e destino
+  // tiverem estação próxima na MESMA linha (sem baldeação de trilho, ver railRouting.ts).
+  const railPlanPromise = findRailRoutePlan(originLoc, destLoc, targetOffsetMinutes).catch((err) => {
+    console.warn('[calculateRoute] Falha ao buscar rota de trilho:', err);
+    return null;
+  });
+
+  let plans: RoutePlan[] = [];
+
+  if (origNearby.length > 0 && destNearby.length > 0) {
+    plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby, targetOffsetMinutes);
+
+    // Se não encontrar na primeira busca, tenta ampliar o raio e o limite de paradas
+    if (plans.length === 0) {
+      const [expandedOrig, expandedDest] = await Promise.all([
+        findNearbyStops(originLoc.lat, originLoc.lng, 3500, 30),
+        findNearbyStops(destLoc.lat, destLoc.lng, 3500, 30)
+      ]);
+      plans = await findMultiLegPlans(originLoc, destLoc, expandedOrig, expandedDest, targetOffsetMinutes);
+    }
   }
 
-  if (destNearby.length === 0) {
-    throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado.');
-  }
+  const railPlan = await railPlanPromise;
+  if (railPlan) plans.push(railPlan);
 
-  let plans = await findMultiLegPlans(originLoc, destLoc, origNearby, destNearby, targetOffsetMinutes);
-
-  // Se não encontrar na primeira busca, tenta ampliar o raio e o limite de paradas
   if (plans.length === 0) {
-    const [expandedOrig, expandedDest] = await Promise.all([
-      findNearbyStops(originLoc.lat, originLoc.lng, 3500, 30),
-      findNearbyStops(destLoc.lat, destLoc.lng, 3500, 30)
-    ]);
-    plans = await findMultiLegPlans(originLoc, destLoc, expandedOrig, expandedDest, targetOffsetMinutes);
-  }
-
-  if (plans.length === 0) {
+    if (origNearby.length === 0) {
+      throw new Error('Nenhuma parada de ônibus encontrada perto da origem informada.');
+    }
+    if (destNearby.length === 0) {
+      throw new Error('Nenhuma parada de ônibus encontrada perto do destino informado.');
+    }
     throw new Error('Nenhuma linha encontrada conectando a origem ao destino.');
   }
 
   // Ordenação única: menor tempo total -> menor caminhada -> menos baldeações.
   // Uma rota com 1 baldeação pode ser mais rápida que uma direta com caminhada
   // longa, então ela deve poder aparecer primeiro — não priorizamos rotas
-  // diretas artificialmente.
+  // diretas artificialmente. Trilho entra na mesma ordenação, sem prioridade
+  // artificial sobre ônibus nem o contrário.
   plans.sort((a, b) =>
     a.totalDurationMinutes - b.totalDurationMinutes ||
     a.totalWalkDistanceMeters - b.totalWalkDistanceMeters ||

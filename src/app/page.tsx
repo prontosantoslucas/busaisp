@@ -47,13 +47,13 @@ const LiveMap = dynamic(() => import('@/components/Map/LiveMap'), {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#07090E',
-        color: '#94A3B8',
+        backgroundColor: 'var(--bus-bg)',
+        color: 'var(--bus-text-secondary)',
         gap: '12px'
       }}
     >
-      <div style={{ width: '32px', height: '32px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: '#06B6D4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-      <span style={{ fontSize: '13px', fontWeight: 600, color: '#38BDF8' }}>Carregando Radar BusaÍ SP...</span>
+      <div style={{ width: '32px', height: '32px', border: '3px solid var(--bus-violet-soft)', borderTopColor: 'var(--bus-violet)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>Carregando Radar BusaÍ SP...</span>
     </div>
   )
 });
@@ -310,7 +310,7 @@ export default function HomePage() {
     const item: FavoriteItem = {
       type: 'linha',
       ref_code: String(activeRoute.recommendedLine.cl),
-      title: `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl} ${activeRoute.destination.name}`,
+      title: `${activeRoute.mode === 'RAIL' ? activeRoute.recommendedLine.lt : `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`} ${activeRoute.destination.name}`,
       label: 'Rota'
     };
     const updated = await toggleFavorite(item);
@@ -367,8 +367,9 @@ export default function HomePage() {
             setIsMapFullscreen(true);
             if (!isVoiceMuted && activeRoute) {
               voiceService.announceBoarding(
-                `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
-                activeRoute.destination.name
+                activeRoute.mode === 'RAIL' ? activeRoute.recommendedLine.lt : `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
+                activeRoute.destination.name,
+                activeRoute.mode === 'RAIL' ? 'metrô/trem' : 'ônibus'
               );
             }
           }}
@@ -410,8 +411,9 @@ export default function HomePage() {
                     setIsPercursoActive(true);
                     if (!isVoiceMuted && activeRoute) {
                       voiceService.announceBoarding(
-                        `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
-                        activeRoute.destination.name
+                        activeRoute.mode === 'RAIL' ? activeRoute.recommendedLine.lt : `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`,
+                        activeRoute.destination.name,
+                        activeRoute.mode === 'RAIL' ? 'metrô/trem' : 'ônibus'
                       );
                     }
                   }}
@@ -427,9 +429,9 @@ export default function HomePage() {
                 onClick={() => setIsMapFullscreen(false)}
                 className="bus-glass-panel"
                 style={{
-                  borderRadius: '9999px',
+                  borderRadius: 'var(--bus-radius-full)',
                   padding: '10px 16px',
-                  color: '#F8FAFC',
+                  color: 'var(--bus-text-primary)',
                   fontSize: '12px',
                   fontWeight: 700,
                   display: 'flex',
@@ -438,7 +440,7 @@ export default function HomePage() {
                   cursor: 'pointer'
                 }}
               >
-                <ChevronUp size={16} color="#06B6D4" />
+                <ChevronUp size={16} color="var(--bus-violet)" />
                 <span>Ver Painel da Viagem</span>
               </button>
             </div>
@@ -459,19 +461,19 @@ export default function HomePage() {
                 onClick={() => setIsMapFullscreen(false)}
                 className="bus-glass-panel"
                 style={{
-                  borderRadius: '9999px',
+                  borderRadius: 'var(--bus-radius-full)',
                   padding: '10px 16px',
-                  color: '#F8FAFC',
+                  color: 'var(--bus-text-primary)',
                   fontSize: '12px',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.7)'
+                  boxShadow: 'var(--bus-shadow-dock)'
                 }}
               >
-                <ChevronUp size={16} color="#06B6D4" />
+                <ChevronUp size={16} color="var(--bus-violet)" />
                 <span>Ver Painel da Viagem</span>
               </button>
             </div>

@@ -11,6 +11,7 @@ import {
   Clock,
   Footprints,
   Bus,
+  TrainTrack,
   ChevronRight,
   Map as MapIcon,
   Zap,
@@ -317,7 +318,7 @@ export default function TransitRouteResults({
                           <Footprints size={12} />
                           <span>{step.durationMinutes}m</span>
                         </div>
-                      ) : step.type === 'BUS' ? (
+                      ) : step.type === 'BUS' || step.type === 'RAIL' ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -327,7 +328,7 @@ export default function TransitRouteResults({
                           style={{ border: 'none', cursor: 'pointer' }}
                           title="Ver próximas partidas desta linha"
                         >
-                          <Bus size={13} />
+                          {step.type === 'RAIL' ? <TrainTrack size={13} /> : <Bus size={13} />}
                           <span>{step.busLine || `${route.recommendedLine.lt}-${route.recommendedLine.tl}`}</span>
                           {step.departureEtas && step.departureEtas.length > 0 && (
                             <span className="bus-num" style={{ fontSize: '10.5px', opacity: 0.9 }}>

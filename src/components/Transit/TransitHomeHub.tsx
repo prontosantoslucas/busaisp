@@ -439,7 +439,7 @@ export default function TransitHomeHub({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div className="bus-badge">
                   <Bus size={14} />
-                  <span>{liveRoutePlan.recommendedLine.lt}-{liveRoutePlan.recommendedLine.tl}</span>
+                  <span>{liveRoutePlan.mode === 'RAIL' ? liveRoutePlan.recommendedLine.lt : `${liveRoutePlan.recommendedLine.lt}-${liveRoutePlan.recommendedLine.tl}`}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>

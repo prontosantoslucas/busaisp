@@ -83,8 +83,8 @@ class VoiceService {
     }
   }
 
-  public announceBoarding(lineDisplay: string, destination: string) {
-    this.speak(`Embarque no ônibus linha ${lineDisplay} com destino a ${destination}.`);
+  public announceBoarding(lineDisplay: string, destination: string, vehicleWord: string = 'ônibus') {
+    this.speak(`Embarque no ${vehicleWord} linha ${lineDisplay} com destino a ${destination}.`);
   }
 
   public announceTransfer(instructions: string) {

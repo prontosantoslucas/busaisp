@@ -7,6 +7,7 @@ import {
   Star,
   Footprints,
   Bus,
+  TrainTrack,
   ChevronDown,
   ChevronUp,
   Square,
@@ -61,8 +62,9 @@ export default function TransitRouteDetail({
     onStartLiveNavigation();
     if (!isVoiceMuted) {
       voiceService.announceBoarding(
-        `${route.recommendedLine.lt}-${route.recommendedLine.tl}`,
-        route.destination.name
+        route.mode === 'RAIL' ? route.recommendedLine.lt : `${route.recommendedLine.lt}-${route.recommendedLine.tl}`,
+        route.destination.name,
+        route.mode === 'RAIL' ? 'metrô/trem' : 'ônibus'
       );
     }
   };
@@ -243,13 +245,15 @@ export default function TransitRouteDetail({
         {route.steps.map((step, stepIdx) => {
           const isLast = stepIdx === route.steps.length - 1;
 
-          if (step.type === 'BUS') {
+          if (step.type === 'BUS' || step.type === 'RAIL') {
+            const isRail = step.type === 'RAIL';
+            const StepIcon = isRail ? TrainTrack : Bus;
             const stepEtaColors = getEtaColorTokens(step.nextBusEtaMinutes ?? -1);
             return (
               <div key={stepIdx} style={{ display: 'flex', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-violet-soft)', border: '1px solid var(--bus-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Bus size={15} color="var(--bus-violet)" />
+                    <StepIcon size={15} color="var(--bus-violet)" />
                   </div>
                   {!isLast && <div style={{ width: '2px', flex: 1, minHeight: '40px', background: 'var(--bus-violet)', margin: '4px 0' }} />}
                 </div>
@@ -262,7 +266,7 @@ export default function TransitRouteDetail({
                       style={{ border: 'none', cursor: 'pointer' }}
                       title="Ver próximas partidas desta linha"
                     >
-                      <Bus size={13} />
+                      <StepIcon size={13} />
                       <span>{step.busLine}</span>
                     </button>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
