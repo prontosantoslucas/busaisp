@@ -304,12 +304,26 @@ function formatTimeHourMinute(date: Date): string {
 /**
  * Constrói um RoutePlan completo com dados detalhados idênticos ao Moovit
  */
+// Acima disso, uma "baldeação a pé" deixa de ser plausível — indica coordenadas
+// inconsistentes entre consultas (ex.: a mesma parada com lat/lng ligeiramente
+// diferente vinda de duas RPCs distintas), não uma baldeação real. Preferimos
+// descartar o plano a mostrar um tempo de caminhada sem sentido (ex.: milhares
+// de minutos).
+const MAX_PLAUSIBLE_TRANSFER_WALK_METERS = 2500;
+
 export async function buildMultiLegPlan(
   originLoc: RouteLocation,
   destLoc: RouteLocation,
   legs: DiscoveredLeg[],
   targetOffsetMinutes: number = 0
-): Promise<RoutePlan> {
+): Promise<RoutePlan | null> {
+  for (let i = 0; i < legs.length - 1; i++) {
+    const dist = getDistanceMeters(legs[i].alightStop.py, legs[i].alightStop.px, legs[i + 1].boardStop.py, legs[i + 1].boardStop.px);
+    if (dist > MAX_PLAUSIBLE_TRANSFER_WALK_METERS) {
+      return null;
+    }
+  }
+
   const firstLeg = legs[0];
   const lastLeg = legs[legs.length - 1];
   const transferCount = legs.length - 1;
@@ -800,7 +814,7 @@ async function findMultiLegPlans(
         return buildMultiLegPlan(originLoc, destLoc, legs, targetOffsetMinutes);
       })
     );
-    plans.push(...newPlans);
+    plans.push(...newPlans.filter((p): p is RoutePlan => p !== null));
 
     if (plans.length >= MAX_ALTERNATIVES || round === MAX_TRANSFER_ROUNDS) break;
 

@@ -4,7 +4,8 @@ vi.mock('@/lib/gtfs', () => ({
   findNearbyStops: vi.fn(),
   findDirectRoutes: vi.fn(),
   findRoutesFromStops: vi.fn(),
-  getTripStopCoordinates: vi.fn()
+  getTripStopCoordinates: vi.fn(),
+  getTripDetailedStops: vi.fn()
 }));
 
 vi.mock('@/lib/sptrans', () => ({
@@ -15,7 +16,7 @@ vi.mock('@/lib/osrm', () => ({
   getSnappedRoutePolyline: vi.fn().mockImplementation((pts) => Promise.resolve(pts))
 }));
 
-import { findNearbyStops, findDirectRoutes, findRoutesFromStops, getTripStopCoordinates } from '@/lib/gtfs';
+import { findNearbyStops, findDirectRoutes, findRoutesFromStops, getTripDetailedStops } from '@/lib/gtfs';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
 import { calculateRoute } from '@/lib/routing';
 
@@ -25,7 +26,7 @@ const dest = { name: 'Destino', lat: -23.51, lng: -46.62 };
 beforeEach(() => {
   vi.clearAllMocks();
   (findRoutesFromStops as any).mockResolvedValue([]);
-  (getTripStopCoordinates as any).mockResolvedValue([]);
+  (getTripDetailedStops as any).mockResolvedValue([]);
 });
 
 describe('calculateRoute', () => {
