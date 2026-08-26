@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   SPTransLinha,
@@ -185,11 +185,43 @@ export default function HomePage() {
     return () => clearInterval(incInterval);
   }, []);
 
-  // Monitorar aproximação por voz durante o Percurso Ativo
+  // Avisos de voz já disparados nesta viagem (por rota + índice da etapa), pra não
+  // repetir o mesmo aviso a cada nova leitura de GPS enquanto o usuário está parado
+  // perto do ponto de baldeação/destino.
+  const announcedStepsRef = useRef<Set<string>>(new Set());
+
+  // Monitorar aproximação por voz durante o Percurso Ativo — avisa em CADA baldeação
+  // (não só no destino final), comparando o GPS ao vivo com o ponto de desembarque
+  // real de cada perna da viagem.
   useEffect(() => {
     if (!isPercursoActive || !userCoords || isVoiceMuted) return;
     const currentRoute = routes[selectedRouteIndex];
     if (!currentRoute) return;
+
+    const legSteps = currentRoute.steps.filter(s => s.type === 'BUS' || s.type === 'RAIL');
+
+    legSteps.forEach((step, idx) => {
+      const isLastLeg = idx === legSteps.length - 1;
+      if (isLastLeg) return; // desembarque final é coberto pelo aviso de "chegando ao destino" abaixo
+
+      const alightPoint = step.intermediateStops && step.intermediateStops.length > 0
+        ? step.intermediateStops[step.intermediateStops.length - 1]
+        : null;
+      if (!alightPoint) return;
+
+      const distToAlight = getDistanceMeters(userCoords[0], userCoords[1], alightPoint.lat, alightPoint.lng);
+      const announceKey = `${currentRoute.id}_leg${idx}`;
+
+      if (distToAlight < 300 && !announcedStepsRef.current.has(announceKey)) {
+        announcedStepsRef.current.add(announceKey);
+        const nextLeg = legSteps[idx + 1];
+        voiceService.announceTransfer(
+          nextLeg?.busLine
+            ? `Desça em ${step.alightStopName || alightPoint.name} e embarque na linha ${nextLeg.busLine}.`
+            : `Desça em ${step.alightStopName || alightPoint.name} para a próxima etapa.`
+        );
+      }
+    });
 
     // Verificar distância até o destino final
     if (currentRoute.destination?.lat && currentRoute.destination?.lng) {

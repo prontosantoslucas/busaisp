@@ -414,7 +414,11 @@ export default function TransitRouteDetail({
           }}
         >
           <Volume2 size={14} />
-          <span>O app avisará por voz quando você estiver perto do destino final.</span>
+          <span>
+            {route.transferCount > 0
+              ? 'O app avisará por voz em cada baldeação e perto do destino final.'
+              : 'O app avisará por voz quando você estiver perto do destino final.'}
+          </span>
         </div>
       </div>
 
