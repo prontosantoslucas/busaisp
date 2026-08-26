@@ -11,7 +11,8 @@ import {
   Footprints,
   Bus,
   MapPin,
-  Star,
+  Home,
+  Briefcase,
   X,
   ArrowRight,
   Newspaper
@@ -49,12 +50,26 @@ export default function TransitHomeHub({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Destinos Favoritos ou Populares em SP
-  const userFavoritesList = favorites.map(f => ({
-    title: f.title,
-    destinationName: f.details?.ed || f.title,
-    icon: Star
-  }));
+  // Destinos Favoritos ou Populares em SP — endereços reais (Casa/Trabalho) aparecem
+  // primeiro, com ícone próprio; linhas favoritadas não são "destinos" navegáveis.
+  const addressFavorites = favorites
+    .filter(f => f.type === 'endereco')
+    .sort((a, b) => (a.ref_code === 'home' ? -1 : b.ref_code === 'home' ? 1 : 0))
+    .map(f => ({
+      title: f.label || f.title,
+      destinationName: f.title,
+      icon: f.ref_code === 'home' ? Home : f.ref_code === 'work' ? Briefcase : MapPin
+    }));
+
+  const otherFavoritesList = favorites
+    .filter(f => f.type === 'parada')
+    .map(f => ({
+      title: f.title,
+      destinationName: f.details?.ed || f.title,
+      icon: MapPin
+    }));
+
+  const userFavoritesList = [...addressFavorites, ...otherFavoritesList];
 
   // "Mais buscados" vem de buscas reais registradas em search_events — nunca uma
   // lista fixa fingindo ser popular. Sem histórico real ainda, fica vazio mesmo.

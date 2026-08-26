@@ -37,16 +37,10 @@ export default function OfflineIndicator() {
         transform: 'translateX(-50%)',
         zIndex: 10001,
         padding: '6px 14px',
-        borderRadius: '9999px',
-        background: isOffline
-          ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.95) 100%)'
-          : 'linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%)',
+        borderRadius: 'var(--bus-radius-full)',
+        background: isOffline ? 'var(--bus-red)' : 'var(--bus-emerald)',
         color: '#FFFFFF',
-        boxShadow: isOffline
-          ? '0 6px 20px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)'
-          : '0 6px 20px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: 'var(--bus-shadow-card)',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',

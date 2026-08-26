@@ -301,21 +301,22 @@ export default function HomePage() {
 
   const activeRoute = routes[selectedRouteIndex] || null;
 
-  const isCurrentRouteFavorited = activeRoute
-    ? favorites.some((f) => f.ref_code === String(activeRoute.recommendedLine.cl))
-    : false;
+  const isRouteFavorited = (route: RoutePlan) =>
+    favorites.some((f) => f.ref_code === String(route.recommendedLine.cl));
 
-  const handleToggleRouteFavorite = async () => {
-    if (!activeRoute) return;
+  const handleToggleRouteFavoriteFor = async (route: RoutePlan) => {
     const item: FavoriteItem = {
       type: 'linha',
-      ref_code: String(activeRoute.recommendedLine.cl),
-      title: `${activeRoute.mode === 'RAIL' ? activeRoute.recommendedLine.lt : `${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`} ${activeRoute.destination.name}`,
+      ref_code: String(route.recommendedLine.cl),
+      title: `${route.mode === 'RAIL' ? route.recommendedLine.lt : `${route.recommendedLine.lt}-${route.recommendedLine.tl}`} ${route.destination.name}`,
       label: 'Rota'
     };
     const updated = await toggleFavorite(item);
     setFavorites(updated);
   };
+
+  const isCurrentRouteFavorited = activeRoute ? isRouteFavorited(activeRoute) : false;
+  const handleToggleRouteFavorite = () => activeRoute && handleToggleRouteFavoriteFor(activeRoute);
 
   const handleToggleVoice = () => {
     const nextState = !isVoiceMuted;
@@ -558,6 +559,8 @@ export default function HomePage() {
                 setScheduledTime(time);
                 handleCalculateRoutes(undefined, undefined, time);
               }}
+              isRouteFavorited={isRouteFavorited}
+              onToggleRouteFavorite={handleToggleRouteFavoriteFor}
             />
           )}
 
@@ -631,6 +634,11 @@ export default function HomePage() {
                   setSelectedParada(parada);
                 }}
                 onOpenSearch={() => setActiveTab('LINHAS')}
+                onSelectDestination={(dest) => {
+                  setDestino(dest);
+                  setActiveTab('ROTAS');
+                  handleCalculateRoutes(dest);
+                }}
               />
             </div>
           )}

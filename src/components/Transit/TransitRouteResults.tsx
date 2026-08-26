@@ -12,6 +12,7 @@ import {
   Footprints,
   Bus,
   TrainTrack,
+  Star,
   ChevronRight,
   Map as MapIcon,
   Zap,
@@ -37,6 +38,8 @@ interface TransitRouteResultsProps {
   searchError?: string | null;
   scheduledTime?: string;
   onScheduledTimeChange?: (time: string) => void;
+  isRouteFavorited?: (route: RoutePlan) => boolean;
+  onToggleRouteFavorite?: (route: RoutePlan) => void;
 }
 
 export default function TransitRouteResults({
@@ -55,7 +58,9 @@ export default function TransitRouteResults({
   isCalculating,
   searchError,
   scheduledTime = '',
-  onScheduledTimeChange
+  onScheduledTimeChange,
+  isRouteFavorited,
+  onToggleRouteFavorite
 }: TransitRouteResultsProps) {
   const [filterMode, setFilterMode] = useState<'ALL' | 'FASTEST' | 'LESS_WALK' | 'LESS_TRANSFERS'>('ALL');
   const [departuresStep, setDeparturesStep] = useState<RouteStep | null>(null);
@@ -277,6 +282,26 @@ export default function TransitRouteResults({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {onToggleRouteFavorite && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleRouteFavorite(route);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '2px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: isRouteFavorited?.(route) ? 'var(--bus-live)' : 'var(--bus-text-muted)'
+                        }}
+                        title={isRouteFavorited?.(route) ? 'Remover dos favoritos' : 'Favoritar esta rota'}
+                      >
+                        <Star size={16} fill={isRouteFavorited?.(route) ? 'var(--bus-live)' : 'none'} />
+                      </button>
+                    )}
                     <span
                       className="bus-num"
                       style={{

@@ -40,9 +40,9 @@ export default function PWAInstallBanner() {
         maxWidth: '440px',
         zIndex: 10000,
         padding: '12px 14px',
-        background: 'linear-gradient(135deg, rgba(13, 17, 23, 0.96) 0%, rgba(22, 27, 34, 0.94) 100%)',
-        border: '1px solid rgba(6, 182, 212, 0.35)',
-        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.2)',
+        background: 'var(--bus-surface)',
+        border: '1px solid var(--bus-border-highlight)',
+        boxShadow: 'var(--bus-shadow-dock)',
         animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         display: 'flex',
         flexDirection: 'column',
@@ -54,44 +54,43 @@ export default function PWAInstallBanner() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <div
             style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+              width: '38px',
+              height: '38px',
+              borderRadius: 'var(--bus-radius-sm)',
+              background: 'var(--bus-violet-ink)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 0 12px rgba(6, 182, 212, 0.5)',
               overflow: 'hidden'
             }}
           >
-            <Smartphone size={22} color="#FFFFFF" />
+            <Smartphone size={20} color="#FFFFFF" />
           </div>
 
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.2px' }}>
+              <span className="bus-display" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--bus-text-primary)', letterSpacing: '-0.2px' }}>
                 Instalar BusaÍ SP
               </span>
               <span
                 style={{
                   fontSize: '9.5px',
                   fontWeight: 800,
-                  background: 'rgba(6, 182, 212, 0.2)',
-                  color: '#38BDF8',
+                  background: 'var(--bus-violet-soft)',
+                  color: 'var(--bus-violet)',
                   padding: '1px 5px',
                   borderRadius: '4px',
-                  border: '1px solid rgba(6, 182, 212, 0.4)'
+                  border: '1px solid var(--bus-border-highlight)'
                 }}
               >
-                APP PWA
+                PWA
               </span>
             </div>
             <div
               style={{
                 fontSize: '11px',
-                color: '#94A3B8',
+                color: 'var(--bus-text-secondary)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
@@ -111,8 +110,8 @@ export default function PWAInstallBanner() {
             style={{
               padding: '7px 12px',
               fontSize: '12px',
-              fontWeight: 800,
-              borderRadius: '10px',
+              fontWeight: 700,
+              borderRadius: 'var(--bus-radius-sm)',
               gap: '5px'
             }}
           >
@@ -133,10 +132,10 @@ export default function PWAInstallBanner() {
           <button
             onClick={dismissBanner}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94A3B8',
-              borderRadius: '8px',
+              background: 'var(--bus-surface-elevated)',
+              border: '1px solid var(--bus-border)',
+              color: 'var(--bus-text-secondary)',
+              borderRadius: 'var(--bus-radius-sm)',
               width: '28px',
               height: '28px',
               display: 'flex',
@@ -155,12 +154,12 @@ export default function PWAInstallBanner() {
       {isIOS && showIOSInstructions && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
+            background: 'var(--bus-surface-sunken)',
+            border: '1px solid var(--bus-border)',
+            borderRadius: 'var(--bus-radius-md)',
             padding: '10px 12px',
             fontSize: '11.5px',
-            color: '#E2E8F0',
+            color: 'var(--bus-text-primary)',
             lineHeight: 1.5,
             display: 'flex',
             flexDirection: 'column',
@@ -168,7 +167,7 @@ export default function PWAInstallBanner() {
             animation: 'fadeIn 0.2s ease'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--bus-violet)', fontWeight: 700 }}>
             <Sparkles size={13} />
             <span>Como instalar no iPhone / iPad:</span>
           </div>
@@ -178,8 +177,8 @@ export default function PWAInstallBanner() {
                 width: '18px',
                 height: '18px',
                 borderRadius: '50%',
-                background: 'rgba(6, 182, 212, 0.2)',
-                color: '#38BDF8',
+                background: 'var(--bus-violet-soft)',
+                color: 'var(--bus-violet)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -201,8 +200,8 @@ export default function PWAInstallBanner() {
                 width: '18px',
                 height: '18px',
                 borderRadius: '50%',
-                background: 'rgba(6, 182, 212, 0.2)',
-                color: '#38BDF8',
+                background: 'var(--bus-violet-soft)',
+                color: 'var(--bus-violet)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

@@ -97,9 +97,9 @@ const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
     timestamp: 'Programação semanal',
     badge: {
       label: 'DESVIOS SPTRANS',
-      bg: 'rgba(6, 182, 212, 0.22)',
-      text: '#38BDF8',
-      border: 'rgba(6, 182, 212, 0.5)'
+      bg: 'var(--bus-violet-soft)',
+      text: 'var(--bus-violet)',
+      border: 'var(--bus-border-highlight)'
     },
     source: 'CET / SPTrans',
     categoryTag: 'Desvios de Itinerário'

@@ -7,11 +7,11 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
 
 export interface FavoriteItem {
   id?: string;
-  type: 'linha' | 'parada' | 'trilho';
-  ref_code: string;       // ex: "1703", "340015350", "1"
-  title: string;          // ex: "1703-10 Jd. Fontális / Center Norte"
+  type: 'linha' | 'parada' | 'trilho' | 'endereco';
+  ref_code: string;       // ex: "1703", "340015350", "1", "home", "work"
+  title: string;          // ex: "1703-10 Jd. Fontális / Center Norte", ou o endereço real p/ 'endereco'
   label?: string;         // ex: "Casa 🏠", "Trabalho 💼"
-  details?: Record<string, any>;
+  details?: Record<string, any>; // p/ 'endereco': { lat, lng, addressDetails }
   created_at?: string;
 }
 

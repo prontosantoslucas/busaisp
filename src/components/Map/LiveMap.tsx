@@ -224,9 +224,9 @@ export default function LiveMap({
     } else {
       const userIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            <div style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background: ${isPercursoActive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(6, 182, 212, 0.45)'}; animation: markerPulse 1.5s infinite;"></div>
-            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${isPercursoActive ? '#10B981' : 'var(--bus-violet-ink)'}; border: 2.5px solid #FFFFFF; box-shadow: 0 2px 12px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #fff;">
+          <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background: ${isPercursoActive ? 'var(--bus-emerald-soft)' : 'var(--bus-violet-soft)'}; animation: markerPulse 1.5s infinite;"></div>
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${isPercursoActive ? 'var(--bus-emerald)' : 'var(--bus-violet-ink)'}; border: 2.5px solid #FFFFFF; box-shadow: var(--bus-shadow-raised); display: flex; align-items: center; justify-content: center; color: #fff;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
             </div>
           </div>
@@ -237,7 +237,7 @@ export default function LiveMap({
       });
 
       userMarkerRef.current = L.marker(effectiveCoords, { icon: userIcon, zIndexOffset: 1000 })
-        .bindPopup('<strong>Sua Localização (GPS)</strong><br/><span style="font-size:11px; color:#94A3B8;">Precisão em tempo real</span>')
+        .bindPopup('<strong>Sua Localização (GPS)</strong><br/><span style="font-size:11px; color:var(--bus-text-secondary);">Precisão em tempo real</span>')
         .addTo(map);
     }
 
@@ -363,16 +363,16 @@ export default function LiveMap({
         const transferMarker = L.marker([tp.lat, tp.lng], { icon: transferIcon, zIndexOffset: 950 });
         transferMarker.bindPopup(`
           <div style="font-family: inherit; min-width: 230px; padding: 6px;">
-            <div style="background: #F59E0B; color: #000000; font-size: 11px; font-weight: 900; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">
+            <div style="background: var(--bus-live); color: var(--bus-text-on-accent); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--bus-radius-sm); display: inline-block; margin-bottom: 6px;">
               PONTO DE BALDEAÇÃO
             </div>
-            <strong style="color: #FFFFFF; font-size: 13px; display: block; margin-bottom: 4px;">
+            <strong style="color: var(--bus-text-primary); font-size: 13px; display: block; margin-bottom: 4px;">
               ${tp.stopName}
             </strong>
-            <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
-              <div>Desça do ônibus: <strong style="color: #F87171;">${tp.fromLine}</strong></div>
-              <div>Pegue o próximo: <strong style="color: #34D399;">${tp.toLine}</strong> (sentido ${tp.toDestination})</div>
-              ${tp.walkMeters && tp.walkMeters > 30 ? `<div style="background: #1E293B; padding: 4px 6px; border-radius: 4px;">Caminhada entre paradas: <strong style="color: var(--bus-violet);">${tp.walkMeters}m (~${tp.walkMinutes} min)</strong></div>` : ''}
+            <div style="font-size: 12px; color: var(--bus-text-secondary); display: flex; flex-direction: column; gap: 4px;">
+              <div>Desça do ônibus: <strong style="color: var(--bus-rose);">${tp.fromLine}</strong></div>
+              <div>Pegue o próximo: <strong style="color: var(--bus-emerald);">${tp.toLine}</strong> (sentido ${tp.toDestination})</div>
+              ${tp.walkMeters && tp.walkMeters > 30 ? `<div style="background: var(--bus-surface-sunken); border: 1px solid var(--bus-border-subtle); padding: 4px 6px; border-radius: var(--bus-radius-sm);">Caminhada entre paradas: <strong style="color: var(--bus-violet);">${tp.walkMeters}m (~${tp.walkMinutes} min)</strong></div>` : ''}
             </div>
           </div>
         `);
@@ -473,29 +473,29 @@ export default function LiveMap({
       const popupHtml = `
         <div style="font-family: inherit; min-width: 230px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <span style="background: ${bgColor}; color: #FFFFFF; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+            <span style="background: ${bgColor}; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--bus-radius-sm); display: inline-flex; align-items: center; gap: 4px;">
               ${label}
             </span>
-            <span style="font-size: 10px; color: #94A3B8; font-weight: 700;">
+            <span style="font-size: 10px; color: var(--bus-text-muted); font-weight: 600;">
               Fonte: ${inc.source}
             </span>
           </div>
 
-          <strong style="color: #FFFFFF; font-size: 13px; display: block; margin-bottom: 4px; line-height: 1.3;">
+          <strong style="color: var(--bus-text-primary); font-size: 13px; display: block; margin-bottom: 4px; line-height: 1.3;">
             ${inc.title}
           </strong>
 
-          <div style="color: var(--bus-violet); font-size: 11px; font-weight: 700; margin-bottom: 6px;">
+          <div style="color: var(--bus-violet); font-size: 11px; font-weight: 600; margin-bottom: 6px;">
             ${inc.street}
           </div>
 
-          <div style="font-size: 12px; color: #CBD5E1; background: #1E293B; padding: 6px 8px; border-radius: 6px; margin-bottom: 6px; line-height: 1.4;">
+          <div style="font-size: 12px; color: var(--bus-text-primary); background: var(--bus-surface-sunken); border: 1px solid var(--bus-border-subtle); padding: 6px 8px; border-radius: var(--bus-radius-sm); margin-bottom: 6px; line-height: 1.4;">
             ${inc.description}
           </div>
 
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94A3B8;">
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--bus-text-muted);">
             <span>Atualizado às ${inc.updatedAt}</span>
-            <span style="color: #10B981; font-weight: 800;">Confiança: 10/10</span>
+            <span style="color: var(--bus-emerald); font-weight: 700;">Confiança: 10/10</span>
           </div>
         </div>
       `;
@@ -522,8 +522,8 @@ export default function LiveMap({
 
       const htmlIcon = `
         <div class="bus-marker-container">
-          <div class="bus-marker-pulse" style="${isRouteLine ? 'background: rgba(16, 185, 129, 0.45); width: 48px; height: 48px;' : ''}"></div>
-          <div class="bus-marker-icon" style="transform: rotate(${heading}deg); ${isRouteLine ? 'background: #10B981; border: 2px solid #FFFFFF; box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);' : ''}">
+          <div class="bus-marker-pulse" style="${isRouteLine ? 'background: var(--bus-emerald-soft); width: 48px; height: 48px;' : ''}"></div>
+          <div class="bus-marker-icon" style="transform: rotate(${heading}deg); ${isRouteLine ? 'background: var(--bus-emerald); border: 2px solid #FFFFFF;' : ''}">
             <div class="bus-marker-arrow"></div>
             <span style="transform: rotate(-${heading}deg); font-weight: 900;">${v.p.slice(-3)}</span>
           </div>
@@ -542,28 +542,28 @@ export default function LiveMap({
       const popupContent = `
         <div style="font-family: inherit; min-width: 210px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <strong style="color: ${isRouteLine ? '#10B981' : 'var(--bus-violet)'}; font-size: 14px;">
+            <strong style="color: ${isRouteLine ? 'var(--bus-emerald)' : 'var(--bus-violet)'}; font-size: 14px;">
               ${isRouteLine ? 'Ônibus a Caminho' : 'Ônibus'} #${v.p}
             </strong>
-            ${v.a ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ACESSÍVEL</span>' : ''}
+            ${v.a ? '<span style="background: var(--bus-emerald-soft); color: var(--bus-emerald); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: var(--bus-radius-sm);">ACESSÍVEL</span>' : ''}
           </div>
           
-          <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
-            <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : 'SPTrans'}</strong></div>
-            <div style="background: #1E293B; border-left: 3px solid ${isRouteLine ? '#10B981' : 'var(--bus-violet-ink)'}; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
+          <div style="font-size: 12px; color: var(--bus-text-secondary); display: flex; flex-direction: column; gap: 4px;">
+            <div>Linha: <strong style="color: var(--bus-text-primary);">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : 'SPTrans'}</strong></div>
+            <div style="background: var(--bus-surface-sunken); border-left: 3px solid ${isRouteLine ? 'var(--bus-emerald)' : 'var(--bus-violet-ink)'}; border: 1px solid var(--bus-border-subtle); border-left-width: 3px; padding: 4px 6px; border-radius: var(--bus-radius-sm); margin: 2px 0;">
               <span style="font-size: 10px; color: var(--bus-violet); font-weight: 700; display: block;">DESTINO LETREIRO:</span>
-              <strong style="color: #FFFFFF; font-size: 12px;">${destinoText}</strong>
+              <strong style="color: var(--bus-text-primary); font-size: 12px;">${destinoText}</strong>
             </div>
             ${activeRoute ? `
-              <div style="background: ${getEtaColorTokens(activeRoute.nextBusEtaMinutes).background}; color: ${getEtaColorTokens(activeRoute.nextBusEtaMinutes).color}; padding: 4px 6px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+              <div style="background: ${getEtaColorTokens(activeRoute.nextBusEtaMinutes).background}; color: ${getEtaColorTokens(activeRoute.nextBusEtaMinutes).color}; padding: 4px 6px; border-radius: var(--bus-radius-sm); font-weight: 700; font-size: 11px;">
                 Previsão no ponto (${activeRoute.departureStop.np}): ~${activeRoute.nextBusEtaMinutes >= 0 ? `${activeRoute.nextBusEtaMinutes} min` : 'sem previsão'}
               </div>
             ` : ''}
-            <div style="display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 11px; margin-top: 2px;">
-              <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10B981;"></span>
+            <div style="display: flex; align-items: center; gap: 4px; color: var(--bus-emerald); font-size: 11px; margin-top: 2px;">
+              <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bus-emerald);"></span>
               <strong>Sinal GPS Olho Vivo em Tempo Real</strong>
             </div>
-            <div style="font-size: 10px; color: #64748B;">Última telemetria: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+            <div style="font-size: 10px; color: var(--bus-text-muted);">Última telemetria: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
           </div>
         </div>
       `;
@@ -632,7 +632,7 @@ export default function LiveMap({
 
       const htmlIcon = `
         <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          ${isSelected ? `<div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(6, 182, 212, 0.5); animation: markerPulse 1.5s infinite;"></div>` : ''}
+          ${isSelected ? `<div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: var(--bus-violet-soft); animation: markerPulse 1.5s infinite;"></div>` : ''}
           <div style="background: ${bgColor}; width: ${isSelected ? '36px' : '30px'}; height: ${isSelected ? '36px' : '30px'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.6); color: #fff;">
             ${svgIcon}
           </div>
@@ -651,21 +651,21 @@ export default function LiveMap({
       const popupHtml = `
         <div style="font-family: inherit; min-width: 220px; padding: 6px;">
           <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-            <span style="background: ${bgColor}; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">
+            <span style="background: ${bgColor}; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: var(--bus-radius-sm);">
               ${st.type === 'METRO' ? 'METRÔ SP' : st.type === 'CPTM' ? 'TREM CPTM' : 'TERMINAL SPTRANS'}
             </span>
           </div>
-          <strong style="color: #FFFFFF; font-size: 14px; display: block; margin-bottom: 2px;">
+          <strong style="color: var(--bus-text-primary); font-size: 14px; display: block; margin-bottom: 2px;">
             ${st.name}
           </strong>
           <div style="color: var(--bus-violet); font-size: 12px; font-weight: 600; margin-bottom: 6px;">
             ${st.address}
           </div>
-          <div style="font-size: 11px; color: #94A3B8; margin-bottom: 8px;">
+          <div style="font-size: 11px; color: var(--bus-text-secondary); margin-bottom: 8px;">
             ${st.neighborhood}
           </div>
           <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-            ${st.lines.map(l => `<span style="background:${l.color}; color:${l.color === '#FFF000' || l.color === '#A7A8AA' ? '#000' : '#fff'}; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">${l.name}</span>`).join('')}
+            ${st.lines.map(l => `<span style="background:${l.color}; color:${l.color === '#FFF000' || l.color === '#A7A8AA' ? '#000' : '#fff'}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:var(--bus-radius-sm);">${l.name}</span>`).join('')}
           </div>
         </div>
       `;
@@ -733,24 +733,22 @@ export default function LiveMap({
             maxWidth: '520px',
             margin: '0 auto',
             zIndex: 1000,
-            background: 'rgba(13, 17, 23, 0.94)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '2px solid #10B981',
-            borderRadius: '16px',
+            background: 'var(--bus-surface)',
+            border: '2px solid var(--bus-emerald)',
+            borderRadius: 'var(--bus-radius-lg)',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.85), 0 0 16px rgba(16, 185, 129, 0.3)',
+            boxShadow: 'var(--bus-shadow-dock)',
             animation: 'fadeIn 0.2s ease'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
-                background: '#10B981',
+                background: 'var(--bus-emerald)',
                 color: '#fff',
                 width: '34px',
                 height: '34px',
@@ -758,21 +756,20 @@ export default function LiveMap({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 0 12px rgba(16, 185, 129, 0.6)'
+                flexShrink: 0
               }}
             >
               <Navigation size={18} className="animate-pulse" />
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 900, color: '#34D399', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--bus-emerald)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--bus-emerald)' }} />
                 <span>NAVEGAÇÃO GPS ATIVA</span>
                 <span>·</span>
                 <span>EM ANDAMENTO</span>
               </div>
-              <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#FFFFFF' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                 {activeRoute.steps[0]?.instruction || 'Siga o trajeto no mapa'}
               </div>
             </div>
@@ -781,18 +778,17 @@ export default function LiveMap({
           <button
             onClick={onStopPercurso}
             style={{
-              background: '#EF4444',
+              background: 'var(--bus-red)',
               border: 'none',
-              borderRadius: '9999px',
+              borderRadius: 'var(--bus-radius-full)',
               padding: '8px 14px',
               color: '#FFFFFF',
               fontSize: '12px',
-              fontWeight: 900,
+              fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(239, 68, 68, 0.4)',
               whiteSpace: 'nowrap'
             }}
           >
@@ -820,9 +816,9 @@ export default function LiveMap({
           onClick={() => setShowIncidents(!showIncidents)}
           className="bus-pill"
           style={{
-            background: showIncidents ? '#DC2626' : 'rgba(13, 17, 23, 0.9)',
-            color: '#FFFFFF',
-            border: showIncidents ? '1.5px solid #EF4444' : '1px solid rgba(255, 255, 255, 0.1)',
+            background: showIncidents ? 'var(--bus-red)' : 'var(--bus-surface-elevated)',
+            color: showIncidents ? '#FFFFFF' : 'var(--bus-text-primary)',
+            border: showIncidents ? '1.5px solid var(--bus-red)' : '1px solid var(--bus-border)',
             position: 'relative',
             width: '42px',
             height: '42px',
@@ -842,17 +838,17 @@ export default function LiveMap({
                 position: 'absolute',
                 top: '-4px',
                 right: '-4px',
-                background: '#EF4444',
+                background: 'var(--bus-red)',
                 color: '#fff',
                 fontSize: '10px',
-                fontWeight: 900,
+                fontWeight: 800,
                 width: '18px',
                 height: '18px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1.5px solid #1C1E24'
+                border: '1.5px solid var(--bus-surface)'
               }}
             >
               {incidents.length}

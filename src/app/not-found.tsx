@@ -9,28 +9,25 @@ export default function NotFound() {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh',
-        backgroundColor: '#0B0F17',
-        color: '#F8FAFC',
+        backgroundColor: 'var(--bus-bg)',
+        color: 'var(--bus-text-primary)',
         padding: '20px',
         textAlign: 'center'
       }}
     >
-      <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>
+      <h2 className="bus-display" style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>
         Página não encontrada
       </h2>
-      <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '16px' }}>
+      <p style={{ color: 'var(--bus-text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
         A página solicitada não existe ou foi movida.
       </p>
       <Link
         href="/"
+        className="bus-btn-primary"
         style={{
-          padding: '10px 20px',
-          backgroundColor: '#E30613',
-          color: '#fff',
-          borderRadius: '8px',
-          textDecoration: 'none',
-          fontWeight: 600,
-          fontSize: '14px'
+          padding: '10px 22px',
+          fontSize: '14px',
+          textDecoration: 'none'
         }}
       >
         Voltar para o Início
@@ -38,3 +35,4 @@ export default function NotFound() {
     </div>
   );
 }
+

@@ -1,23 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FavoriteItem, fetchFavorites, toggleFavorite } from '@/lib/supabase';
-import { Star, Bus, MapPin, TrainTrack, Trash2, Tag, ArrowRight, Plus } from 'lucide-react';
+import { RouteLocation } from '@/lib/routing';
+import { Star, Bus, MapPin, Home, Briefcase, Trash2, ArrowRight, Plus, Search, X, Pencil } from 'lucide-react';
 import { SPTransLinha, SPTransParada } from '@/types/sptrans';
 
 interface FavoritesDrawerProps {
   onSelectLinha: (linha: SPTransLinha) => void;
   onSelectParada: (parada: SPTransParada) => void;
   onOpenSearch: () => void;
+  onSelectDestination?: (destinationName: string) => void;
 }
+
+const ADDRESS_SLOTS: Array<{ refCode: 'home' | 'work'; label: string; icon: typeof Home; placeholder: string }> = [
+  { refCode: 'home', label: 'Casa', icon: Home, placeholder: 'Definir endereço de casa' },
+  { refCode: 'work', label: 'Trabalho', icon: Briefcase, placeholder: 'Definir endereço de trabalho' }
+];
 
 export default function FavoritesDrawer({
   onSelectLinha,
   onSelectParada,
-  onOpenSearch
+  onOpenSearch,
+  onSelectDestination
 }: FavoritesDrawerProps) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'linha' | 'parada' | 'trilho'>('ALL');
+  const [editingSlot, setEditingSlot] = useState<'home' | 'work' | null>(null);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<RouteLocation[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadFavs = async () => {
     const list = await fetchFavorites();
@@ -56,10 +69,63 @@ export default function FavoritesDrawer({
         px: item.details?.px || -46.6559
       };
       onSelectParada(parada);
+    } else if (item.type === 'endereco' && onSelectDestination) {
+      onSelectDestination(item.title);
     }
   };
 
+  const handleAddressSearchChange = (value: string) => {
+    setAddressQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (value.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/rotas?tipo=sugestoes&q=${encodeURIComponent(value.trim())}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setSuggestions(json.data);
+        }
+      } catch (e) {
+        console.error('[FavoritesDrawer] Erro ao buscar sugestões de endereço:', e);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 280);
+  };
+
+  const handleSaveAddress = async (slot: 'home' | 'work', place: RouteLocation) => {
+    const slotMeta = ADDRESS_SLOTS.find((s) => s.refCode === slot)!;
+    // Remove o slot antigo (se já existia um endereço salvo aqui) antes de salvar o novo.
+    const existing = favorites.find((f) => f.type === 'endereco' && f.ref_code === slot);
+    let current = favorites;
+    if (existing) {
+      current = await toggleFavorite(existing);
+    }
+    const newItem: FavoriteItem = {
+      type: 'endereco',
+      ref_code: slot,
+      title: place.name,
+      label: slotMeta.label,
+      details: { lat: place.lat, lng: place.lng, addressDetails: place.addressDetails }
+    };
+    // toggleFavorite alterna: como o slot antigo já foi removido, isso sempre adiciona o novo.
+    setFavorites(current);
+    const updated = await toggleFavorite(newItem);
+    setFavorites(updated);
+    setEditingSlot(null);
+    setAddressQuery('');
+    setSuggestions([]);
+  };
+
+  const addressFavorites = favorites.filter((f) => f.type === 'endereco');
   const filtered = favorites.filter((f) => {
+    if (f.type === 'endereco') return false;
     if (activeFilter === 'ALL') return true;
     return f.type === activeFilter;
   });
@@ -117,7 +183,7 @@ export default function FavoritesDrawer({
         {/* Filtros */}
         <div style={{ display: 'flex', gap: '6px' }}>
           {[
-            { id: 'ALL', label: `Todos (${favorites.length})` },
+            { id: 'ALL', label: `Todos (${filtered.length})` },
             { id: 'linha', label: 'Linhas' },
             { id: 'parada', label: 'Paradas' }
           ].map((tab) => (
@@ -131,6 +197,127 @@ export default function FavoritesDrawer({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Meus Endereços: Casa e Trabalho reais, definidos pelo usuário */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {ADDRESS_SLOTS.map((slot) => {
+          const saved = addressFavorites.find((f) => f.ref_code === slot.refCode);
+          const Icon = slot.icon;
+          const isEditing = editingSlot === slot.refCode;
+
+          if (isEditing) {
+            return (
+              <div key={slot.refCode} className="bus-glass-panel" style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--bus-text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icon size={15} color="var(--bus-violet)" />
+                    {slot.placeholder}
+                  </span>
+                  <button
+                    onClick={() => { setEditingSlot(null); setAddressQuery(''); setSuggestions([]); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--bus-text-secondary)', cursor: 'pointer' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Search size={15} color="var(--bus-violet)" style={{ position: 'absolute', left: '10px', pointerEvents: 'none' }} />
+                  <input
+                    type="text"
+                    autoFocus
+                    className="bus-input"
+                    value={addressQuery}
+                    onChange={(e) => handleAddressSearchChange(e.target.value)}
+                    placeholder="Digite o endereço completo..."
+                    style={{ paddingLeft: '32px', height: '40px', fontSize: '13px' }}
+                  />
+                </div>
+                {isLoadingSuggestions ? (
+                  <div style={{ fontSize: '12px', color: 'var(--bus-text-secondary)', padding: '8px 0' }}>Buscando endereço...</div>
+                ) : suggestions.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                    {suggestions.map((sug, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleSaveAddress(slot.refCode, sug)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 'var(--bus-radius-sm)',
+                          background: 'var(--bus-surface-sunken)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}
+                      >
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>{sug.name}</span>
+                        {sug.addressDetails && (
+                          <span style={{ fontSize: '10.5px', color: 'var(--bus-text-secondary)' }}>{sug.addressDetails}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={slot.refCode}
+              className="bus-card"
+              onClick={() => (saved ? handleItemClick(saved) : setEditingSlot(slot.refCode))}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: 'var(--bus-radius-sm)',
+                    background: saved ? 'var(--bus-violet-soft)' : 'var(--bus-surface-sunken)',
+                    border: `1px solid ${saved ? 'var(--bus-border-highlight)' : 'var(--bus-border)'}`,
+                    color: saved ? 'var(--bus-violet)' : 'var(--bus-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <Icon size={19} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <strong style={{ fontSize: '13.5px', color: 'var(--bus-text-primary)' }}>{slot.label}</strong>
+                  <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {saved ? saved.title : `Toque para ${slot.placeholder.toLowerCase()}`}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                {saved ? (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingSlot(slot.refCode); }}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--bus-text-muted)', cursor: 'pointer', padding: '6px' }}
+                      title="Editar endereço"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <ArrowRight size={16} color="var(--bus-violet-ink)" />
+                  </>
+                ) : (
+                  <Plus size={18} color="var(--bus-text-muted)" />
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Lista de Favoritos */}
