@@ -371,7 +371,6 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
         className="bus-glass-panel"
         style={{
           padding: '16px',
-          background: 'linear-gradient(135deg, rgba(13, 17, 23, 0.98) 0%, rgba(22, 27, 34, 0.96) 100%)',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
@@ -384,13 +383,12 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
               style={{
                 width: '40px',
                 height: '40px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(6, 182, 212, 0.25) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-violet-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38BDF8',
+                color: '#FFFFFF',
                 flexShrink: 0
               }}
             >
@@ -400,29 +398,30 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
               <div
                 style={{
                   fontSize: '17px',
-                  fontWeight: 900,
-                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  color: 'var(--bus-text-primary)',
                   letterSpacing: '-0.3px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
                 }}
+                className="bus-display"
               >
                 <span>Notícias & Trânsito</span>
                 <span
                   style={{
                     fontSize: '10.5px',
-                    background: 'rgba(239, 68, 68, 0.25)',
-                    color: '#F87171',
+                    background: 'var(--bus-red-soft)',
+                    color: 'var(--bus-red)',
                     padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontWeight: 800
+                    borderRadius: 'var(--bus-radius-sm)',
+                    fontWeight: 700
                   }}
                 >
                   SP AO VIVO
                 </span>
               </div>
-              <div style={{ fontSize: '12px', color: '#94A3B8' }}>
+              <div style={{ fontSize: '12px', color: 'var(--bus-text-secondary)' }}>
                 CET, Metrô, SPTrans e avisos aos passageiros
               </div>
             </div>
@@ -434,11 +433,11 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
             style={{
               padding: '6px 12px',
               fontSize: '12px',
-              fontWeight: 800,
+              fontWeight: 700,
               gap: '6px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#34D399',
+              background: 'var(--bus-emerald-soft)',
+              border: '1px solid var(--bus-emerald)',
+              color: 'var(--bus-emerald)',
               minHeight: '36px'
             }}
             title="Atualizar Feed"
@@ -448,7 +447,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 width: '7px',
                 height: '7px',
                 borderRadius: '50%',
-                background: '#10B981',
+                background: 'var(--bus-emerald)',
                 animation: 'markerPulse 1.5s infinite'
               }}
             />
@@ -467,11 +466,10 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
             style={{
               paddingLeft: '40px',
               height: '46px',
-              fontSize: '14.5px',
-              background: 'rgba(15, 23, 42, 0.85)'
+              fontSize: '14.5px'
             }}
           />
-          <Search size={18} color="#06B6D4" style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }} />
+          <Search size={18} color="var(--bus-violet)" style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }} />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
@@ -480,7 +478,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 right: '12px',
                 background: 'none',
                 border: 'none',
-                color: '#94A3B8',
+                color: 'var(--bus-text-secondary)',
                 cursor: 'pointer',
                 fontSize: '13px',
                 padding: '6px'
@@ -541,8 +539,8 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
           className="bus-glass-panel"
           style={{
             padding: '12px 16px',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(13, 17, 23, 0.95) 100%)',
+            border: '1px solid var(--bus-border-highlight)',
+            background: 'var(--bus-surface-elevated)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -550,8 +548,8 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={18} color="#38BDF8" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: '13px', color: '#E2E8F0', lineHeight: 1.4 }}>
+            <Sparkles size={18} color="var(--bus-violet)" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '13px', color: 'var(--bus-text-primary)', lineHeight: 1.4 }}>
               <strong>Radar São Paulo:</strong> {incidents.length} ocorrências ativas nas vias da capital com boletins
               oficiais.
             </div>
@@ -563,11 +561,11 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {filteredItems.length === 0 ? (
           <div className="bus-glass-panel" style={{ padding: '36px 20px', textAlign: 'center' }}>
-            <CheckCircle2 size={36} color="#10B981" style={{ margin: '0 auto 10px' }} />
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>
+            <CheckCircle2 size={36} color="var(--bus-emerald)" style={{ margin: '0 auto 10px' }} />
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
               Nenhuma notícia ou alerta no momento com este filtro
             </div>
-            <div style={{ fontSize: '13px', color: '#94A3B8', marginTop: '6px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--bus-text-secondary)', marginTop: '6px' }}>
               Tente selecionar a categoria "Tudo" ou limpar a busca.
             </div>
           </div>
@@ -604,7 +602,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                       {item.badge.label}
                     </span>
 
-                    <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>
+                    <span style={{ fontSize: '12px', color: 'var(--bus-text-secondary)', fontWeight: 600 }}>
                       • {item.categoryTag}
                     </span>
                   </div>
@@ -612,7 +610,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                   <span
                     style={{
                       fontSize: '12px',
-                      color: '#CBD5E1',
+                      color: 'var(--bus-text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
@@ -628,8 +626,8 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 <h3
                   style={{
                     fontSize: '15.5px',
-                    fontWeight: 800,
-                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    color: 'var(--bus-text-primary)',
                     lineHeight: 1.4,
                     letterSpacing: '-0.2px'
                   }}
@@ -639,28 +637,28 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
 
                 {/* Subtítulo */}
                 {item.subtitle && (
-                  <div style={{ fontSize: '13px', color: '#38BDF8', fontWeight: 600, marginTop: '-4px' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--bus-violet)', fontWeight: 600, marginTop: '-4px' }}>
                     {item.subtitle}
                   </div>
                 )}
 
                 {/* Descrição em Alto Contraste */}
-                <p style={{ fontSize: '14px', color: '#CBD5E1', lineHeight: 1.55 }}>{item.description}</p>
+                <p style={{ fontSize: '14px', color: 'var(--bus-text-secondary)', lineHeight: 1.55 }}>{item.description}</p>
 
                 {/* Rodapé do Card com Ações Rápidas */}
                 <div
                   style={{
                     marginTop: '4px',
                     paddingTop: '10px',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderTop: '1px solid var(--bus-border-subtle)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '8px'
                   }}
                 >
-                  <span style={{ fontSize: '11.5px', color: '#94A3B8' }}>
-                    Fonte: <strong style={{ color: '#E2E8F0' }}>{item.source}</strong>
+                  <span style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)' }}>
+                    Fonte: <strong style={{ color: 'var(--bus-text-primary)' }}>{item.source}</strong>
                   </span>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -671,10 +669,10 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                         handleSpeak(item);
                       }}
                       style={{
-                        background: isThisSpeaking ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                        border: isThisSpeaking ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
-                        borderRadius: '9999px',
-                        color: isThisSpeaking ? '#F87171' : '#38BDF8',
+                        background: isThisSpeaking ? 'var(--bus-red-soft)' : 'var(--bus-surface-sunken)',
+                        border: isThisSpeaking ? '1px solid var(--bus-red)' : '1px solid var(--bus-border)',
+                        borderRadius: 'var(--bus-radius-full)',
+                        color: isThisSpeaking ? 'var(--bus-red)' : 'var(--bus-violet)',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         padding: '5px 10px',
@@ -692,9 +690,9 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                     {/* Botão Ler Mais */}
                     <span
                       style={{
-                        color: '#38BDF8',
+                        color: 'var(--bus-violet)',
                         fontSize: '12px',
-                        fontWeight: 800,
+                        fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '2px'
@@ -721,9 +719,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
             position: 'fixed',
             inset: 0,
             zIndex: 10000,
-            background: 'rgba(7, 9, 14, 0.85)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            background: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
@@ -736,17 +732,17 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            className="bus-glass-panel"
             style={{
-              background: 'linear-gradient(180deg, #161B22 0%, #0D1117 100%)',
-              borderTop: '1px solid rgba(6, 182, 212, 0.35)',
-              borderRadius: '24px 24px 0 0',
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: 'none',
               maxHeight: '90dvh',
               width: '100%',
               maxWidth: '640px',
               margin: '0 auto',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.9)',
               animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
               overflow: 'hidden'
             }}
@@ -755,7 +751,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
             <div
               style={{
                 padding: '16px 20px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                borderBottom: '1px solid var(--bus-border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -768,10 +764,10 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                   setActiveReaderItem(null);
                 }}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#FFFFFF',
-                  borderRadius: '9999px',
+                  background: 'var(--bus-surface-elevated)',
+                  border: '1px solid var(--bus-border)',
+                  color: 'var(--bus-text-primary)',
+                  borderRadius: 'var(--bus-radius-full)',
                   padding: '6px 14px',
                   fontSize: '13px',
                   fontWeight: 700,
@@ -790,22 +786,22 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '9999px',
+                  background: 'var(--bus-surface-sunken)',
+                  border: '1px solid var(--bus-border)',
+                  borderRadius: 'var(--bus-radius-full)',
                   padding: '3px'
                 }}
               >
                 <button
                   onClick={() => setFontSize('sm')}
                   style={{
-                    background: fontSize === 'sm' ? '#06B6D4' : 'transparent',
-                    color: fontSize === 'sm' ? '#FFFFFF' : '#94A3B8',
+                    background: fontSize === 'sm' ? 'var(--bus-violet-ink)' : 'transparent',
+                    color: fontSize === 'sm' ? '#FFFFFF' : 'var(--bus-text-secondary)',
                     border: 'none',
-                    borderRadius: '9999px',
+                    borderRadius: 'var(--bus-radius-full)',
                     padding: '4px 10px',
                     fontSize: '12px',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     cursor: 'pointer'
                   }}
                   title="Fonte Menor"
@@ -815,13 +811,13 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 <button
                   onClick={() => setFontSize('md')}
                   style={{
-                    background: fontSize === 'md' ? '#06B6D4' : 'transparent',
-                    color: fontSize === 'md' ? '#FFFFFF' : '#94A3B8',
+                    background: fontSize === 'md' ? 'var(--bus-violet-ink)' : 'transparent',
+                    color: fontSize === 'md' ? '#FFFFFF' : 'var(--bus-text-secondary)',
                     border: 'none',
-                    borderRadius: '9999px',
+                    borderRadius: 'var(--bus-radius-full)',
                     padding: '4px 10px',
                     fontSize: '13.5px',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     cursor: 'pointer'
                   }}
                   title="Fonte Normal"
@@ -831,13 +827,13 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 <button
                   onClick={() => setFontSize('lg')}
                   style={{
-                    background: fontSize === 'lg' ? '#06B6D4' : 'transparent',
-                    color: fontSize === 'lg' ? '#FFFFFF' : '#94A3B8',
+                    background: fontSize === 'lg' ? 'var(--bus-violet-ink)' : 'transparent',
+                    color: fontSize === 'lg' ? '#FFFFFF' : 'var(--bus-text-secondary)',
                     border: 'none',
-                    borderRadius: '9999px',
+                    borderRadius: 'var(--bus-radius-full)',
                     padding: '4px 10px',
                     fontSize: '15px',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     cursor: 'pointer'
                   }}
                   title="Fonte Maior"
@@ -854,7 +850,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#94A3B8',
+                  color: 'var(--bus-text-secondary)',
                   padding: '6px',
                   cursor: 'pointer'
                 }}
@@ -891,7 +887,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                   {activeReaderItem.badge.label}
                 </span>
 
-                <span style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--bus-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Clock size={13} />
                   {activeReaderItem.timestamp}
                 </span>
@@ -899,10 +895,10 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
 
               {/* Título */}
               <h2
-                className={`reader-title-${fontSize}`}
+                className={`reader-title-${fontSize} bus-display`}
                 style={{
-                  fontWeight: 900,
-                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  color: 'var(--bus-text-primary)',
                   letterSpacing: '-0.3px'
                 }}
               >
@@ -911,7 +907,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
 
               {/* Subtítulo */}
               {activeReaderItem.subtitle && (
-                <div style={{ fontSize: '14.5px', color: '#38BDF8', fontWeight: 700, marginTop: '-6px' }}>
+                <div style={{ fontSize: '14.5px', color: 'var(--bus-violet)', fontWeight: 700, marginTop: '-6px' }}>
                   {activeReaderItem.subtitle}
                 </div>
               )}
@@ -920,18 +916,18 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
               <div
                 style={{
                   padding: '8px 12px',
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'var(--bus-surface-sunken)',
+                  borderRadius: 'var(--bus-radius-sm)',
+                  border: '1px solid var(--bus-border-subtle)',
                   fontSize: '12.5px',
-                  color: '#94A3B8',
+                  color: 'var(--bus-text-secondary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
                 <span>
-                  Veículo: <strong style={{ color: '#F8FAFC' }}>{activeReaderItem.source}</strong>
+                  Veículo: <strong style={{ color: 'var(--bus-text-primary)' }}>{activeReaderItem.source}</strong>
                 </span>
                 <span>{activeReaderItem.categoryTag}</span>
               </div>
@@ -941,7 +937,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 className={`reader-article reader-size-${fontSize}`}
                 style={{
                   whiteSpace: 'pre-line',
-                  color: '#F1F5F9',
+                  color: 'var(--bus-text-primary)',
                   fontWeight: 400
                 }}
               >
@@ -953,7 +949,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 style={{
                   marginTop: '12px',
                   paddingTop: '16px',
-                  borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderTop: '1px solid var(--bus-border-subtle)',
                   display: 'flex',
                   flexWrap: 'wrap',
                   gap: '10px'
@@ -969,7 +965,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                     fontSize: '13.5px',
                     background:
                       isSpeaking && speakingItemId === activeReaderItem.id
-                        ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
+                        ? 'var(--bus-red)'
                         : undefined
                   }}
                 >
@@ -995,7 +991,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                     padding: '12px 16px',
                     fontSize: '13.5px',
                     fontWeight: 700,
-                    color: '#FFFFFF',
+                    color: 'var(--bus-text-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1005,12 +1001,12 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 >
                   {copiedId === activeReaderItem.id ? (
                     <>
-                      <Check size={16} color="#10B981" />
+                      <Check size={16} color="var(--bus-emerald)" />
                       <span>Copiado!</span>
                     </>
                   ) : (
                     <>
-                      <Share2 size={16} color="#38BDF8" />
+                      <Share2 size={16} color="var(--bus-violet)" />
                       <span>Compartilhar</span>
                     </>
                   )}
@@ -1025,21 +1021,12 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                       setActiveReaderItem(null);
                       onSelectIncidentOnMap(inc);
                     }}
+                    className="bus-btn-primary"
                     style={{
                       width: '100%',
                       padding: '12px',
                       borderRadius: 'var(--bus-radius-full)',
-                      background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      fontSize: '14px',
-                      fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 16px rgba(6, 182, 212, 0.4)'
+                      fontSize: '14px'
                     }}
                   >
                     <MapPin size={16} />
