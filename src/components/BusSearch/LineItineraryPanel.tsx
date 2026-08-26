@@ -9,16 +9,8 @@ import {
   Search,
   Bus,
   Star,
-  Activity,
   ChevronRight,
   Radio,
-  Sparkles,
-  ArrowLeftRight,
-  ShieldCheck,
-  Zap,
-  SlidersHorizontal,
-  Navigation,
-  MapPin,
   X
 } from 'lucide-react';
 
@@ -96,15 +88,10 @@ export default function LineItineraryPanel({
 
   return (
     <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-      {/* 1. COCKPIT DE BUSCA DE LINHAS & RADAR */}
+      {/* 1. BUSCA DE LINHAS & RADAR */}
       <div
         className="bus-glass-panel"
-        style={{
-          padding: '16px 18px',
-          background: 'linear-gradient(180deg, rgba(13, 17, 23, 0.95) 0%, rgba(15, 23, 42, 0.9) 100%)',
-          border: '1px solid rgba(6, 182, 212, 0.3)',
-          position: 'relative'
-        }}
+        style={{ padding: '16px 18px' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -112,22 +99,21 @@ export default function LineItineraryPanel({
               style={{
                 width: '34px',
                 height: '34px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-violet-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF',
-                boxShadow: '0 0 16px rgba(6, 182, 212, 0.5)'
+                color: '#FFFFFF'
               }}
             >
               <Bus size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '15px', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.3px' }}>
+              <div className="bus-display" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                 Radar de Frotas & Linhas SP
               </div>
-              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+              <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                 Telemetria GPS Olho Vivo em tempo real
               </div>
             </div>
@@ -136,12 +122,12 @@ export default function LineItineraryPanel({
           <div
             style={{
               fontSize: '11px',
-              fontWeight: 800,
-              color: '#10B981',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              fontWeight: 700,
+              color: 'var(--bus-live)',
+              background: 'var(--bus-live-soft)',
+              border: '1px solid var(--bus-live)',
               padding: '3px 8px',
-              borderRadius: '6px',
+              borderRadius: 'var(--bus-radius-sm)',
               display: 'flex',
               alignItems: 'center',
               gap: '4px'
@@ -152,11 +138,11 @@ export default function LineItineraryPanel({
           </div>
         </div>
 
-        {/* Input de Busca Estilizado */}
+        {/* Input de Busca */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search
             size={17}
-            color="#06B6D4"
+            color="var(--bus-violet)"
             style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }}
           />
           <input
@@ -181,7 +167,7 @@ export default function LineItineraryPanel({
                 right: '12px',
                 background: 'none',
                 border: 'none',
-                color: '#94A3B8',
+                color: 'var(--bus-text-secondary)',
                 cursor: 'pointer',
                 padding: '4px'
               }}
@@ -241,11 +227,11 @@ export default function LineItineraryPanel({
                   <span className="bus-badge" style={{ fontSize: '13px', padding: '2px 7px' }}>
                     {pl.lt}-{pl.tl}
                   </span>
-                  <span style={{ fontSize: '10px', color: '#38BDF8', fontWeight: 700 }}>
+                  <span style={{ fontSize: '10px', color: 'var(--bus-violet)', fontWeight: 700 }}>
                     {pl.tag}
                   </span>
                 </div>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {pl.ts}
                 </div>
               </div>
@@ -257,7 +243,7 @@ export default function LineItineraryPanel({
       {/* 2. RESULTADOS DA PESQUISA DINÂMICA */}
       {searchTerm.trim().length >= 2 && (
         <div className="bus-glass-panel animate-slide-up" style={{ padding: '14px' }}>
-          <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#38BDF8', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--bus-violet)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Search size={13} />
             <span>
               {isSearching ? 'Pesquisando linhas no banco da SPTrans...' : `Linhas encontradas (${searchResults.length}):`}
@@ -282,15 +268,15 @@ export default function LineItineraryPanel({
                     {l.lt}-{l.tl}
                   </div>
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                       {l.tp} → {l.ts}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
                       Sentido: <strong>{l.sl === 1 ? 'Principal (Ida)' : 'Secundário (Volta)'}</strong>
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#38BDF8', fontWeight: 700, fontSize: '11px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--bus-violet)', fontWeight: 700, fontSize: '11px' }}>
                   <span>Radar</span>
                   <ChevronRight size={14} />
                 </div>
@@ -306,35 +292,33 @@ export default function LineItineraryPanel({
           className="bus-glass-panel animate-slide-up"
           style={{
             padding: '16px',
-            border: '1px solid rgba(6, 182, 212, 0.4)',
-            background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, rgba(13, 17, 23, 0.96) 100%)',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px'
           }}
         >
-          {/* Header do Letreiro Eletrônico LED */}
+          {/* Header do Letreiro */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
+                className="bus-num"
                 style={{
-                  background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                  background: 'var(--bus-violet-ink)',
                   color: '#FFFFFF',
                   fontSize: '18px',
-                  fontWeight: 900,
+                  fontWeight: 700,
                   padding: '6px 12px',
-                  borderRadius: '10px',
-                  boxShadow: '0 0 16px rgba(6, 182, 212, 0.5)'
+                  borderRadius: 'var(--bus-radius-sm)'
                 }}
               >
                 {selectedLine.lt}-{selectedLine.tl}
               </div>
 
               <div>
-                <div style={{ fontSize: '14.5px', fontWeight: 900, color: '#F8FAFC' }}>
+                <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                   {selectedLine.sl === 1 ? selectedLine.ts : selectedLine.tp}
                 </div>
-                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
                   Partindo de: {selectedLine.sl === 1 ? selectedLine.tp : selectedLine.ts}
                 </div>
               </div>
@@ -344,16 +328,16 @@ export default function LineItineraryPanel({
               <button
                 onClick={onToggleFavoriteLine}
                 style={{
-                  background: isLineFavorited ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                  border: isLineFavorited ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '8px',
+                  background: isLineFavorited ? 'var(--bus-live-soft)' : 'var(--bus-surface-elevated)',
+                  border: isLineFavorited ? '1px solid var(--bus-live)' : '1px solid var(--bus-border)',
+                  borderRadius: 'var(--bus-radius-sm)',
                   padding: '8px',
                   cursor: 'pointer',
-                  color: isLineFavorited ? '#F59E0B' : '#94A3B8'
+                  color: isLineFavorited ? 'var(--bus-live)' : 'var(--bus-text-secondary)'
                 }}
                 title="Favoritar Linha"
               >
-                <Star size={18} fill={isLineFavorited ? '#F59E0B' : 'none'} />
+                <Star size={18} fill={isLineFavorited ? 'var(--bus-live)' : 'none'} />
               </button>
             )}
           </div>
@@ -362,46 +346,46 @@ export default function LineItineraryPanel({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             <div
               style={{
-                background: 'rgba(0, 0, 0, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                borderRadius: '10px',
+                background: 'var(--bus-surface-sunken)',
+                border: '1px solid var(--bus-border-subtle)',
+                borderRadius: 'var(--bus-radius-md)',
                 padding: '8px 10px',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>FROTA ATIVA</div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: '#38BDF8', marginTop: '2px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--bus-text-secondary)', fontWeight: 700 }}>FROTA ATIVA</div>
+              <div className="bus-num" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--bus-violet)', marginTop: '2px' }}>
                 {isLoadingVehicles ? '...' : veiculos.length}
               </div>
             </div>
 
             <div
               style={{
-                background: 'rgba(0, 0, 0, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                borderRadius: '10px',
+                background: 'var(--bus-surface-sunken)',
+                border: '1px solid var(--bus-border-subtle)',
+                borderRadius: 'var(--bus-radius-md)',
                 padding: '8px 10px',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>ACESSÍVEIS</div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: '#10B981', marginTop: '2px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--bus-text-secondary)', fontWeight: 700 }}>ACESSÍVEIS</div>
+              <div className="bus-num" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--bus-emerald)', marginTop: '2px' }}>
                 {isLoadingVehicles ? '...' : accessibleVehiclesCount}
               </div>
             </div>
 
             <div
               style={{
-                background: 'rgba(0, 0, 0, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                borderRadius: '10px',
+                background: 'var(--bus-surface-sunken)',
+                border: '1px solid var(--bus-border-subtle)',
+                borderRadius: 'var(--bus-radius-md)',
                 padding: '8px 10px',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>SINAL GPS</div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#34D399', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+              <div style={{ fontSize: '10px', color: 'var(--bus-text-secondary)', fontWeight: 700 }}>SINAL GPS</div>
+              <div className="bus-num" style={{ fontSize: '12px', fontWeight: 700, color: 'var(--bus-emerald)', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--bus-emerald)' }} />
                 100%
               </div>
             </div>
@@ -409,9 +393,9 @@ export default function LineItineraryPanel({
 
           {/* Lista de Veículos Transmitindo Telemetria */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--bus-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>Veículos em Circulação no Mapa:</span>
-              <span style={{ color: '#38BDF8', fontSize: '11px' }}>{veiculos.length} operando</span>
+              <span style={{ color: 'var(--bus-violet)', fontSize: '11px' }}>{veiculos.length} operando</span>
             </div>
 
             {veiculos.length > 0 ? (
@@ -420,9 +404,9 @@ export default function LineItineraryPanel({
                   <div
                     key={i}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(6, 182, 212, 0.25)',
-                      borderRadius: '8px',
+                      background: 'var(--bus-surface-sunken)',
+                      border: '1px solid var(--bus-border-subtle)',
+                      borderRadius: 'var(--bus-radius-sm)',
                       padding: '6px 10px',
                       display: 'flex',
                       alignItems: 'center',
@@ -430,14 +414,14 @@ export default function LineItineraryPanel({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Bus size={13} color="#06B6D4" />
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#F8FAFC' }}>
+                      <Bus size={13} color="var(--bus-violet)" />
+                      <span className="bus-num" style={{ fontSize: '12px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                         #{v.p}
                       </span>
                     </div>
 
                     {v.a && (
-                      <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10B981', background: 'rgba(16, 185, 129, 0.15)', padding: '1px 4px', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '9.5px', fontWeight: 700, color: 'var(--bus-emerald)', background: 'var(--bus-emerald-soft)', padding: '1px 4px', borderRadius: 'var(--bus-radius-sm)' }}>
                         Acessível
                       </span>
                     )}
@@ -445,7 +429,7 @@ export default function LineItineraryPanel({
                 ))}
               </div>
             ) : (
-              <div style={{ fontSize: '11.5px', color: '#94A3B8', padding: '8px 0' }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', padding: '8px 0' }}>
                 Nenhum veículo transmitindo GPS neste momento para esta linha.
               </div>
             )}

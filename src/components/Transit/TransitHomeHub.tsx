@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FavoriteItem } from '@/lib/supabase';
 import { RoutePlan, RouteLocation } from '@/lib/routing';
+import { getEtaColorTokens } from '@/lib/etaStyle';
 import {
   Search,
   ChevronRight,
@@ -401,6 +402,9 @@ export default function TransitHomeHub({
             </div>
 
             {/* Linha Recomendada & Próximo Ônibus */}
+            {(() => {
+              const etaColors = getEtaColorTokens(liveRoutePlan.nextBusEtaMinutes);
+              return (
             <div
               style={{
                 background: 'var(--bus-surface-sunken)',
@@ -430,12 +434,14 @@ export default function TransitHomeHub({
               <div style={{ textAlign: 'right' }}>
                 <span
                   className="bus-num"
-                  style={{ fontSize: '11px', fontWeight: 700, color: 'var(--bus-live)', background: 'var(--bus-live-soft)', padding: '3px 7px', borderRadius: 'var(--bus-radius-sm)' }}
+                  style={{ fontSize: '11px', fontWeight: 700, color: etaColors.color, background: etaColors.background, padding: '3px 7px', borderRadius: 'var(--bus-radius-sm)' }}
                 >
-                  {liveRoutePlan.nextBusEtaMinutes <= 2 ? 'Chegando agora' : `em ${liveRoutePlan.nextBusEtaMinutes} min`}
+                  {liveRoutePlan.nextBusEtaMinutes < 0 ? 'Sem previsão' : liveRoutePlan.nextBusEtaMinutes <= 2 ? 'Chegando agora' : `em ${liveRoutePlan.nextBusEtaMinutes} min`}
                 </span>
               </div>
             </div>
+              );
+            })()}
 
             {/* Botão Ação Rápida */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>

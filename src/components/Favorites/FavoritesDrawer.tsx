@@ -90,20 +90,19 @@ export default function FavoritesDrawer({
               style={{
                 width: '38px',
                 height: '38px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-live)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
-                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)'
+                color: 'var(--bus-text-on-accent)'
               }}
             >
-              <Star size={20} fill="#fff" />
+              <Star size={20} fill="currentColor" />
             </div>
             <div>
-              <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#F8FAFC' }}>Meus Favoritos</h2>
-              <p style={{ fontSize: '11px', color: '#94A3B8' }}>
+              <h2 className="bus-display" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>Meus Favoritos</h2>
+              <p style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                 Acesso rápido para Casa, Trabalho e rotas frequentes
               </p>
             </div>
@@ -152,20 +151,20 @@ export default function FavoritesDrawer({
               width: '54px',
               height: '54px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.05)',
+              background: 'var(--bus-surface-sunken)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748B'
+              color: 'var(--bus-text-muted)'
             }}
           >
             <Star size={26} />
           </div>
           <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--bus-text-primary)', marginBottom: '4px' }}>
               Nenhum favorito salvo
             </h3>
-            <p style={{ fontSize: '12px', color: '#94A3B8', maxWidth: '280px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--bus-text-secondary)', maxWidth: '280px' }}>
               Salve linhas e paradas clicando no ícone de estrela de favoritos para acompanhar o ônibus com 1 toque.
             </p>
           </div>
@@ -192,10 +191,10 @@ export default function FavoritesDrawer({
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '10px',
-                    background: item.type === 'linha' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                    border: item.type === 'linha' ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)',
-                    color: item.type === 'linha' ? '#38BDF8' : '#38BDF8',
+                    borderRadius: 'var(--bus-radius-sm)',
+                    background: 'var(--bus-violet-soft)',
+                    border: '1px solid var(--bus-border-highlight)',
+                    color: 'var(--bus-violet)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
@@ -206,18 +205,18 @@ export default function FavoritesDrawer({
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <strong style={{ fontSize: '13.5px', color: '#F8FAFC' }}>
+                    <strong style={{ fontSize: '13.5px', color: 'var(--bus-text-primary)' }}>
                       {item.title}
                     </strong>
                     {item.label && (
                       <span
                         style={{
                           fontSize: '10px',
-                          background: 'rgba(245, 158, 11, 0.15)',
-                          color: '#FBBF24',
-                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          background: 'var(--bus-live-soft)',
+                          color: 'var(--bus-live)',
+                          border: '1px solid var(--bus-live)',
                           padding: '1px 5px',
-                          borderRadius: '4px',
+                          borderRadius: 'var(--bus-radius-sm)',
                           fontWeight: 700
                         }}
                       >
@@ -225,7 +224,7 @@ export default function FavoritesDrawer({
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
                     {item.type === 'linha' ? 'Ônibus Municipal SPTrans' : 'Ponto de Ônibus'}
                   </div>
                 </div>
@@ -240,7 +239,7 @@ export default function FavoritesDrawer({
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#64748B',
+                    color: 'var(--bus-text-muted)',
                     cursor: 'pointer',
                     padding: '6px'
                   }}
@@ -248,7 +247,7 @@ export default function FavoritesDrawer({
                 >
                   <Trash2 size={16} />
                 </button>
-                <ArrowRight size={16} color="#06B6D4" />
+                <ArrowRight size={16} color="var(--bus-violet-ink)" />
               </div>
             </div>
           ))}

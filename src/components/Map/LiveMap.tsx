@@ -10,6 +10,7 @@ import {
 } from '@/types/sptrans';
 import { StationItem } from '@/lib/stationsData';
 import { RoutePlan } from '@/lib/routing';
+import { getEtaColorTokens } from '@/lib/etaStyle';
 import { TrafficIncident } from '@/types/traffic';
 import StopArrivalsModal from '@/components/Map/StopArrivalsModal';
 import {
@@ -41,6 +42,15 @@ export interface LiveMapProps {
   onRouteToStation?: (station: StationItem) => void;
   incidents?: TrafficIncident[];
   focusCoords?: [number, number] | null;
+  theme?: 'dark' | 'light';
+}
+
+function getCartoTileUrl(theme: 'dark' | 'light'): string {
+  const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+  const style = theme === 'light' ? 'light_nolabels' : 'dark_nolabels';
+  return cartoApiKey
+    ? `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
+    : `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`;
 }
 
 export default function LiveMap({
@@ -61,10 +71,12 @@ export default function LiveMap({
   selectedStation,
   onRouteToStation,
   incidents = [],
-  focusCoords
+  focusCoords,
+  theme = 'dark'
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const busMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stopMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stationMarkersGroupRef = useRef<L.LayerGroup | null>(null);
@@ -94,17 +106,13 @@ export default function LiveMap({
       attributionControl: false
     });
 
-    // Dark Matter Tiles (CartoDB) sem rótulos/áreas do provedor — o app já desenha
-    // seus próprios marcadores e labels por cima, então a versão "com rótulos"
-    // (dark_all) só adiciona poluição visual (parques, POIs, etc. da própria tile).
+    // Tiles CartoDB sem rótulos/áreas do provedor — o app já desenha seus próprios
+    // marcadores e labels por cima, então a versão "com rótulos" só adiciona poluição
+    // visual (parques, POIs, etc. da própria tile). A variante clara/escura acompanha
+    // o tema escolhido pelo usuário (light_nolabels / dark_nolabels).
     // A CARTO passou a exigir chave de API mesmo no free tier — sem ela, o tile
     // vem só com o aviso "API KEY REQUIRED" (era isso, não um bug de renderização).
-    const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
-    const tileUrl = cartoApiKey
-      ? `https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
-      : 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-
-    L.tileLayer(tileUrl, {
+    tileLayerRef.current = L.tileLayer(getCartoTileUrl(theme), {
       maxZoom: 19,
       subdomains: 'abcd'
     }).addTo(map);
@@ -141,7 +149,15 @@ export default function LiveMap({
       map.remove();
       mapInstanceRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Trocar a camada base do mapa quando o usuário alterna claro/escuro — sem isso
+  // o mapa ficava permanentemente escuro mesmo com o resto da UI em tema claro.
+  useEffect(() => {
+    if (!tileLayerRef.current) return;
+    tileLayerRef.current.setUrl(getCartoTileUrl(theme));
+  }, [theme]);
 
   // Monitorar e seguir GPS continuamente quando "Iniciar Percurso" estiver ativo
   useEffect(() => {
@@ -209,7 +225,7 @@ export default function LiveMap({
         html: `
           <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
             <div style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background: ${isPercursoActive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(6, 182, 212, 0.45)'}; animation: markerPulse 1.5s infinite;"></div>
-            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${isPercursoActive ? '#10B981' : '#06B6D4'}; border: 2.5px solid #FFFFFF; box-shadow: 0 2px 12px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #fff;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: ${isPercursoActive ? '#10B981' : 'var(--bus-violet-ink)'}; border: 2.5px solid #FFFFFF; box-shadow: 0 2px 12px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #fff;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
             </div>
           </div>
@@ -236,8 +252,8 @@ export default function LiveMap({
     } else {
       userAccuracyCircleRef.current = L.circle(effectiveCoords, {
         radius: accuracyRadius,
-        color: isPercursoActive ? '#10B981' : '#06B6D4',
-        fillColor: isPercursoActive ? '#34D399' : '#38BDF8',
+        color: isPercursoActive ? '#10B981' : 'var(--bus-violet-ink)',
+        fillColor: isPercursoActive ? '#34D399' : 'var(--bus-violet)',
         fillOpacity: 0.15,
         weight: 1
       }).addTo(map);
@@ -258,12 +274,12 @@ export default function LiveMap({
     // 1. Caminhada a pé inicial até a parada (Linha tracejada azul clara neon)
     if (activeRoute.polyline.walkToStop.length > 0) {
       const walkGlow = L.polyline(activeRoute.polyline.walkToStop, {
-        color: '#38BDF8',
+        color: 'var(--bus-violet)',
         weight: 8,
         opacity: 0.25
       });
       const walkLine = L.polyline(activeRoute.polyline.walkToStop, {
-        color: '#38BDF8',
+        color: 'var(--bus-violet)',
         weight: 5,
         dashArray: '6, 8',
         opacity: 0.95
@@ -276,7 +292,7 @@ export default function LiveMap({
     // 2. Trajeto do Ônibus (Curvas reais das ruas da rota)
     if (activeRoute.polyline.transit.length > 0) {
       const busGlow = L.polyline(activeRoute.polyline.transit, {
-        color: '#06B6D4',
+        color: 'var(--bus-violet-ink)',
         weight: 10,
         opacity: 0.4
       });
@@ -311,7 +327,7 @@ export default function LiveMap({
       // Marcador de Embarque no Ônibus (SVG)
       const boardIcon = L.divIcon({
         html: `
-          <div style="background: #06B6D4; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
+          <div style="background: var(--bus-violet-ink); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"/><circle cx="7" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
           </div>
         `,
@@ -355,7 +371,7 @@ export default function LiveMap({
             <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
               <div>Desça do ônibus: <strong style="color: #F87171;">${tp.fromLine}</strong></div>
               <div>Pegue o próximo: <strong style="color: #34D399;">${tp.toLine}</strong> (sentido ${tp.toDestination})</div>
-              ${tp.walkMeters && tp.walkMeters > 30 ? `<div style="background: #1E293B; padding: 4px 6px; border-radius: 4px;">Caminhada entre paradas: <strong style="color: #38BDF8;">${tp.walkMeters}m (~${tp.walkMinutes} min)</strong></div>` : ''}
+              ${tp.walkMeters && tp.walkMeters > 30 ? `<div style="background: #1E293B; padding: 4px 6px; border-radius: 4px;">Caminhada entre paradas: <strong style="color: var(--bus-violet);">${tp.walkMeters}m (~${tp.walkMinutes} min)</strong></div>` : ''}
             </div>
           </div>
         `);
@@ -468,7 +484,7 @@ export default function LiveMap({
             ${inc.title}
           </strong>
 
-          <div style="color: #38BDF8; font-size: 11px; font-weight: 700; margin-bottom: 6px;">
+          <div style="color: var(--bus-violet); font-size: 11px; font-weight: 700; margin-bottom: 6px;">
             ${inc.street}
           </div>
 
@@ -525,7 +541,7 @@ export default function LiveMap({
       const popupContent = `
         <div style="font-family: inherit; min-width: 210px; padding: 6px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <strong style="color: ${isRouteLine ? '#10B981' : '#38BDF8'}; font-size: 14px;">
+            <strong style="color: ${isRouteLine ? '#10B981' : 'var(--bus-violet)'}; font-size: 14px;">
               ${isRouteLine ? 'Ônibus a Caminho' : 'Ônibus'} #${v.p}
             </strong>
             ${v.a ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ACESSÍVEL</span>' : ''}
@@ -533,13 +549,13 @@ export default function LiveMap({
           
           <div style="font-size: 12px; color: #94A3B8; display: flex; flex-direction: column; gap: 4px;">
             <div>Linha: <strong style="color: #fff;">${selectedLine ? `${selectedLine.lt}-${selectedLine.tl}` : 'SPTrans'}</strong></div>
-            <div style="background: #1E293B; border-left: 3px solid ${isRouteLine ? '#10B981' : '#06B6D4'}; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
-              <span style="font-size: 10px; color: #38BDF8; font-weight: 700; display: block;">DESTINO LETREIRO:</span>
+            <div style="background: #1E293B; border-left: 3px solid ${isRouteLine ? '#10B981' : 'var(--bus-violet-ink)'}; padding: 4px 6px; border-radius: 4px; margin: 2px 0;">
+              <span style="font-size: 10px; color: var(--bus-violet); font-weight: 700; display: block;">DESTINO LETREIRO:</span>
               <strong style="color: #FFFFFF; font-size: 12px;">${destinoText}</strong>
             </div>
             ${activeRoute ? `
-              <div style="background: rgba(16, 185, 129, 0.15); color: #34D399; padding: 4px 6px; border-radius: 4px; font-weight: 700; font-size: 11px;">
-                Previsão no ponto (${activeRoute.departureStop.np}): ~${activeRoute.nextBusEtaMinutes >= 0 ? `${activeRoute.nextBusEtaMinutes} min` : 'a caminho'}
+              <div style="background: ${getEtaColorTokens(activeRoute.nextBusEtaMinutes).background}; color: ${getEtaColorTokens(activeRoute.nextBusEtaMinutes).color}; padding: 4px 6px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+                Previsão no ponto (${activeRoute.departureStop.np}): ~${activeRoute.nextBusEtaMinutes >= 0 ? `${activeRoute.nextBusEtaMinutes} min` : 'sem previsão'}
               </div>
             ` : ''}
             <div style="display: flex; align-items: center; gap: 4px; color: #10B981; font-size: 11px; margin-top: 2px;">
@@ -608,7 +624,7 @@ export default function LiveMap({
 
     stations.forEach((st) => {
       const isSelected = selectedStation?.id === st.id;
-      const bgColor = st.type === 'METRO' ? '#003399' : st.type === 'CPTM' ? '#A61327' : '#06B6D4';
+      const bgColor = st.type === 'METRO' ? '#003399' : st.type === 'CPTM' ? '#A61327' : 'var(--bus-violet-ink)';
       const svgIcon = st.type === 'TERMINAL_BUS'
         ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"/><circle cx="7" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>'
         : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M4 11h16"/><path d="M12 4v7"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>';
@@ -641,7 +657,7 @@ export default function LiveMap({
           <strong style="color: #FFFFFF; font-size: 14px; display: block; margin-bottom: 2px;">
             ${st.name}
           </strong>
-          <div style="color: #38BDF8; font-size: 12px; font-weight: 600; margin-bottom: 6px;">
+          <div style="color: var(--bus-violet); font-size: 12px; font-weight: 600; margin-bottom: 6px;">
             ${st.address}
           </div>
           <div style="font-size: 11px; color: #94A3B8; margin-bottom: 8px;">
@@ -845,8 +861,8 @@ export default function LiveMap({
           onClick={handleLocateMe}
           className="bus-pill"
           style={{
-            background: 'rgba(13, 17, 23, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--bus-surface-elevated)',
+            border: '1px solid var(--bus-border)',
             width: '42px',
             height: '42px',
             borderRadius: '50%',
@@ -858,15 +874,15 @@ export default function LiveMap({
           title="Minha Localização GPS"
           aria-label="Localização atual"
         >
-          <Locate size={19} className={isLocating ? 'animate-spin' : ''} color="#38BDF8" />
+          <Locate size={19} className={isLocating ? 'animate-spin' : ''} color="var(--bus-violet)" />
         </button>
 
         <button
           onClick={onRefresh}
           className="bus-pill"
           style={{
-            background: 'rgba(13, 17, 23, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--bus-surface-elevated)',
+            border: '1px solid var(--bus-border)',
             width: '42px',
             height: '42px',
             borderRadius: '50%',
@@ -874,7 +890,7 @@ export default function LiveMap({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#F8FAFC'
+            color: 'var(--bus-text-primary)'
           }}
           title="Atualizar posições dos ônibus"
           aria-label="Atualizar posições"
@@ -891,18 +907,16 @@ export default function LiveMap({
             bottom: '84px',
             left: '16px',
             zIndex: 990,
-            background: 'rgba(13, 17, 23, 0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--bus-surface-elevated)',
+            border: '1px solid var(--bus-border)',
             padding: '6px 14px',
-            borderRadius: '9999px',
+            borderRadius: 'var(--bus-radius-full)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             fontSize: '11.5px',
-            color: '#CBD5E1',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.6)'
+            color: 'var(--bus-text-secondary)',
+            boxShadow: 'var(--bus-shadow-raised)'
           }}
         >
           <span
@@ -910,12 +924,11 @@ export default function LiveMap({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: '#10B981',
-              boxShadow: '0 0 8px rgba(16, 185, 129, 0.8)'
+              backgroundColor: 'var(--bus-emerald)'
             }}
           />
           <span>
-            <strong>Linha:</strong> {selectedLine.lt}-{selectedLine.tl} · {veiculos.length} veículos transmitindo GPS
+            <strong style={{ color: 'var(--bus-text-primary)' }}>Linha:</strong> {selectedLine.lt}-{selectedLine.tl} · {veiculos.length} veículos transmitindo GPS
           </span>
         </div>
       )}
@@ -938,10 +951,10 @@ export default function LiveMap({
             alignItems: 'center',
             gap: '10px',
             fontSize: '12.5px',
-            color: '#94A3B8'
+            color: 'var(--bus-text-secondary)'
           }}
         >
-          <div style={{ width: '16px', height: '16px', border: '2px solid rgba(6, 182, 212, 0.3)', borderTopColor: '#06B6D4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div style={{ width: '16px', height: '16px', border: '2px solid var(--bus-violet-soft)', borderTopColor: 'var(--bus-violet)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <span>Procurando parada mais próxima deste ponto...</span>
         </div>
       )}
@@ -962,8 +975,7 @@ export default function LiveMap({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '10px',
-            border: '1px solid rgba(6, 182, 212, 0.35)',
-            boxShadow: '0 8px 28px rgba(0,0,0,0.7)'
+            border: '1px solid var(--bus-border-highlight)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
@@ -971,8 +983,8 @@ export default function LiveMap({
               style={{
                 width: '32px',
                 height: '32px',
-                borderRadius: '9px',
-                background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-violet-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -983,8 +995,8 @@ export default function LiveMap({
               <MapPin size={16} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: 700 }}>PARADA MAIS PRÓXIMA</div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--bus-text-secondary)', fontWeight: 700 }}>PARADA MAIS PRÓXIMA</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {tappedParada.np}
               </div>
             </div>
@@ -1000,7 +1012,7 @@ export default function LiveMap({
             </button>
             <button
               onClick={() => setTappedParada(null)}
-              style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '4px' }}
+              style={{ background: 'none', border: 'none', color: 'var(--bus-text-muted)', cursor: 'pointer', padding: '4px' }}
               aria-label="Fechar"
             >
               <X size={16} />

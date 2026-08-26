@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { RoutePlan } from '@/lib/routing';
+import { getEtaColorTokens } from '@/lib/etaStyle';
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -248,6 +249,7 @@ export default function TransitRouteResults({
         ) : filteredRoutes.length > 0 ? (
           filteredRoutes.map((route, idx) => {
             const isSelected = selectedRouteIndex === idx;
+            const etaColors = getEtaColorTokens(route.nextBusEtaMinutes);
 
             return (
               <div
@@ -277,8 +279,8 @@ export default function TransitRouteResults({
                       style={{
                         fontSize: '11px',
                         fontWeight: 700,
-                        color: 'var(--bus-live)',
-                        background: 'var(--bus-live-soft)',
+                        color: etaColors.color,
+                        background: etaColors.background,
                         borderRadius: 'var(--bus-radius-sm)',
                         padding: '2px 6px',
                         display: 'flex',
@@ -287,7 +289,7 @@ export default function TransitRouteResults({
                       }}
                     >
                       <Radio size={10} />
-                      {route.nextBusEtaMinutes <= 2 ? 'Agora' : `em ${route.nextBusEtaMinutes}m`}
+                      {route.nextBusEtaMinutes < 0 ? 'Sem previsão' : route.nextBusEtaMinutes <= 2 ? 'Agora' : `em ${route.nextBusEtaMinutes}m`}
                     </span>
                   </div>
                 </div>

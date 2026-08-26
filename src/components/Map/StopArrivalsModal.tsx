@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { SPTransParada, SPTransPrevisaoLinha } from '@/types/sptrans';
+import { getEtaColorTokens } from '@/lib/etaStyle';
 import {
   X,
   Bus,
@@ -101,9 +102,7 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(0, 0, 0, 0.5)',
         zIndex: 10000,
         display: 'flex',
         alignItems: 'flex-end',
@@ -123,23 +122,22 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
           maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.85)',
           animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
           paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ width: '36px', height: '4px', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '9999px', margin: '10px auto 4px auto' }} />
+        <div style={{ width: '36px', height: '4px', background: 'var(--bus-border)', borderRadius: '9999px', margin: '10px auto 4px auto' }} />
 
         {/* Header */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--bus-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <div
               style={{
                 width: '34px',
                 height: '34px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-violet-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -150,8 +148,8 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
               <MapPin size={17} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>LINHAS NESTE PONTO</div>
-              <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', fontWeight: 700 }}>LINHAS NESTE PONTO</div>
+              <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {parada.np}
               </div>
             </div>
@@ -160,12 +158,12 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
+              background: 'var(--bus-surface-elevated)',
               border: 'none',
               borderRadius: '50%',
               width: '32px',
               height: '32px',
-              color: '#F8FAFC',
+              color: 'var(--bus-text-primary)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -178,14 +176,14 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
         </div>
 
         {/* Status */}
-        <div style={{ padding: '10px 20px', background: 'rgba(0, 0, 0, 0.25)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 800, color: '#34D399' }}>
+        <div style={{ padding: '10px 20px', background: 'var(--bus-surface-sunken)', borderBottom: '1px solid var(--bus-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--bus-emerald)' }}>
             <Radio size={12} className="animate-pulse" />
             <span>AO VIVO{lastUpdated ? ` · ${lastUpdated}` : ''}</span>
           </div>
           <button
             onClick={load}
-            style={{ background: 'none', border: 'none', color: '#38BDF8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 700 }}
+            style={{ background: 'none', border: 'none', color: 'var(--bus-violet)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 600 }}
           >
             <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
             <span>Atualizar</span>
@@ -196,27 +194,28 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
         <div style={{ padding: '14px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {isLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '28px 0' }}>
-              <div style={{ width: '26px', height: '26px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: '#06B6D4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontSize: '12.5px', color: '#94A3B8' }}>Consultando linhas em tempo real...</span>
+              <div style={{ width: '26px', height: '26px', border: '3px solid var(--bus-violet-soft)', borderTopColor: 'var(--bus-violet)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: '12.5px', color: 'var(--bus-text-secondary)' }}>Consultando linhas em tempo real...</span>
             </div>
           ) : hasError ? (
-            <div style={{ textAlign: 'center', padding: '24px', color: '#94A3B8', fontSize: '13px' }}>
+            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--bus-text-secondary)', fontSize: '13px' }}>
               Não foi possível consultar as linhas desta parada agora. Tente atualizar.
             </div>
           ) : linhas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px', color: '#94A3B8', fontSize: '13px' }}>
+            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--bus-text-secondary)', fontSize: '13px' }}>
               Nenhuma linha com previsão de chegada nesta parada agora.
             </div>
           ) : (
             linhas.map((l, idx) => {
               const proximaEta = l.etasMinutos[0];
+              const etaColors = getEtaColorTokens(proximaEta);
               return (
                 <div
                   key={`${l.codigo}-${idx}`}
                   style={{
-                    background: idx === 0 ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                    border: idx === 0 ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid rgba(255, 255, 255, 0.06)',
-                    borderRadius: '12px',
+                    background: idx === 0 ? 'var(--bus-violet-soft)' : 'var(--bus-surface-sunken)',
+                    border: `1px solid ${idx === 0 ? 'var(--bus-border-highlight)' : 'var(--bus-border-subtle)'}`,
+                    borderRadius: 'var(--bus-radius-md)',
                     padding: '12px 14px',
                     display: 'flex',
                     alignItems: 'center',
@@ -230,30 +229,31 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
                       <span>{l.letreiro}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         → {l.destino}
                       </span>
                       {l.acessivel && (
-                        <span style={{ fontSize: '10.5px', color: '#10B981', fontWeight: 700 }}>Acessível ♿</span>
+                        <span style={{ fontSize: '10.5px', color: 'var(--bus-emerald)', fontWeight: 700 }}>Acessível ♿</span>
                       )}
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <span
+                      className="bus-num"
                       style={{
                         fontSize: '13px',
-                        fontWeight: 900,
-                        color: proximaEta !== undefined && proximaEta <= 3 ? '#10B981' : '#F8FAFC',
-                        background: proximaEta !== undefined && proximaEta <= 3 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                        fontWeight: 700,
+                        color: etaColors.color,
+                        background: etaColors.background,
                         padding: '4px 8px',
-                        borderRadius: '6px'
+                        borderRadius: 'var(--bus-radius-sm)'
                       }}
                     >
                       {proximaEta === undefined ? 'Sem previsão' : proximaEta <= 1 ? 'Agora' : `${proximaEta} min`}
                     </span>
                     {l.etasMinutos.length > 1 && (
-                      <div style={{ fontSize: '10px', color: '#64748B', marginTop: '3px' }}>
+                      <div className="bus-num" style={{ fontSize: '10px', color: 'var(--bus-text-muted)', marginTop: '3px' }}>
                         depois: {l.etasMinutos.slice(1, 3).join(', ')} min
                       </div>
                     )}

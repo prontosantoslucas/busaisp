@@ -360,6 +360,7 @@ export default function HomePage() {
           userCoords={userCoords}
           userAccuracyMeters={userAccuracyMeters}
           focusCoords={mapFocusCoords}
+          theme={theme}
           isPercursoActive={isPercursoActive}
           onStartPercurso={() => {
             setIsPercursoActive(true);

@@ -16,6 +16,7 @@ import {
   VolumeX
 } from 'lucide-react';
 import { voiceService } from '@/lib/voiceService';
+import { getEtaColorTokens } from '@/lib/etaStyle';
 
 interface TransitRouteDetailProps {
   route: RoutePlan;
@@ -49,6 +50,7 @@ export default function TransitRouteDetail({
   onToggleVoice
 }: TransitRouteDetailProps) {
   const [expandedStops, setExpandedStops] = useState<Record<number, boolean>>({});
+  const etaColors = getEtaColorTokens(route.nextBusEtaMinutes);
 
   const toggleStops = (idx: number) => {
     setExpandedStops(prev => ({ ...prev, [idx]: !prev[idx] }));
@@ -162,13 +164,13 @@ export default function TransitRouteDetail({
               style={{
                 fontSize: '11px',
                 fontWeight: 700,
-                color: 'var(--bus-live)',
-                background: 'var(--bus-live-soft)',
+                color: etaColors.color,
+                background: etaColors.background,
                 padding: '2px 8px',
                 borderRadius: 'var(--bus-radius-sm)'
               }}
             >
-              {route.nextBusEtaMinutes <= 2 ? 'Ônibus no ponto' : `Próximo em ${route.nextBusEtaMinutes} min`}
+              {route.nextBusEtaMinutes < 0 ? 'Sem previsão' : route.nextBusEtaMinutes <= 2 ? 'Ônibus no ponto' : `Próximo em ${route.nextBusEtaMinutes} min`}
             </span>
             <span style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', fontWeight: 600 }}>
               Tarifa: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.farePrice}</strong>
@@ -234,157 +236,174 @@ export default function TransitRouteDetail({
           </button>
         </div>
 
-        {/* ETAPA 1: CAMINHADA ATÉ O PONTO */}
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Footprints size={15} color="var(--bus-text-secondary)" />
-            </div>
-            <div style={{ width: '2px', flex: 1, minHeight: '30px', background: 'var(--bus-border)', margin: '4px 0' }} />
-          </div>
+        {/* Todas as etapas reais da viagem, incluindo baldeações — uma rota com
+            transferências tem mais de um ônibus, e cada um precisa aparecer aqui. */}
+        {route.steps.map((step, stepIdx) => {
+          const isLast = stepIdx === route.steps.length - 1;
 
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>
-              Caminhe até a parada de embarque
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
-              Aprox. {route.totalWalkDurationMinutes} min ({route.totalWalkDistanceMeters}m) até <strong style={{ color: 'var(--bus-text-primary)' }}>{route.departureStop.np}</strong>
-            </div>
-          </div>
-        </div>
+          if (step.type === 'BUS') {
+            const stepEtaColors = getEtaColorTokens(step.nextBusEtaMinutes ?? -1);
+            return (
+              <div key={stepIdx} style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-violet-soft)', border: '1px solid var(--bus-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bus size={15} color="var(--bus-violet)" />
+                  </div>
+                  {!isLast && <div style={{ width: '2px', flex: 1, minHeight: '40px', background: 'var(--bus-violet)', margin: '4px 0' }} />}
+                </div>
 
-        {/* ETAPA 2: ÔNIBUS PRINCIPAL */}
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-violet-soft)', border: '1px solid var(--bus-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bus size={15} color="var(--bus-violet)" />
-            </div>
-            <div style={{ width: '2px', flex: 1, minHeight: '40px', background: 'var(--bus-violet)', margin: '4px 0' }} />
-          </div>
+                <div style={{ flex: 1, paddingBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span className="bus-badge">
+                      <Bus size={13} />
+                      <span>{step.busLine}</span>
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
+                      {step.busDestination}
+                    </span>
+                  </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span className="bus-badge">
-                <Bus size={13} />
-                <span>{route.recommendedLine.lt}-{route.recommendedLine.tl}</span>
-              </span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
-                {route.destination.name}
-              </span>
-            </div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '4px' }}>
+                    Embarque em <strong style={{ color: 'var(--bus-text-primary)' }}>{step.boardStopName}</strong> · Desça em <strong style={{ color: 'var(--bus-text-primary)' }}>{step.alightStopName}</strong>
+                  </div>
 
-            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '4px' }}>
-              Embarque em <strong style={{ color: 'var(--bus-text-primary)' }}>{route.departureStop.np}</strong>
-            </div>
+                  {/* Tempo de espera: ônibus indicado + próximos, em tempo real */}
+                  {step.departureEtas && step.departureEtas.length > 0 ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      <span
+                        className="bus-num"
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: stepEtaColors.color,
+                          background: stepEtaColors.background,
+                          padding: '3px 9px',
+                          borderRadius: 'var(--bus-radius-sm)'
+                        }}
+                      >
+                        {step.departureEtas[0] <= 1 ? 'Chegando agora' : `Chega em ${step.departureEtas[0]} min`}
+                      </span>
+                      {step.departureEtas.length > 1 && (
+                        <span className="bus-num" style={{ fontSize: '10.5px', color: 'var(--bus-text-muted)' }}>
+                          depois: {step.departureEtas.slice(1).join(', ')} min
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '10.5px', color: 'var(--bus-text-muted)', marginTop: '6px' }}>
+                      Sem previsão em tempo real agora — confira o horário no ponto.
+                    </div>
+                  )}
 
-            {/* Tempo de espera: ônibus indicado + próximos, em tempo real */}
-            {route.departureEtas && route.departureEtas.length > 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                <span
-                  className="bus-num"
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: 'var(--bus-live)',
-                    background: 'var(--bus-live-soft)',
-                    padding: '3px 9px',
-                    borderRadius: 'var(--bus-radius-sm)'
-                  }}
-                >
-                  {route.departureEtas[0] <= 1 ? 'Chegando agora' : `Chega em ${route.departureEtas[0]} min`}
-                </span>
-                {route.departureEtas.length > 1 && (
-                  <span className="bus-num" style={{ fontSize: '10.5px', color: 'var(--bus-text-muted)' }}>
-                    depois: {route.departureEtas.slice(1).join(', ')} min
-                  </span>
-                )}
+                  {/* Paradas intermediárias desta perna (não da viagem inteira) */}
+                  {step.intermediateStops && step.intermediateStops.length > 0 && (
+                    <div style={{ marginTop: '8px' }}>
+                      <button
+                        onClick={() => toggleStops(stepIdx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--bus-violet)',
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: 0
+                        }}
+                      >
+                        <span>{step.stopCount ?? step.intermediateStops.length} paradas nesta perna</span>
+                        {expandedStops[stepIdx] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+
+                      {expandedStops[stepIdx] && (
+                        <div
+                          style={{
+                            marginTop: '8px',
+                            paddingLeft: '10px',
+                            borderLeft: '1px dashed var(--bus-border-highlight)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px'
+                          }}
+                        >
+                          {step.intermediateStops.map((st, sIdx) => (
+                            <div key={sIdx} style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
+                              • {st.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div style={{ fontSize: '10.5px', color: 'var(--bus-text-muted)', marginTop: '6px' }}>
-                Sem previsão em tempo real agora — confira o horário no ponto.
+            );
+          }
+
+          if (step.type === 'DESTINATION') {
+            return (
+              <div key={stepIdx} style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-red-soft)', border: '1px solid var(--bus-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MapPin size={15} color="var(--bus-red)" />
+                  </div>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
+                    Chegada: {route.destination.name}
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
+                    Previsão estimada: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.arrivalHour}</strong>
+                  </div>
+                </div>
               </div>
-            )}
+            );
+          }
 
-            {/* Paradas Intermediárias Expansíveis */}
-            {route.allRouteStops && route.allRouteStops.length > 0 && (
-              <div style={{ marginTop: '8px' }}>
-                <button
-                  onClick={() => toggleStops(0)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--bus-violet)',
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: 0
-                  }}
-                >
-                  <span>{route.allRouteStops.length} paradas no trajeto</span>
-                  {expandedStops[0] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
+          // WALK (caminhada inicial, baldeação a pé, ou caminhada final até o destino)
+          return (
+            <div key={stepIdx} style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Footprints size={15} color="var(--bus-text-secondary)" />
+                </div>
+                {!isLast && <div style={{ width: '2px', flex: 1, minHeight: '30px', background: 'var(--bus-border)', margin: '4px 0' }} />}
+              </div>
 
-                {expandedStops[0] && (
-                  <div
-                    style={{
-                      marginTop: '8px',
-                      paddingLeft: '10px',
-                      borderLeft: '1px dashed var(--bus-border-highlight)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px'
-                    }}
-                  >
-                    {route.allRouteStops.map((st, sIdx) => (
-                      <div key={sIdx} style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
-                        • {st.name}
-                      </div>
-                    ))}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>
+                  {step.instruction}
+                </div>
+                {step.durationMinutes > 0 && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
+                    Aprox. {step.durationMinutes} min ({step.distanceMeters}m)
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          );
+        })}
 
-            {/* Alerta de Desembarque */}
-            <div
-              style={{
-                marginTop: '10px',
-                background: 'var(--bus-emerald-soft)',
-                border: '1px solid var(--bus-emerald)',
-                borderRadius: 'var(--bus-radius-sm)',
-                padding: '8px 10px',
-                fontSize: '11.5px',
-                color: 'var(--bus-emerald)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Volume2 size={14} />
-              <span>O app avisará por voz quando for a hora de descer do ônibus.</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ETAPA 3: CHEGADA AO DESTINO */}
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bus-red-soft)', border: '1px solid var(--bus-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MapPin size={15} color="var(--bus-red)" />
-            </div>
-          </div>
-
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
-              Chegada: {route.destination.name}
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '2px' }}>
-              Previsão estimada: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.arrivalHour}</strong>
-            </div>
-          </div>
+        {/* Alerta de Desembarque — o app avisa por voz quando você está perto do
+            destino final; ainda não avisa em cada baldeação individual. */}
+        <div
+          style={{
+            background: 'var(--bus-emerald-soft)',
+            border: '1px solid var(--bus-emerald)',
+            borderRadius: 'var(--bus-radius-sm)',
+            padding: '8px 10px',
+            fontSize: '11.5px',
+            color: 'var(--bus-emerald)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <Volume2 size={14} />
+          <span>O app avisará por voz quando você estiver perto do destino final.</span>
         </div>
       </div>
     </div>

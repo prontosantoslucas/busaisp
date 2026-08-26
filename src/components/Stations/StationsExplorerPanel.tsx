@@ -63,14 +63,14 @@ export default function StationsExplorerPanel({
     switch (status) {
       case 'NORMAL':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--bus-emerald-soft)', color: 'var(--bus-emerald)', border: '1px solid var(--bus-emerald)', padding: '3px 8px', borderRadius: 'var(--bus-radius-full)', fontSize: '11px', fontWeight: 700 }}>
             <CheckCircle2 size={13} />
             <span>Normal</span>
           </span>
         );
       case 'VELOCIDADE_REDUZIDA':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#FBBF24', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--bus-live-soft)', color: 'var(--bus-live)', border: '1px solid var(--bus-live)', padding: '3px 8px', borderRadius: 'var(--bus-radius-full)', fontSize: '11px', fontWeight: 700 }}>
             <AlertTriangle size={13} />
             <span>Velocidade Reduzida</span>
           </span>
@@ -78,14 +78,14 @@ export default function StationsExplorerPanel({
       case 'OPERACAO_PARCIAL':
       case 'PARALISADA':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#F87171', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--bus-red-soft)', color: 'var(--bus-red)', border: '1px solid var(--bus-red)', padding: '3px 8px', borderRadius: 'var(--bus-radius-full)', fontSize: '11px', fontWeight: 700 }}>
             <XCircle size={13} />
             <span>Paralisada / Parcial</span>
           </span>
         );
       default:
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--bus-emerald-soft)', color: 'var(--bus-emerald)', border: '1px solid var(--bus-emerald)', padding: '3px 8px', borderRadius: 'var(--bus-radius-full)', fontSize: '11px', fontWeight: 700 }}>
             <CheckCircle2 size={13} />
             <span>{status}</span>
           </span>
@@ -133,22 +133,21 @@ export default function StationsExplorerPanel({
               style={{
                 width: '36px',
                 height: '36px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #6366F1 0%, #3B82F6 100%)',
+                borderRadius: 'var(--bus-radius-sm)',
+                background: 'var(--bus-violet-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
-                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)'
+                color: '#fff'
               }}
             >
               <TrainTrack size={18} />
             </div>
             <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+              <h2 className="bus-display" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--bus-text-primary)', margin: 0 }}>
                 Estações & Trilhos SP
               </h2>
-              <p style={{ fontSize: '11px', color: '#94A3B8', margin: 0 }}>
+              <p style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', margin: 0 }}>
                 Metrô · CPTM · ViaMobilidade · Terminais
               </p>
             </div>
@@ -157,15 +156,15 @@ export default function StationsExplorerPanel({
           <button
             onClick={fetchRails}
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
+              background: 'var(--bus-surface-elevated)',
+              border: '1px solid var(--bus-border)',
+              borderRadius: 'var(--bus-radius-sm)',
               width: '34px',
               height: '34px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#38BDF8',
+              color: 'var(--bus-violet)',
               cursor: 'pointer'
             }}
             title="Atualizar Status dos Serviços"
@@ -175,25 +174,24 @@ export default function StationsExplorerPanel({
         </div>
 
         {/* Abas Alternadoras Superiores */}
-        <div style={{ display: 'flex', gap: '8px', background: 'rgba(0, 0, 0, 0.3)', padding: '4px', borderRadius: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', background: 'var(--bus-surface-sunken)', padding: '4px', borderRadius: 'var(--bus-radius-md)' }}>
           <button
             onClick={() => setSubView('STATUS')}
             style={{
               flex: 1,
               padding: '8px 12px',
-              borderRadius: '8px',
+              borderRadius: 'var(--bus-radius-sm)',
               border: 'none',
-              background: subView === 'STATUS' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
-              color: subView === 'STATUS' ? '#FFFFFF' : '#94A3B8',
-              fontWeight: 800,
+              background: subView === 'STATUS' ? 'var(--bus-violet-ink)' : 'transparent',
+              color: subView === 'STATUS' ? '#FFFFFF' : 'var(--bus-text-secondary)',
+              fontWeight: 700,
               fontSize: '12px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.2s ease',
-              boxShadow: subView === 'STATUS' ? '0 4px 12px rgba(6, 182, 212, 0.3)' : 'none'
+              transition: 'all 0.2s ease'
             }}
           >
             <TrainTrack size={15} />
@@ -205,19 +203,18 @@ export default function StationsExplorerPanel({
             style={{
               flex: 1,
               padding: '8px 12px',
-              borderRadius: '8px',
+              borderRadius: 'var(--bus-radius-sm)',
               border: 'none',
-              background: subView === 'ESTACOES' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
-              color: subView === 'ESTACOES' ? '#FFFFFF' : '#94A3B8',
-              fontWeight: 800,
+              background: subView === 'ESTACOES' ? 'var(--bus-violet-ink)' : 'transparent',
+              color: subView === 'ESTACOES' ? '#FFFFFF' : 'var(--bus-text-secondary)',
+              fontWeight: 700,
               fontSize: '12px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.2s ease',
-              boxShadow: subView === 'ESTACOES' ? '0 4px 12px rgba(6, 182, 212, 0.3)' : 'none'
+              transition: 'all 0.2s ease'
             }}
           >
             <MapPin size={15} />
@@ -241,16 +238,16 @@ export default function StationsExplorerPanel({
                 fontSize: '12px'
               }}
             >
-              <div style={{ color: '#CBD5E1' }}>
-                Rede: <strong style={{ color: '#F8FAFC' }}>{railsData.summary.total} Linhas Ativas</strong>
+              <div style={{ color: 'var(--bus-text-secondary)' }}>
+                Rede: <strong style={{ color: 'var(--bus-text-primary)' }}>{railsData.summary.total} Linhas Ativas</strong>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10B981', fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--bus-emerald)', fontWeight: 700 }}>
                   <CheckCircle2 size={14} />
                   <span>{railsData.summary.normal} normais</span>
                 </div>
                 {railsData.summary.withIssues > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#F59E0B', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--bus-live)', fontWeight: 700 }}>
                     <AlertTriangle size={14} />
                     <span>{railsData.summary.withIssues} lentas</span>
                   </div>
@@ -303,8 +300,8 @@ export default function StationsExplorerPanel({
                           color: line.hexColor === '#FFF000' || line.hexColor === '#A7A8AA' ? '#111' : '#fff',
                           width: '28px',
                           height: '28px',
-                          borderRadius: '6px',
-                          fontWeight: 900,
+                          borderRadius: 'var(--bus-radius-sm)',
+                          fontWeight: 700,
                           fontSize: '12px',
                           display: 'flex',
                           alignItems: 'center',
@@ -315,10 +312,10 @@ export default function StationsExplorerPanel({
                       </div>
 
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#F8FAFC' }}>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--bus-text-primary)' }}>
                           {line.name}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                           {line.operator} · {line.updatedAt}
                         </div>
                       </div>
@@ -331,10 +328,10 @@ export default function StationsExplorerPanel({
                     <div
                       style={{
                         fontSize: '12px',
-                        color: line.status === 'NORMAL' ? '#94A3B8' : '#FDE68A',
-                        background: line.status === 'NORMAL' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(245, 158, 11, 0.15)',
+                        color: line.status === 'NORMAL' ? 'var(--bus-text-secondary)' : 'var(--bus-live)',
+                        background: line.status === 'NORMAL' ? 'var(--bus-surface-sunken)' : 'var(--bus-live-soft)',
                         padding: '8px 12px',
-                        borderRadius: '8px',
+                        borderRadius: 'var(--bus-radius-sm)',
                         marginTop: '4px',
                         lineHeight: 1.4
                       }}
@@ -354,7 +351,7 @@ export default function StationsExplorerPanel({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Input de Busca de Estações */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Search size={16} color="#06B6D4" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
+            <Search size={16} color="var(--bus-violet)" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
             <input
               type="text"
               value={searchQuery}
@@ -377,7 +374,7 @@ export default function StationsExplorerPanel({
                   className={`bus-pill ${isActive ? 'active' : ''}`}
                   style={{ fontSize: '11.5px', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                 >
-                  <Icon size={13} color={isActive ? '#38BDF8' : '#94A3B8'} />
+                  <Icon size={13} color={isActive ? 'var(--bus-violet)' : 'var(--bus-text-secondary)'} />
                   <span>{f.label}</span>
                 </button>
               );
@@ -406,13 +403,13 @@ export default function StationsExplorerPanel({
                         style={{
                           width: '32px',
                           height: '32px',
-                          borderRadius: '8px',
+                          borderRadius: 'var(--bus-radius-sm)',
                           background:
                             station.type === 'METRO'
                               ? '#003399'
                               : station.type === 'CPTM'
                               ? '#A61327'
-                              : '#06B6D4',
+                              : 'var(--bus-violet-ink)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -423,10 +420,10 @@ export default function StationsExplorerPanel({
                       </div>
 
                       <div>
-                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--bus-text-primary)', margin: 0 }}>
                           {station.name}
                         </h3>
-                        <div style={{ fontSize: '11px', color: '#06B6D4', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--bus-violet)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                           <MapPin size={12} />
                           <span>{station.address}</span>
                         </div>
@@ -442,7 +439,7 @@ export default function StationsExplorerPanel({
                       style={{
                         padding: '6px 12px',
                         fontSize: '11px',
-                        borderRadius: '8px'
+                        borderRadius: 'var(--bus-radius-sm)'
                       }}
                       title="Traçar Rota"
                     >
@@ -452,8 +449,8 @@ export default function StationsExplorerPanel({
                   </div>
 
                   {/* Bairro & Linhas Atendidas */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px', marginTop: '2px' }}>
-                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--bus-border-subtle)', paddingTop: '8px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--bus-text-secondary)' }}>
                       {station.neighborhood}
                     </span>
 
