@@ -9,6 +9,7 @@ import {
   SPTransPrevisaoResponse
 } from '@/types/sptrans';
 import { RoutePlan, RouteSearchResult } from '@/lib/routing';
+import { getSaoPauloTime } from '@/lib/dateUtils';
 import { FavoriteItem, fetchFavorites, toggleFavorite } from '@/lib/supabase';
 import TransitDock, { TransitTabType } from '@/components/Navigation/TransitDock';
 import TransitHeader from '@/components/Navigation/TransitHeader';
@@ -259,8 +260,8 @@ export default function HomePage() {
       if (timeToUse) {
         const [h, m] = timeToUse.split(':').map(Number);
         if (!Number.isNaN(h) && !Number.isNaN(m)) {
-          const agora = new Date();
-          let offset = (h * 60 + m) - (agora.getHours() * 60 + agora.getMinutes());
+          const spNow = getSaoPauloTime();
+          let offset = (h * 60 + m) - (spNow.hours * 60 + spNow.minutes);
           if (offset < 0) offset += 24 * 60;
           params.set('partidaMinutos', String(offset));
         }

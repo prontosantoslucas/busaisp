@@ -299,4 +299,60 @@ describe('calculateRoute', () => {
 
     vi.useRealTimers();
   });
+
+  it('calcula departureHour, arrivalHour e ETA no fuso de São Paulo mesmo quando o servidor está em UTC', async () => {
+    // Simula 18:43 UTC = 15:43 em São Paulo
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-26T18:43:00Z'));
+
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '340015353', name: 'TERMINAL JD. FONTALIS', lat: -23.4338, lng: -46.5778, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '340015350', name: 'PARADA SHOPPING CENTER NORTE', lat: -23.5152, lng: -46.619, distanceMeters: 50 }]);
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '1703-10',
+        routeShortName: '1703',
+        routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE',
+        tripId: 'trip_1',
+        tripHeadsign: 'SHOPPING CENTER NORTE',
+        originStopId: '340015353',
+        originDepartureSeconds: 0,
+        destStopId: '340015350',
+        destArrivalSeconds: 0
+      }
+    ]);
+    (buscarPrevisaoParada as any).mockResolvedValueOnce({
+      previsao: {
+        hr: '15:43',
+        p: {
+          cp: 340015353,
+          np: 'TERMINAL JD. FONTALIS',
+          py: -23.4338,
+          px: -46.5778,
+          l: [
+            {
+              cl: 1703,
+              c: '1703-10',
+              sl: 1,
+              lt0: 'SHOPPING CENTER NORTE',
+              lt1: 'JD. FONTALIS',
+              qv: 1,
+              vs: [{ p: '21045', t: '15:50', a: true, ta: '15:43', py: -23.43, px: -46.58, destination: 'SHOPPING CENTER NORTE' }]
+            }
+          ]
+        }
+      },
+      isMock: false
+    });
+
+    const result = await calculateRoute(origin, dest);
+
+    // Deve ser 15:43 no fuso de SP, NÃO 18:43 (UTC)
+    expect(result.primaryRoute.departureHour).toBe('15:43');
+    // Previsão do ônibus das 15:50 em relação a 15:43 = 7 min
+    expect(result.primaryRoute.nextBusEtaMinutes).toBe(7);
+    expect(result.primaryRoute.departureEtas).toEqual([7]);
+
+    vi.useRealTimers();
+  });
 });

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { getEtaColorTokens } from '@/lib/etaStyle';
+import { formatSaoPauloTime } from '@/lib/dateUtils';
 import {
   X,
   Bus,
@@ -26,7 +27,7 @@ export default function TransitDeparturesModal({
   const etas = departureEtas || [];
 
   const now = new Date();
-  const currentHourText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currentHourText = formatSaoPauloTime(now);
 
   return (
     <div
@@ -113,7 +114,7 @@ export default function TransitDeparturesModal({
           {etas.length > 0 ? (
             etas.map((minutesUntil, idx) => {
               const departureDate = new Date(now.getTime() + minutesUntil * 60000);
-              const departureTimeStr = `${String(departureDate.getHours()).padStart(2, '0')}:${String(departureDate.getMinutes()).padStart(2, '0')}`;
+              const departureTimeStr = formatSaoPauloTime(departureDate);
               const etaColors = getEtaColorTokens(minutesUntil);
 
               return (

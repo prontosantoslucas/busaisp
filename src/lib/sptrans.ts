@@ -5,6 +5,7 @@ import {
   SPTransPrevisaoResponse
 } from '@/types/sptrans';
 import { supabase } from '@/lib/supabase';
+import { formatSaoPauloTime } from '@/lib/dateUtils';
 
 const SPTRANS_BASE_URL = 'https://api.olhovivo.sptrans.com.br/v2.1';
 
@@ -287,7 +288,7 @@ export async function buscarPosicaoLinha(codigoLinha: number, letreiro?: string)
       if (allVehicles.length > 0) {
         return {
           posicao: {
-            hr: lastHr || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            hr: lastHr || formatSaoPauloTime(),
             vs: allVehicles
           },
           isMock: false

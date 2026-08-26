@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { SPTransParada, SPTransPrevisaoLinha } from '@/types/sptrans';
 import { getEtaColorTokens } from '@/lib/etaStyle';
+import { getDiffMinutesFromSaoPaulo } from '@/lib/dateUtils';
 import {
   X,
   Bus,
@@ -24,18 +25,8 @@ interface LineArrival {
   etasMinutos: number[];
 }
 
-// Converte "HH:MM" (horário previsto da SPTrans) em minutos a partir de agora,
-// cuidando da virada de meia-noite (ex.: consulta às 23:58, previsão às 00:05).
-// Uma diferença negativa GRANDE (> 1h) não é virada de meia-noite — é previsão
-// desatualizada/no passado; nesse caso não inventamos um horário futuro.
 function toMinutesFromNow(horario: string): number | null {
-  const partes = horario.split(':').map(Number);
-  if (partes.length !== 2 || partes.some(Number.isNaN)) return null;
-  const [horas, minutos] = partes;
-  const agora = new Date();
-  const diffBruto = (horas * 60 + minutos) - (agora.getHours() * 60 + agora.getMinutes());
-  if (diffBruto < -60) return null;
-  return diffBruto < 0 ? diffBruto + 24 * 60 : diffBruto;
+  return getDiffMinutesFromSaoPaulo(horario);
 }
 
 export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModalProps) {

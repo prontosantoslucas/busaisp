@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrafficIncident, IncidentType } from '@/types/traffic';
+import { TrafficIncident } from '@/types/traffic';
 import { RailsResponse, RailLine } from '@/types/trilhos';
 import {
   AlertTriangle,
@@ -25,7 +25,14 @@ import {
   BellRing,
   Info,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Volume2,
+  VolumeX,
+  Share2,
+  X,
+  BookOpen,
+  ArrowLeft,
+  Check
 } from 'lucide-react';
 
 interface TransitNewsPanelProps {
@@ -35,6 +42,7 @@ interface TransitNewsPanelProps {
 }
 
 export type NewsFilterType = 'ALL' | 'TRANSITO' | 'TRILHOS' | 'SPTRANS' | 'INFORMATIVOS';
+export type FontSizeScale = 'sm' | 'md' | 'lg';
 
 export interface UnifiedNewsItem {
   id: string;
@@ -42,6 +50,7 @@ export interface UnifiedNewsItem {
   title: string;
   subtitle?: string;
   description: string;
+  fullContent?: string;
   timestamp: string;
   badge: {
     label: string;
@@ -61,14 +70,17 @@ const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
     id: 'news-tarifa-zero',
     sourceType: 'INFORMATIVOS',
     title: 'Domingão Tarifa Zero: Ônibus da SPTrans são 100% gratuitos',
-    subtitle: 'Válido em toda a cidade aos domingos e feriados',
-    description: 'A gratuidade no transporte coletivo municipal por ônibus em São Paulo funciona todos os domingos e feriados oficiais da 0h às 23h59. Não é debitada tarifa no validador.',
+    subtitle: 'Válido em toda a capital aos domingos e feriados oficiais',
+    description:
+      'A gratuidade no transporte coletivo municipal por ônibus em São Paulo funciona todos os domingos e feriados oficiais da 0h às 23h59. Não é debitada tarifa no validador.',
+    fullContent:
+      'O programa Domingão Tarifa Zero garante acesso livre a todas as mais de 1.300 linhas de ônibus municipais operadas pela SPTrans em São Paulo. A medida incentiva o lazer, a convivência comunitária e o acesso a parques, centros culturais e áreas públicas.\n\n• Horário: De 0h00 até 23h59 de todos os domingos e feriados de São Paulo.\n• Validação: Basta aproximar qualquer Bilhete Único ativo na catraca (nenhum saldo é debitado) ou solicitar liberação pelo cobrador/motorista.\n• Abrangência: Todos os ônibus convencionais, articulados, trólebus e micro-ônibus da SPTrans em todas as zonas da cidade.',
     timestamp: 'Atualizado hoje',
     badge: {
       label: 'TARIFA ZERO',
-      bg: 'rgba(16, 185, 129, 0.18)',
+      bg: 'rgba(16, 185, 129, 0.22)',
       text: '#34D399',
-      border: 'rgba(16, 185, 129, 0.4)'
+      border: 'rgba(16, 185, 129, 0.5)'
     },
     source: 'Prefeitura de São Paulo / SPTrans',
     categoryTag: 'Benefícios & Tarifas'
@@ -78,13 +90,16 @@ const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
     sourceType: 'SPTRANS',
     title: 'Avenida Paulista Aberta: Linhas de ônibus com desvios operacionais',
     subtitle: 'Domingos e feriados das 9h às 16h',
-    description: 'Durante o programa Ruas Abertas, as linhas municipais que cruzam a Av. Paulista são desviadas pela Alameda Santos e Rua São Carlos do Pinhal. Pontos temporários devidamente sinalizados.',
+    description:
+      'Durante o programa Ruas Abertas, as linhas municipais que cruzam a Av. Paulista são desviadas pela Alameda Santos e Rua São Carlos do Pinhal. Pontos temporários devidamente sinalizados.',
+    fullContent:
+      'O tráfego de veículos e ônibus permanece interditado na Avenida Paulista entre a Praça Oswaldo Cruz e a Rua da Consolação aos domingos.\n\n• Desvio Sentido Paraíso/Centro: Os coletivos trafegam pela Alameda Santos, com pontos de embarque e desembarque provisórios instalados.\n• Desvio Sentido Rebouças/Consolação: Os ônibus seguem pela Rua São Carlos do Pinhal e Alameda Jaú.\n• Dica: Utilize as estações da Linha 2-Verde do Metrô (Brigadeiro, Trianon-Masp, Consolação) para travessia rápida.',
     timestamp: 'Programação semanal',
     badge: {
       label: 'DESVIOS SPTRANS',
-      bg: 'rgba(6, 182, 212, 0.18)',
+      bg: 'rgba(6, 182, 212, 0.22)',
       text: '#38BDF8',
-      border: 'rgba(6, 182, 212, 0.4)'
+      border: 'rgba(6, 182, 212, 0.5)'
     },
     source: 'CET / SPTrans',
     categoryTag: 'Desvios de Itinerário'
@@ -94,13 +109,16 @@ const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
     sourceType: 'INFORMATIVOS',
     title: 'Regras do Bilhete Único: Até 4 embarques em ônibus em até 3 horas',
     subtitle: 'Integração temporal no transporte público',
-    description: 'O Bilhete Único Comum permite a utilização de até 4 ônibus da SPTrans no intervalo de 3 horas pagando uma única tarifa de R$ 4,40. A integração com trilhos tem desconto especial.',
-    timestamp: 'Informativo',
+    description:
+      'O Bilhete Único Comum permite a utilização de até 4 ônibus da SPTrans no intervalo de 3 horas pagando uma única tarifa de R$ 4,40. A integração com trilhos tem desconto especial.',
+    fullContent:
+      'Com o Bilhete Único você economiza em todas as suas viagens na cidade de São Paulo:\n\n• Integração Ônibus + Ônibus: Até 4 embarques em linhas diferentes da SPTrans no período de 3 horas.\n• Integração Ônibus + Metrô/CPTM: Tarifa integrada especial de R$ 8,20 no período de 3 horas.\n• Recarga: Disponível pelo aplicativo oficial, terminais de autoatendimento nas estações e pontos credenciados.',
+    timestamp: 'Informativo Oficial',
     badge: {
       label: 'BILHETE ÚNICO',
-      bg: 'rgba(99, 102, 241, 0.18)',
+      bg: 'rgba(99, 102, 241, 0.22)',
       text: '#A5B4FC',
-      border: 'rgba(99, 102, 241, 0.4)'
+      border: 'rgba(99, 102, 241, 0.5)'
     },
     source: 'SPTrans Oficial',
     categoryTag: 'Regras de Uso'
@@ -110,13 +128,16 @@ const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
     sourceType: 'SPTRANS',
     title: 'Mais de 1.000 novos ônibus elétricos e climatizados em circulação',
     subtitle: 'Renovação da frota municipal sustentável',
-    description: 'A SPTrans continua a expansão dos ônibus elétricos a bateria com ar-condicionado, carregadores USB, Wi-Fi e motores silenciosos de emissão zero em corredores da Zona Leste e Sul.',
+    description:
+      'A SPTrans continua a expansão dos ônibus elétricos a bateria com ar-condicionado, carregadores USB, Wi-Fi e motores silenciosos de emissão zero em corredores da Zona Leste e Sul.',
+    fullContent:
+      'A cidade de São Paulo acelera a transição energética do transporte público:\n\n• Conforto: Veículos 100% elétricos com suspensão a ar pneumática, tomadas USB nos assentos e ar-condicionado digital.\n• Sustentabilidade: Emissão zero de poluentes e ruído reduzido em mais de 70% nas vias públicas.\n• Linhas atendidas: Principais eixos das zonas Sul, Leste e corredores Santo Amaro/9 de Julho.',
     timestamp: 'Boletim de Frota',
     badge: {
       label: 'FROTA ELÉTRICA',
-      bg: 'rgba(16, 185, 129, 0.18)',
+      bg: 'rgba(16, 185, 129, 0.22)',
       text: '#34D399',
-      border: 'rgba(16, 185, 129, 0.4)'
+      border: 'rgba(16, 185, 129, 0.5)'
     },
     source: 'Olho Vivo SPTrans',
     categoryTag: 'Tecnologia & Frota'
@@ -126,26 +147,30 @@ const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
     sourceType: 'TRILHOS',
     title: 'Avanço nas obras das Linhas 6-Laranja e 17-Ouro do Metrô',
     subtitle: 'Interligação entre bairros e malha sobre trilhos',
-    description: 'Novas estações conectando a Zona Norte à região central e o monotrilho do Aeroporto de Congonhas seguem em fase avançada de montagem eletromecânica e testes de via.',
+    description:
+      'Novas estações conectando a Zona Norte à região central e o monotrilho do Aeroporto de Congonhas seguem em fase avançada de montagem eletromecânica e testes de via.',
+    fullContent:
+      'As novas linhas sobre trilhos de São Paulo trarão alívio imediato ao trânsito:\n\n• Linha 6-Laranja: Ligará a Brasilândia e Freguesia do Ó ao centro (São Joaquim/Higienópolis-Mackenzie) com 15 estações.\n• Linha 17-Ouro: Monotrilho ligando o Aeroporto de Congonhas à Linha 9-Esmeralda (Morumbi) e Linha 5-Lilás.\n• Conexão: Maior integração rápida com linhas de ônibus nos terminais intermodais.',
     timestamp: 'STM Notícias',
     badge: {
       label: 'OBRAS METRÔ',
-      bg: 'rgba(245, 158, 11, 0.18)',
+      bg: 'rgba(245, 158, 11, 0.22)',
       text: '#FBBF24',
-      border: 'rgba(245, 158, 11, 0.4)'
+      border: 'rgba(245, 158, 11, 0.5)'
     },
     source: 'Secretaria dos Transportes Metropolitanos',
     categoryTag: 'Expansão de Malha'
   }
 ];
 
-export default function TransitNewsPanel({
-  incidents = [],
-  onSelectIncidentOnMap
-}: TransitNewsPanelProps) {
+export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap }: TransitNewsPanelProps) {
   const [selectedFilter, setSelectedFilter] = useState<NewsFilterType>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [activeReaderItem, setActiveReaderItem] = useState<UnifiedNewsItem | null>(null);
+  const [fontSize, setFontSize] = useState<FontSizeScale>('md');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingItemId, setSpeakingItemId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Status dos Trilhos
   const [railsData, setRailsData] = useState<RailsResponse | null>(null);
@@ -170,34 +195,98 @@ export default function TransitNewsPanel({
     fetchRails();
   }, []);
 
+  // Text-to-Speech (Leitura em Voz Alta)
+  const handleSpeak = (item: UnifiedNewsItem) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    if (isSpeaking && speakingItemId === item.id) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setSpeakingItemId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const textToRead = `${item.title}. ${item.subtitle ? item.subtitle + '.' : ''} ${item.description}. ${item.fullContent || ''}`;
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 1.05;
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpeakingItemId(null);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setSpeakingItemId(null);
+    };
+
+    setSpeakingItemId(item.id);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleStopSpeak = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+    setSpeakingItemId(null);
+  };
+
+  // Compartilhar notícia
+  const handleShare = async (item: UnifiedNewsItem) => {
+    const shareText = `📢 [BusaÍ SP] ${item.title}\n\n${item.description}\n\nFonte: ${item.source}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: item.title,
+          text: shareText,
+          url: window.location.href
+        });
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(shareText);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2500);
+    }
+  };
+
   // Converter incidentes de trânsito em itens de notícia unificados
   const incidentNewsItems = useMemo<UnifiedNewsItem[]>(() => {
     return incidents.map((inc) => {
       let badgeLabel = 'Alerta de Trânsito';
-      let badgeBg = 'rgba(245, 158, 11, 0.18)';
+      let badgeBg = 'rgba(245, 158, 11, 0.22)';
       let badgeText = '#FBBF24';
-      let badgeBorder = 'rgba(245, 158, 11, 0.4)';
+      let badgeBorder = 'rgba(245, 158, 11, 0.5)';
 
       if (inc.type === 'ACCIDENT') {
         badgeLabel = 'Acidente';
-        badgeBg = 'rgba(239, 68, 68, 0.18)';
+        badgeBg = 'rgba(239, 68, 68, 0.22)';
         badgeText = '#F87171';
-        badgeBorder = 'rgba(239, 68, 68, 0.4)';
+        badgeBorder = 'rgba(239, 68, 68, 0.5)';
       } else if (inc.type === 'CONSTRUCTION') {
         badgeLabel = 'Obras na Via';
-        badgeBg = 'rgba(249, 115, 22, 0.18)';
+        badgeBg = 'rgba(249, 115, 22, 0.22)';
         badgeText = '#FB923C';
-        badgeBorder = 'rgba(249, 115, 22, 0.4)';
+        badgeBorder = 'rgba(249, 115, 22, 0.5)';
       } else if (inc.type === 'JAM') {
         badgeLabel = 'Lentidão Severa';
-        badgeBg = 'rgba(234, 179, 8, 0.18)';
+        badgeBg = 'rgba(234, 179, 8, 0.22)';
         badgeText = '#FACC15';
-        badgeBorder = 'rgba(234, 179, 8, 0.4)';
+        badgeBorder = 'rgba(234, 179, 8, 0.5)';
       } else if (inc.type === 'POLICE') {
-        badgeLabel = 'Blitz / Policiamento';
-        badgeBg = 'rgba(59, 130, 246, 0.18)';
+        badgeLabel = 'Blitz / Operação';
+        badgeBg = 'rgba(59, 130, 246, 0.22)';
         badgeText = '#60A5FA';
-        badgeBorder = 'rgba(59, 130, 246, 0.4)';
+        badgeBorder = 'rgba(59, 130, 246, 0.5)';
       }
 
       return {
@@ -205,7 +294,8 @@ export default function TransitNewsPanel({
         sourceType: 'TRANSITO',
         title: inc.street ? `${inc.street}` : inc.title,
         subtitle: inc.street && inc.title !== inc.street ? inc.title : undefined,
-        description: inc.description || 'Intercorrência registrada no tráfego da via.',
+        description: inc.description || 'Intercorrência registrada no tráfego da via com impacto no fluxo de ônibus.',
+        fullContent: `Ocorrência registrada na via ${inc.street || inc.title}.\n\n• Impacto: ${inc.severity === 'CRITICAL' || inc.severity === 'HIGH' ? 'Grave lentidão e retenção de faixas.' : 'Lentidão moderada.'}\n• Atualização: Monitoramento ativo pela CET e radares de trânsito de São Paulo.`,
         timestamp: inc.updatedAt ? `Hoje às ${inc.updatedAt}` : 'Ao vivo',
         badge: {
           label: badgeLabel,
@@ -221,7 +311,7 @@ export default function TransitNewsPanel({
     });
   }, [incidents]);
 
-  // Converter status de trilhos com ocorrência em itens de notícia
+  // Converter status de trilhos em notícias
   const railNewsItems = useMemo<UnifiedNewsItem[]>(() => {
     if (!railsData?.lines) return [];
     return railsData.lines.map((line) => {
@@ -231,13 +321,18 @@ export default function TransitNewsPanel({
         sourceType: 'TRILHOS',
         title: `${line.name}: ${line.statusText || (isNormal ? 'Operação Normal' : 'Atenção Operacional')}`,
         subtitle: `${line.operator === 'METRO' ? 'Metrô SP' : line.operator === 'VIAMOBILIDADE' ? 'ViaMobilidade' : line.operator === 'VIAQUATRO' ? 'ViaQuatro' : 'CPTM'} · Linha ${line.id}`,
-        description: line.description || (isNormal ? 'Trens circulando com intervalos regulares e fluxo desimpedido em todas as estações.' : 'Intervenção ou velocidade reduzida registrada para adequação de fluxo.'),
+        description:
+          line.description ||
+          (isNormal
+            ? 'Trens circulando com intervalos regulares e fluxo desimpedido em todas as estações.'
+            : 'Intervenção operacional registrada para controle de fluxo e segurança dos passageiros.'),
+        fullContent: `Situação operacional da ${line.name}:\n\n• Status Atual: ${line.statusText}\n• Operadora: ${line.operator}\n• Detalhes: ${line.description || 'Circulação regular em toda a extensão da linha.'}`,
         timestamp: line.updatedAt || 'Em tempo real',
         badge: {
           label: isNormal ? 'NORMAL' : line.statusText.toUpperCase(),
-          bg: isNormal ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)',
+          bg: isNormal ? 'rgba(16, 185, 129, 0.22)' : 'rgba(245, 158, 11, 0.22)',
           text: isNormal ? '#34D399' : '#FBBF24',
-          border: isNormal ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'
+          border: isNormal ? 'rgba(16, 185, 129, 0.5)' : 'rgba(245, 158, 11, 0.5)'
         },
         railRef: line,
         source: 'Diretoria de Operações Metrô/CPTM',
@@ -248,11 +343,10 @@ export default function TransitNewsPanel({
 
   // Feed completo unificado
   const allFeedItems = useMemo<UnifiedNewsItem[]>(() => {
-    // Colocar incidentes e notícias importantes no topo
     return [...incidentNewsItems, ...STATIC_MOBILITY_NEWS, ...railNewsItems];
   }, [incidentNewsItems, railNewsItems]);
 
-  // Filtro por categoria e busca textual
+  // Filtro por categoria e busca
   const filteredItems = useMemo(() => {
     return allFeedItems.filter((item) => {
       if (selectedFilter !== 'ALL' && item.sourceType !== selectedFilter) {
@@ -270,45 +364,66 @@ export default function TransitNewsPanel({
     });
   }, [allFeedItems, selectedFilter, searchQuery]);
 
-  const criticalIncidentsCount = incidents.filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH').length;
-
   return (
-    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* 1. CABEÇALHO UNIFICADO "NOTÍCIAS AO VIVO" */}
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+      {/* 1. CABEÇALHO DA CENTRAL DE NOTÍCIAS */}
       <div
         className="bus-glass-panel"
         style={{
           padding: '16px',
-          background: 'linear-gradient(135deg, rgba(13, 17, 23, 0.96) 0%, rgba(22, 27, 34, 0.92) 100%)',
-          position: 'relative'
+          background: 'linear-gradient(135deg, rgba(13, 17, 23, 0.98) 0%, rgba(22, 27, 34, 0.96) 100%)',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(6, 182, 212, 0.25) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38BDF8'
+                color: '#38BDF8',
+                flexShrink: 0
               }}
             >
-              <Newspaper size={20} />
+              <Newspaper size={22} />
             </div>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Notícias ao Vivo</span>
-                <span style={{ fontSize: '11px', background: 'rgba(239, 68, 68, 0.2)', color: '#F87171', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                  SP
+              <div
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 900,
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>Notícias & Trânsito</span>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    background: 'rgba(239, 68, 68, 0.25)',
+                    color: '#F87171',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontWeight: 800
+                  }}
+                >
+                  SP AO VIVO
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-                Trânsito, Obras, Metrô, Ônibus e Informativos em Tempo Real
+              <div style={{ fontSize: '12px', color: '#94A3B8' }}>
+                CET, Metrô, SPTrans e avisos aos passageiros
               </div>
             </div>
           </div>
@@ -317,41 +432,46 @@ export default function TransitNewsPanel({
             onClick={() => fetchRails()}
             className="bus-pill"
             style={{
-              padding: '6px 10px',
-              fontSize: '11px',
+              padding: '6px 12px',
+              fontSize: '12px',
               fontWeight: 800,
-              gap: '4px',
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34D399'
+              gap: '6px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              color: '#34D399',
+              minHeight: '36px'
             }}
             title="Atualizar Feed"
           >
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', animation: 'markerPulse 1.5s infinite' }} />
+            <span
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#10B981',
+                animation: 'markerPulse 1.5s infinite'
+              }}
+            />
             <span>AO VIVO</span>
           </button>
         </div>
 
-        {/* BARRA DE PESQUISA NO FEED */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+        {/* BARRA DE PESQUISA */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <input
             type="text"
             className="bus-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por rua, linha, metrô ou palavra-chave..."
+            placeholder="Buscar por avenida, linha, metrô ou aviso..."
             style={{
-              paddingLeft: '38px',
-              height: '42px',
-              fontSize: '13px',
-              background: 'rgba(15, 23, 42, 0.8)'
+              paddingLeft: '40px',
+              height: '46px',
+              fontSize: '14.5px',
+              background: 'rgba(15, 23, 42, 0.85)'
             }}
           />
-          <Search
-            size={16}
-            color="#06B6D4"
-            style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}
-          />
+          <Search size={18} color="#06B6D4" style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }} />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
@@ -362,7 +482,8 @@ export default function TransitNewsPanel({
                 border: 'none',
                 color: '#94A3B8',
                 cursor: 'pointer',
-                fontSize: '12px'
+                fontSize: '13px',
+                padding: '6px'
               }}
             >
               Limpar
@@ -370,54 +491,58 @@ export default function TransitNewsPanel({
           )}
         </div>
 
-        {/* CHIPS DE FILTRO DA CENTRAL */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+        {/* CHIPS DE FILTRO HORIZONTAIS COM ROLAGEM SUAVE */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           <button
             onClick={() => setSelectedFilter('ALL')}
             className={`bus-pill ${selectedFilter === 'ALL' ? 'active' : ''}`}
-            style={{ fontSize: '11.5px', padding: '5px 12px' }}
           >
             Tudo ({allFeedItems.length})
           </button>
           <button
             onClick={() => setSelectedFilter('TRANSITO')}
             className={`bus-pill ${selectedFilter === 'TRANSITO' ? 'active' : ''}`}
-            style={{ fontSize: '11.5px', padding: '5px 12px' }}
           >
             🚨 Trânsito ({incidents.length})
           </button>
           <button
             onClick={() => setSelectedFilter('TRILHOS')}
             className={`bus-pill ${selectedFilter === 'TRILHOS' ? 'active' : ''}`}
-            style={{ fontSize: '11.5px', padding: '5px 12px' }}
           >
             🚆 Metrô & CPTM
           </button>
           <button
             onClick={() => setSelectedFilter('SPTRANS')}
             className={`bus-pill ${selectedFilter === 'SPTRANS' ? 'active' : ''}`}
-            style={{ fontSize: '11.5px', padding: '5px 12px' }}
           >
             🚌 SPTrans & Ônibus
           </button>
           <button
             onClick={() => setSelectedFilter('INFORMATIVOS')}
             className={`bus-pill ${selectedFilter === 'INFORMATIVOS' ? 'active' : ''}`}
-            style={{ fontSize: '11.5px', padding: '5px 12px' }}
           >
             📢 Tarifas & Regras
           </button>
         </div>
       </div>
 
-      {/* 2. CARD DE PLANTÃO (RESUMO DE URGÊNCIA) */}
+      {/* 2. CARD RESUMO DE STATUS */}
       {selectedFilter === 'ALL' && !searchQuery && (
         <div
           className="bus-glass-panel"
           style={{
-            padding: '12px 14px',
-            border: '1px solid rgba(6, 182, 212, 0.25)',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(13, 17, 23, 0.9) 100%)',
+            padding: '12px 16px',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(13, 17, 23, 0.95) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -425,133 +550,507 @@ export default function TransitNewsPanel({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={16} color="#38BDF8" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: '12px', color: '#CBD5E1' }}>
-              <strong>Radar São Paulo:</strong> {incidents.length} ocorrências ativas nas vias e malha de trilhos monitorada.
+            <Sparkles size={18} color="#38BDF8" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '13px', color: '#E2E8F0', lineHeight: 1.4 }}>
+              <strong>Radar São Paulo:</strong> {incidents.length} ocorrências ativas nas vias da capital com boletins
+              oficiais.
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. FEED DE NOTÍCIAS AO VIVO (CARDS UNIFICADOS) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* 3. LISTA DE NOTÍCIAS COM ALTO CONTRASTE */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {filteredItems.length === 0 ? (
-          <div className="bus-glass-panel" style={{ padding: '28px', textAlign: 'center' }}>
-            <CheckCircle2 size={32} color="#10B981" style={{ margin: '0 auto 8px' }} />
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#F8FAFC' }}>
-              Nenhuma notícia ou alerta com o filtro selecionado
+          <div className="bus-glass-panel" style={{ padding: '36px 20px', textAlign: 'center' }}>
+            <CheckCircle2 size={36} color="#10B981" style={{ margin: '0 auto 10px' }} />
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>
+              Nenhuma notícia ou alerta no momento com este filtro
             </div>
-            <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>
+            <div style={{ fontSize: '13px', color: '#94A3B8', marginTop: '6px' }}>
               Tente selecionar a categoria "Tudo" ou limpar a busca.
             </div>
           </div>
         ) : (
           filteredItems.map((item) => {
-            const isExpanded = expandedItemId === item.id;
+            const isThisSpeaking = isSpeaking && speakingItemId === item.id;
 
             return (
-              <div
+              <article
                 key={item.id}
                 className="bus-card"
-                onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                onClick={() => setActiveReaderItem(item)}
                 style={{
-                  padding: '14px',
-                  borderLeft: `4px solid ${item.badge.border.replace('0.4', '0.9')}`,
-                  borderColor: isExpanded ? item.badge.border : undefined,
-                  transition: 'all 0.2s ease'
+                  borderLeft: `4px solid ${item.badge.border.replace('0.5', '1')}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
                 }}
               >
-                {/* Linha Superior: Categoria, Badge e Horário */}
+                {/* Cabeçalho do Card */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
                       style={{
-                        fontSize: '10.5px',
+                        fontSize: '11px',
                         fontWeight: 900,
                         background: item.badge.bg,
                         color: item.badge.text,
-                        padding: '2px 8px',
-                        borderRadius: '4px',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
                         border: `1px solid ${item.badge.border}`
                       }}
                     >
                       {item.badge.label}
                     </span>
 
-                    <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
+                    <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>
                       • {item.categoryTag}
                     </span>
                   </div>
 
-                  <span style={{ fontSize: '11px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Clock size={11} />
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      color: '#CBD5E1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Clock size={12} />
                     {item.timestamp}
                   </span>
                 </div>
 
                 {/* Título Principal */}
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#F8FAFC', marginTop: '8px', lineHeight: 1.35 }}>
+                <h3
+                  style={{
+                    fontSize: '15.5px',
+                    fontWeight: 800,
+                    color: '#FFFFFF',
+                    lineHeight: 1.4,
+                    letterSpacing: '-0.2px'
+                  }}
+                >
                   {item.title}
-                </div>
+                </h3>
 
-                {/* Subtítulo se houver */}
+                {/* Subtítulo */}
                 {item.subtitle && (
-                  <div style={{ fontSize: '12px', color: '#38BDF8', fontWeight: 600, marginTop: '2px' }}>
+                  <div style={{ fontSize: '13px', color: '#38BDF8', fontWeight: 600, marginTop: '-4px' }}>
                     {item.subtitle}
                   </div>
                 )}
 
-                {/* Descrição */}
-                <div style={{ fontSize: '12.5px', color: '#CBD5E1', marginTop: '6px', lineHeight: 1.45 }}>
-                  {item.description}
-                </div>
+                {/* Descrição em Alto Contraste */}
+                <p style={{ fontSize: '14px', color: '#CBD5E1', lineHeight: 1.55 }}>{item.description}</p>
 
-                {/* Rodapé e Ações (Expandido) */}
+                {/* Rodapé do Card com Ações Rápidas */}
                 <div
                   style={{
-                    marginTop: '10px',
-                    paddingTop: '8px',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                    marginTop: '4px',
+                    paddingTop: '10px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    gap: '8px'
                   }}
                 >
-                  <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
-                    Fonte: <strong style={{ color: '#94A3B8' }}>{item.source}</strong>
+                  <span style={{ fontSize: '11.5px', color: '#94A3B8' }}>
+                    Fonte: <strong style={{ color: '#E2E8F0' }}>{item.source}</strong>
                   </span>
 
-                  {item.incidentRef && onSelectIncidentOnMap && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Botão Ouvir */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectIncidentOnMap(item.incidentRef!);
+                        handleSpeak(item);
                       }}
                       style={{
-                        background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
-                        border: 'none',
+                        background: isThisSpeaking ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                        border: isThisSpeaking ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
                         borderRadius: '9999px',
-                        color: '#FFFFFF',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        padding: '5px 12px',
+                        color: isThisSpeaking ? '#F87171' : '#38BDF8',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        padding: '5px 10px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)'
+                        cursor: 'pointer'
+                      }}
+                      title="Ouvir notícia"
+                    >
+                      {isThisSpeaking ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                      <span>{isThisSpeaking ? 'Parar' : 'Ouvir'}</span>
+                    </button>
+
+                    {/* Botão Ler Mais */}
+                    <span
+                      style={{
+                        color: '#38BDF8',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
                       }}
                     >
-                      <MapPin size={12} />
-                      <span>Ver no Mapa</span>
-                    </button>
-                  )}
+                      <span>Ler</span>
+                      <ChevronRight size={14} />
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </article>
             );
           })
         )}
       </div>
+
+      {/* 4. MODAL / DRAWER IMERSIVO DO MODO LEITOR */}
+      {activeReaderItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeReaderItem.title}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(7, 9, 14, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            animation: 'fadeIn 0.2s ease'
+          }}
+          onClick={() => {
+            handleStopSpeak();
+            setActiveReaderItem(null);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'linear-gradient(180deg, #161B22 0%, #0D1117 100%)',
+              borderTop: '1px solid rgba(6, 182, 212, 0.35)',
+              borderRadius: '24px 24px 0 0',
+              maxHeight: '90dvh',
+              width: '100%',
+              maxWidth: '640px',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.9)',
+              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Barra de Controle Superior do Leitor */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px'
+              }}
+            >
+              <button
+                onClick={() => {
+                  handleStopSpeak();
+                  setActiveReaderItem(null);
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#FFFFFF',
+                  borderRadius: '9999px',
+                  padding: '6px 14px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>Voltar</span>
+              </button>
+
+              {/* Seletor de Tamanho de Fonte (A- / A / A+) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '9999px',
+                  padding: '3px'
+                }}
+              >
+                <button
+                  onClick={() => setFontSize('sm')}
+                  style={{
+                    background: fontSize === 'sm' ? '#06B6D4' : 'transparent',
+                    color: fontSize === 'sm' ? '#FFFFFF' : '#94A3B8',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '4px 10px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Fonte Menor"
+                >
+                  A-
+                </button>
+                <button
+                  onClick={() => setFontSize('md')}
+                  style={{
+                    background: fontSize === 'md' ? '#06B6D4' : 'transparent',
+                    color: fontSize === 'md' ? '#FFFFFF' : '#94A3B8',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '4px 10px',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Fonte Normal"
+                >
+                  A
+                </button>
+                <button
+                  onClick={() => setFontSize('lg')}
+                  style={{
+                    background: fontSize === 'lg' ? '#06B6D4' : 'transparent',
+                    color: fontSize === 'lg' ? '#FFFFFF' : '#94A3B8',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '4px 10px',
+                    fontSize: '15px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Fonte Maior"
+                >
+                  A+
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  handleStopSpeak();
+                  setActiveReaderItem(null);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  padding: '6px',
+                  cursor: 'pointer'
+                }}
+                title="Fechar leitor"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Conteúdo do Artigo Formatado para Leitura Mobile */}
+            <div
+              style={{
+                padding: '20px 20px calc(24px + var(--safe-bottom)) 20px',
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+            >
+              {/* Badges e Origem */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    background: activeReaderItem.badge.bg,
+                    color: activeReaderItem.badge.text,
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${activeReaderItem.badge.border}`
+                  }}
+                >
+                  {activeReaderItem.badge.label}
+                </span>
+
+                <span style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Clock size={13} />
+                  {activeReaderItem.timestamp}
+                </span>
+              </div>
+
+              {/* Título */}
+              <h2
+                className={`reader-title-${fontSize}`}
+                style={{
+                  fontWeight: 900,
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.3px'
+                }}
+              >
+                {activeReaderItem.title}
+              </h2>
+
+              {/* Subtítulo */}
+              {activeReaderItem.subtitle && (
+                <div style={{ fontSize: '14.5px', color: '#38BDF8', fontWeight: 700, marginTop: '-6px' }}>
+                  {activeReaderItem.subtitle}
+                </div>
+              )}
+
+              {/* Fonte e Categoria */}
+              <div
+                style={{
+                  padding: '8px 12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontSize: '12.5px',
+                  color: '#94A3B8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <span>
+                  Veículo: <strong style={{ color: '#F8FAFC' }}>{activeReaderItem.source}</strong>
+                </span>
+                <span>{activeReaderItem.categoryTag}</span>
+              </div>
+
+              {/* Corpo do Texto Completo */}
+              <div
+                className={`reader-article reader-size-${fontSize}`}
+                style={{
+                  whiteSpace: 'pre-line',
+                  color: '#F1F5F9',
+                  fontWeight: 400
+                }}
+              >
+                {activeReaderItem.fullContent || activeReaderItem.description}
+              </div>
+
+              {/* Barra de Ações Rápidas no Fim da Leitura */}
+              <div
+                style={{
+                  marginTop: '12px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
+              >
+                {/* Ouvir notícia com voz */}
+                <button
+                  onClick={() => handleSpeak(activeReaderItem)}
+                  className="bus-btn-primary"
+                  style={{
+                    flex: '1 1 140px',
+                    padding: '12px 16px',
+                    fontSize: '13.5px',
+                    background:
+                      isSpeaking && speakingItemId === activeReaderItem.id
+                        ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
+                        : undefined
+                  }}
+                >
+                  {isSpeaking && speakingItemId === activeReaderItem.id ? (
+                    <>
+                      <VolumeX size={16} />
+                      <span>Parar Leitura</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 size={16} />
+                      <span>Ouvir Notícia</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Compartilhar */}
+                <button
+                  onClick={() => handleShare(activeReaderItem)}
+                  className="bus-glass-panel"
+                  style={{
+                    flex: '1 1 120px',
+                    padding: '12px 16px',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {copiedId === activeReaderItem.id ? (
+                    <>
+                      <Check size={16} color="#10B981" />
+                      <span>Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 size={16} color="#38BDF8" />
+                      <span>Compartilhar</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Ver no Mapa (se tiver referência de incidente) */}
+                {activeReaderItem.incidentRef && onSelectIncidentOnMap && (
+                  <button
+                    onClick={() => {
+                      const inc = activeReaderItem.incidentRef!;
+                      handleStopSpeak();
+                      setActiveReaderItem(null);
+                      onSelectIncidentOnMap(inc);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: 'var(--bus-radius-full)',
+                      background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(6, 182, 212, 0.4)'
+                    }}
+                  >
+                    <MapPin size={16} />
+                    <span>Ver Local do Incidente no Mapa</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

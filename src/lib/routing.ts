@@ -10,6 +10,7 @@ import {
   ReachableRoute
 } from '@/lib/gtfs';
 import { getSnappedRoutePolyline } from '@/lib/osrm';
+import { formatSaoPauloTime, getSaoPauloTime, getDiffMinutesFromSaoPaulo } from '@/lib/dateUtils';
 
 export interface RouteLocation {
   name: string;
@@ -295,12 +296,6 @@ function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(R * c);
 }
 
-function formatTimeHourMinute(date: Date): string {
-  const h = String(date.getHours()).padStart(2, '0');
-  const m = String(date.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
-}
-
 /**
  * Constrói um RoutePlan completo com dados detalhados idênticos ao Moovit
  */
@@ -338,9 +333,9 @@ export async function buildMultiLegPlan(
   let totalEstimatedSteps = 0;
 
   // Horário de referência do planejamento: "agora" por padrão, ou o horário futuro
-  // escolhido pelo usuário (targetOffsetMinutes minutos a partir de agora).
+  // escolhido pelo usuário (targetOffsetMinutes minutos a partir de agora), sempre no fuso de São Paulo.
   const now = new Date(Date.now() + targetOffsetMinutes * 60000);
-  const departureHour = formatTimeHourMinute(now);
+  const departureHour = formatSaoPauloTime(now);
 
   const walkToStopMeters = Math.max(80, getDistanceMeters(originLoc.lat, originLoc.lng, firstLeg.boardStop.py, firstLeg.boardStop.px));
   const walkToStopMinutes = Math.max(1, Math.round(walkToStopMeters / 80));
@@ -502,7 +497,7 @@ export async function buildMultiLegPlan(
   totalDistanceMeters += walkToDestMeters;
 
   const arrivalDate = new Date(now.getTime() + totalDurationMinutes * 60000);
-  const arrivalHour = formatTimeHourMinute(arrivalDate);
+  const arrivalHour = formatSaoPauloTime(arrivalDate);
 
   const hasFirstLegEta = firstLeg.etaMinutes >= 0;
   const departureEtas = firstLeg.departureEtas && firstLeg.departureEtas.length > 0
@@ -524,8 +519,8 @@ export async function buildMultiLegPlan(
   // Estimativa de CO2
   const carbonGrams = Math.round((totalDistanceMeters / 1000) * 22);
 
-  // Cálculo exato de tarifa conforme linhas e modais utilizados
-  const isSunday = new Date().getDay() === 0;
+  // Cálculo exato de tarifa conforme linhas e modais utilizados no fuso de SP
+  const isSunday = getSaoPauloTime(now).isSunday;
   const isRailLine = (lineCode: string) => {
     const lc = lineCode.toLowerCase();
     return lc.includes('linha') || lc.includes('metro') || lc.includes('cptm');
@@ -673,20 +668,10 @@ async function resolveRealTimeEta(
   const etasComPrefixo: Array<{ etaMinutos: number; prefixo: string }> = [];
 
   linhaPrevisao.vs.forEach((v) => {
-    const [horas, minutos] = v.t.split(':').map(Number);
-    const diffBruto = (horas * 60 + minutos) - (agora.getHours() * 60 + agora.getMinutes());
-
-    // Diferença negativa pequena (até 1h) é virada de meia-noite genuína — ex.:
-    // consulta às 23:58, previsão às 00:05 (diff -1433, vira +7, correto). Uma
-    // diferença negativa GRANDE não é "chegando amanhã": é uma previsão
-    // desatualizada/no passado da SPTrans, e "virar" ela produzia um horário
-    // absurdo pra frente (bug real observado: "em 1268 min" — 21h no futuro
-    // pra uma previsão que na verdade já tinha passado). Descarta em vez de
-    // inventar um horário.
-    if (diffBruto < -60) return;
-
-    const etaMinutos = diffBruto < 0 ? diffBruto + 24 * 60 : diffBruto;
-    etasComPrefixo.push({ etaMinutos, prefixo: v.p });
+    const etaMinutos = getDiffMinutesFromSaoPaulo(v.t, agora);
+    if (etaMinutos !== null) {
+      etasComPrefixo.push({ etaMinutos, prefixo: v.p });
+    }
   });
 
   etasComPrefixo.sort((a, b) => a.etaMinutos - b.etaMinutos);
@@ -752,11 +737,11 @@ async function findMultiLegPlans(
   let frontier: FrontierEntry[] = origNearby.map(stop => ({ stop, legs: [] }));
   const plans: RoutePlan[] = [];
 
-  // Madrugada é decidida pelo horário planejado da viagem, não pelo relógio real
+  // Madrugada é decidida pelo horário planejado da viagem no fuso de São Paulo, não pelo relógio real
   // no momento da busca — se o usuário vai saír de madrugada, linha noturna deve
   // aparecer; se vai saír de manhã, mesmo que a busca seja feita de madrugada, não.
   const targetDate = new Date(Date.now() + targetOffsetMinutes * 60000);
-  const currentHour = targetDate.getHours();
+  const currentHour = getSaoPauloTime(targetDate).hours;
   const isNightTime = currentHour >= 0 && currentHour < 5;
 
   for (let round = 1; round <= MAX_TRANSFER_ROUNDS && frontier.length > 0 && plans.length < MAX_ALTERNATIVES; round++) {
