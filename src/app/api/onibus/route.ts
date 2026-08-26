@@ -18,6 +18,19 @@ export async function GET(request: NextRequest) {
   const timestamp = new Date().toISOString();
 
   try {
+    // Diagnóstico temporário: confirma se a variável do CartoDB está mesmo configurada
+    // no ambiente de build/runtime da Vercel, sem nunca expor o valor real da chave.
+    if (tipo === 'carto_debug') {
+      const key = process.env.NEXT_PUBLIC_CARTO_API_KEY || '';
+      return NextResponse.json({
+        success: true,
+        hasCartoKey: key.length > 0,
+        keyLength: key.length,
+        keyPreview: key.length > 0 ? `${key.slice(0, 6)}...${key.slice(-4)}` : null,
+        timestamp
+      });
+    }
+
     // 1. Status de Autenticação / Configuração
     if (tipo === 'status_auth') {
       const hasEnvToken = Boolean(process.env.SPTRANS_TOKEN && process.env.SPTRANS_TOKEN.trim().length > 0);
