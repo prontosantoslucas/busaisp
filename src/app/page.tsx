@@ -336,7 +336,7 @@ export default function HomePage() {
         width: '100vw',
         height: '100dvh',
         overflow: 'hidden',
-        background: '#07090E'
+        background: 'var(--bus-bg)'
       }}
     >
       {/* 1. MAPA PERSISTENTE NO FUNDO */}

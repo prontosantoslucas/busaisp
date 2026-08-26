@@ -2,37 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { geocodeAddress, calculateRoute, searchAddressSuggestions, RouteLocation } from '@/lib/routing';
 import { supabase } from '@/lib/supabase';
 
-const DEFAULT_POPULAR_DESTINATIONS = [
-  'Shopping Center Norte',
-  'Metrô / Terminal Tucuruvi',
-  'Avenida Paulista, 1578',
-  'Metrô / Terminal Santana',
-  'Rua Flor de Maio, 40'
-];
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tipo = searchParams.get('tipo');
   const query = searchParams.get('q');
 
-  // 1. Destinos Mais Procurados em tempo real (com fallback resiliente)
+  // 1. Destinos Mais Procurados — reflete buscas reais registradas em search_events.
+  // Sem histórico real ainda, retorna lista vazia (nunca inventa "populares" fixos).
   if (tipo === 'destinos_populares') {
     try {
       const { data, error } = await supabase.rpc('get_popular_destinations', { limit_count: 6 });
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         const destinations = data.map((row: any) => row.destination_name);
         return NextResponse.json({
           success: true,
           data: destinations
         });
       }
+      console.warn('[API /api/rotas] Erro ao buscar destinos populares:', error?.message);
     } catch (err) {
-      console.warn('[API /api/rotas] Fallback para destinos populares padrão:', err);
+      console.warn('[API /api/rotas] Erro ao buscar destinos populares:', err);
     }
 
     return NextResponse.json({
       success: true,
-      data: DEFAULT_POPULAR_DESTINATIONS
+      data: []
     });
   }
 

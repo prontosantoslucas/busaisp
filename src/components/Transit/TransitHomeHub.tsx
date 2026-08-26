@@ -14,10 +14,6 @@ import {
   Star,
   X,
   ArrowRight,
-  Home,
-  ShoppingBag,
-  Briefcase,
-  TrainTrack,
   Newspaper
 } from 'lucide-react';
 import { TrafficIncident } from '@/types/traffic';
@@ -60,31 +56,32 @@ export default function TransitHomeHub({
     icon: Star
   }));
 
-  const POPULAR_DESTINATIONS = [
-    {
-      title: 'Para Casa (Jd. Fontális)',
-      destinationName: 'Rua Flor de Maio, 40',
-      icon: Home
-    },
-    {
-      title: 'Shopping Center Norte',
-      destinationName: 'Shopping Center Norte, São Paulo',
-      icon: ShoppingBag
-    },
-    {
-      title: 'Avenida Paulista (MASP)',
-      destinationName: 'Avenida Paulista, 1578, São Paulo',
-      icon: Briefcase
-    },
-    {
-      title: 'Metrô Sé / Centro',
-      destinationName: 'Praça da Sé, São Paulo',
-      icon: TrainTrack
-    }
-  ];
+  // "Mais buscados" vem de buscas reais registradas em search_events — nunca uma
+  // lista fixa fingindo ser popular. Sem histórico real ainda, fica vazio mesmo.
+  const [popularDestinations, setPopularDestinations] = useState<string[]>([]);
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/rotas?tipo=destinos_populares')
+      .then(res => res.json())
+      .then(json => {
+        if (isMounted && json.success && Array.isArray(json.data)) {
+          setPopularDestinations(json.data);
+        }
+      })
+      .catch(err => console.warn('[TransitHomeHub] Erro ao buscar destinos populares:', err));
+    return () => { isMounted = false; };
+  }, []);
 
-  const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : POPULAR_DESTINATIONS;
-  const currentFrequent = activeDestinationsList[frequentIndex % activeDestinationsList.length];
+  const popularDestinationsList = popularDestinations.map((name) => ({
+    title: name,
+    destinationName: name,
+    icon: MapPin
+  }));
+
+  const activeDestinationsList = userFavoritesList.length > 0 ? userFavoritesList : popularDestinationsList;
+  const currentFrequent = activeDestinationsList.length > 0
+    ? activeDestinationsList[frequentIndex % activeDestinationsList.length]
+    : undefined;
 
   // A posição do GPS por si só não dispara mais essa busca — tentar detectar
   // "andou o suficiente" por distância sofria com o jitter real do watchPosition
@@ -337,23 +334,29 @@ export default function TransitHomeHub({
           </div>
         )}
 
-        {/* Chips de Destinos Rápidos */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginTop: '12px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
-          {activeDestinationsList.map((dest, idx) => {
-            const Icon = dest.icon;
-            return (
-              <button
-                key={idx}
-                onClick={() => onSelectDestination(dest.destinationName)}
-                className="bus-pill"
-                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <Icon size={14} color="var(--bus-violet)" />
-                <span>{dest.title}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Chips de Destinos Rápidos: favoritos, ou os mais buscados de verdade (search_events) */}
+        {activeDestinationsList.length > 0 ? (
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginTop: '12px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+            {activeDestinationsList.map((dest, idx) => {
+              const Icon = dest.icon;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => onSelectDestination(dest.destinationName)}
+                  className="bus-pill"
+                  style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Icon size={14} color="var(--bus-violet)" />
+                  <span>{dest.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ fontSize: '11.5px', color: 'var(--bus-text-muted)', marginTop: '10px' }}>
+            Seus destinos favoritos e os mais buscados em SP vão aparecer aqui.
+          </p>
+        )}
       </div>
 
       {/* 2. RADAR DA PRÓXIMA VIAGEM (TELEMETRIA EM TEMPO REAL) */}
@@ -463,7 +466,7 @@ export default function TransitHomeHub({
             {/* Botão Ação Rápida */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
               <button
-                onClick={() => onSelectDestination(currentFrequent.destinationName)}
+                onClick={() => currentFrequent && onSelectDestination(currentFrequent.destinationName)}
                 className="bus-btn-primary"
                 style={{ flex: 1, padding: '10px 16px', fontSize: '13px' }}
               >
@@ -475,7 +478,11 @@ export default function TransitHomeHub({
         ) : (
           <div style={{ padding: '14px 0', textAlign: 'center', color: 'var(--bus-text-secondary)', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontWeight: 600, color: 'var(--bus-text-primary)' }}>Previsão em Tempo Real</span>
-            <span style={{ fontSize: '12px' }}>Toque em um dos destinos rápidos acima para calcular o trajeto e próximo ônibus.</span>
+            <span style={{ fontSize: '12px' }}>
+              {activeDestinationsList.length > 0
+                ? 'Toque em um dos destinos rápidos acima para calcular o trajeto e próximo ônibus.'
+                : 'Busque um destino para ver o trajeto e o próximo ônibus em tempo real.'}
+            </span>
           </div>
         )}
       </div>
