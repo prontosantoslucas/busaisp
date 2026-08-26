@@ -463,6 +463,78 @@ html, body {
   background: var(--bus-surface-hover) !important;
 }
 
+/* Sem isto, todo marcador customizado (L.divIcon) do mapa ganha o quadrado
+   branco com borda cinza que é o estilo padrão do Leaflet para .leaflet-div-icon
+   — não é um efeito nosso, é o fallback do próprio Leaflet vazando por trás
+   dos ícones circulares transparentes que desenhamos por cima. */
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* Marcador de veículo (ônibus) ao vivo — estrutura em Map/LiveMap.tsx */
+.bus-marker-container {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bus-marker-pulse {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bus-live-soft);
+  animation: markerPulse 1.8s infinite;
+}
+
+.bus-marker-icon {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--bus-live);
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bus-text-on-accent);
+  font-size: 8.5px;
+  letter-spacing: -0.2px;
+}
+
+.bus-marker-arrow {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid #FFFFFF;
+}
+
+/* Marcador de parada de ônibus (pino pequeno) */
+.stop-marker-icon {
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--bus-surface-elevated);
+  border: 2px solid var(--bus-violet);
+  color: var(--bus-violet);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 .map-perspective-viewport {
   overflow: hidden;
   position: relative;
