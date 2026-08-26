@@ -43,6 +43,7 @@ export interface LiveMapProps {
   incidents?: TrafficIncident[];
   focusCoords?: [number, number] | null;
   theme?: 'dark' | 'light';
+  isMapFullscreen?: boolean;
 }
 
 function getCartoTileUrl(theme: 'dark' | 'light'): string {
@@ -72,7 +73,8 @@ export default function LiveMap({
   onRouteToStation,
   incidents = [],
   focusCoords,
-  theme = 'dark'
+  theme = 'dark',
+  isMapFullscreen = false
 }: LiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -719,8 +721,10 @@ export default function LiveMap({
         style={{ width: '100%', height: '100%', zIndex: 1 }}
       />
 
-      {/* Barra HUD Flutuante de Percurso Ativo no Topo do Mapa */}
-      {isPercursoActive && activeRoute && (
+      {/* Barra HUD Flutuante de Percurso Ativo no Topo do Mapa — só quando o mapa é a
+          tela em foco; nos demais casos o painel principal fica por cima do mapa, mas
+          o vão transparente entre os cards do painel deixava esta barra vazar por trás. */}
+      {isPercursoActive && activeRoute && isMapFullscreen && (
         <div
           style={{
             position: 'absolute',

@@ -238,7 +238,9 @@ export default function StopArrivalsModal({ parada, onClose }: StopArrivalsModal
                         color: etaColors.color,
                         background: etaColors.background,
                         padding: '4px 8px',
-                        borderRadius: 'var(--bus-radius-sm)'
+                        borderRadius: 'var(--bus-radius-sm)',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block'
                       }}
                     >
                       {proximaEta === undefined ? 'Sem previsão' : proximaEta <= 1 ? 'Agora' : `${proximaEta} min`}

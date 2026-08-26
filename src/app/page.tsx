@@ -16,7 +16,6 @@ import TransitHeader from '@/components/Navigation/TransitHeader';
 import TransitHomeHub from '@/components/Transit/TransitHomeHub';
 import TransitRouteResults from '@/components/Transit/TransitRouteResults';
 import TransitRouteDetail from '@/components/Transit/TransitRouteDetail';
-import TransitDeparturesModal from '@/components/Transit/TransitDeparturesModal';
 import StationsExplorerPanel from '@/components/Stations/StationsExplorerPanel';
 import TransitNewsPanel from '@/components/News/TransitNewsPanel';
 import { StationItem, SP_ALL_STATIONS } from '@/lib/stationsData';
@@ -75,7 +74,6 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TransitTabType>('ROTAS');
   const [screenMode, setScreenMode] = useState<'HOME' | 'RESULTS' | 'DETAIL'>('HOME');
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-  const [isDeparturesModalOpen, setIsDeparturesModalOpen] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isPercursoActive, setIsPercursoActive] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
@@ -362,6 +360,7 @@ export default function HomePage() {
           userAccuracyMeters={userAccuracyMeters}
           focusCoords={mapFocusCoords}
           theme={theme}
+          isMapFullscreen={isMapFullscreen}
           isPercursoActive={isPercursoActive}
           onStartPercurso={() => {
             setIsPercursoActive(true);
@@ -571,7 +570,6 @@ export default function HomePage() {
                 setIsPercursoActive(true);
                 setIsMapFullscreen(true);
               }}
-              onOpenDeparturesModal={() => setIsDeparturesModalOpen(true)}
               onToggleFavorite={handleToggleRouteFavorite}
               isFavorited={isCurrentRouteFavorited}
               isPercursoActive={isPercursoActive}
@@ -637,16 +635,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 4. MODAL DE PRÓXIMAS PARTIDAS */}
-      {isDeparturesModalOpen && activeRoute && (
-        <TransitDeparturesModal
-          busLine={`${activeRoute.recommendedLine.lt}-${activeRoute.recommendedLine.tl}`}
-          busDestination={activeRoute.recommendedLine.ts}
-          boardStopName={activeRoute.departureStop.np}
-          departureEtas={activeRoute.departureEtas || []}
-          onClose={() => setIsDeparturesModalOpen(false)}
-        />
-      )}
 
       {/* 5. MODAL DE CONFIGURAÇÃO DE TOKEN */}
       <TokenConfigModal
@@ -658,9 +646,12 @@ export default function HomePage() {
       <TransitDock
         activeTab={activeTab}
         onChangeTab={(tab) => {
+          // Só volta para a tela inicial de Rotas se o usuário tocar em "Rotas" de novo
+          // já estando nela (reset intencional) — trocar de aba e voltar não deve perder
+          // a viagem/rota em andamento (resultados, detalhe ou navegação ativa).
+          if (tab === 'ROTAS' && activeTab === 'ROTAS') setScreenMode('HOME');
           setActiveTab(tab);
-          if (tab === 'ROTAS') setScreenMode('HOME');
-          setIsMapFullscreen(false);
+          if (tab !== 'ROTAS') setIsMapFullscreen(false);
         }}
         favoritesCount={favorites.length}
         incidentsCount={incidents.length}

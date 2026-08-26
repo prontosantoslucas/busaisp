@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RoutePlan } from '@/lib/routing';
+import { RoutePlan, RouteStep } from '@/lib/routing';
 import {
   ArrowLeft,
   Star,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { voiceService } from '@/lib/voiceService';
 import { getEtaColorTokens } from '@/lib/etaStyle';
+import TransitDeparturesModal from '@/components/Transit/TransitDeparturesModal';
 
 interface TransitRouteDetailProps {
   route: RoutePlan;
@@ -25,7 +26,6 @@ interface TransitRouteDetailProps {
   onSelectRouteIndex?: (idx: number) => void;
   onBack: () => void;
   onStartLiveNavigation: () => void;
-  onOpenDeparturesModal: () => void;
   onToggleFavorite: () => void;
   isFavorited: boolean;
   isPercursoActive?: boolean;
@@ -41,7 +41,6 @@ export default function TransitRouteDetail({
   onSelectRouteIndex,
   onBack,
   onStartLiveNavigation,
-  onOpenDeparturesModal,
   onToggleFavorite,
   isFavorited,
   isPercursoActive = false,
@@ -50,7 +49,9 @@ export default function TransitRouteDetail({
   onToggleVoice
 }: TransitRouteDetailProps) {
   const [expandedStops, setExpandedStops] = useState<Record<number, boolean>>({});
+  const [departuresStep, setDeparturesStep] = useState<RouteStep | null>(null);
   const etaColors = getEtaColorTokens(route.nextBusEtaMinutes);
+  const firstBusStep = route.steps.find(s => s.type === 'BUS') || null;
 
   const toggleStops = (idx: number) => {
     setExpandedStops(prev => ({ ...prev, [idx]: !prev[idx] }));
@@ -227,9 +228,10 @@ export default function TransitRouteDetail({
             ITINERÁRIO DETALHADO
           </span>
           <button
-            onClick={onOpenDeparturesModal}
+            onClick={() => firstBusStep && setDeparturesStep(firstBusStep)}
             className="bus-pill"
             style={{ fontSize: '11px', padding: '4px 8px' }}
+            disabled={!firstBusStep}
           >
             <Clock size={12} />
             <span>Próximas Partidas</span>
@@ -254,10 +256,15 @@ export default function TransitRouteDetail({
 
                 <div style={{ flex: 1, paddingBottom: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span className="bus-badge">
+                    <button
+                      onClick={() => setDeparturesStep(step)}
+                      className="bus-badge"
+                      style={{ border: 'none', cursor: 'pointer' }}
+                      title="Ver próximas partidas desta linha"
+                    >
                       <Bus size={13} />
                       <span>{step.busLine}</span>
-                    </span>
+                    </button>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
                       {step.busDestination}
                     </span>
@@ -406,6 +413,16 @@ export default function TransitRouteDetail({
           <span>O app avisará por voz quando você estiver perto do destino final.</span>
         </div>
       </div>
+
+      {departuresStep && (
+        <TransitDeparturesModal
+          busLine={departuresStep.busLine || ''}
+          busDestination={departuresStep.busDestination || ''}
+          boardStopName={departuresStep.boardStopName || ''}
+          departureEtas={departuresStep.departureEtas || []}
+          onClose={() => setDeparturesStep(null)}
+        />
+      )}
     </div>
   );
 }

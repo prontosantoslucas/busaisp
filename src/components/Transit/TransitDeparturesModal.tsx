@@ -144,7 +144,7 @@ export default function TransitDeparturesModal({
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <span
                       className="bus-num"
                       style={{
@@ -153,7 +153,9 @@ export default function TransitDeparturesModal({
                         color: etaColors.color,
                         background: etaColors.background,
                         padding: '4px 8px',
-                        borderRadius: 'var(--bus-radius-sm)'
+                        borderRadius: 'var(--bus-radius-sm)',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block'
                       }}
                     >
                       {minutesUntil <= 1 ? 'Agora' : `em ${minutesUntil} min`}
