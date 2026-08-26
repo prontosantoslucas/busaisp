@@ -46,12 +46,14 @@ export interface LiveMapProps {
   isMapFullscreen?: boolean;
 }
 
-function getCartoTileUrl(theme: 'dark' | 'light'): string {
-  const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
-  const style = theme === 'light' ? 'light_nolabels' : 'dark_nolabels';
-  return cartoApiKey
-    ? `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
-    : `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`;
+// Basemapas Esri "Canvas" (Light/Dark Gray) — não exigem chave de API para o volume
+// deste app, ao contrário do CartoDB, que passou a exigir chave mesmo no free tier
+// (causava o aviso "API KEY REQUIRED" em produção sempre que a variável de ambiente
+// não estava corretamente configurada na Vercel). Zoom nativo até 16; acima disso o
+// Leaflet amplia o próprio tile (maxNativeZoom) em vez de pedir um tile inexistente.
+function getBasemapTileUrl(theme: 'dark' | 'light'): string {
+  const style = theme === 'light' ? 'World_Light_Gray_Base' : 'World_Dark_Gray_Base';
+  return `https://services.arcgisonline.com/arcgis/rest/services/Canvas/${style}/MapServer/tile/{z}/{y}/{x}`;
 }
 
 export default function LiveMap({
@@ -108,15 +110,12 @@ export default function LiveMap({
       attributionControl: false
     });
 
-    // Tiles CartoDB sem rótulos/áreas do provedor — o app já desenha seus próprios
-    // marcadores e labels por cima, então a versão "com rótulos" só adiciona poluição
-    // visual (parques, POIs, etc. da própria tile). A variante clara/escura acompanha
-    // o tema escolhido pelo usuário (light_nolabels / dark_nolabels).
-    // A CARTO passou a exigir chave de API mesmo no free tier — sem ela, o tile
-    // vem só com o aviso "API KEY REQUIRED" (era isso, não um bug de renderização).
-    tileLayerRef.current = L.tileLayer(getCartoTileUrl(theme), {
+    // Basemapa Esri Canvas (Light/Dark Gray) — sem rótulos/POIs do provedor, já que o
+    // app desenha seus próprios marcadores por cima. Acompanha o tema claro/escuro do
+    // usuário, e não exige chave de API (ao contrário do CartoDB, usado antes).
+    tileLayerRef.current = L.tileLayer(getBasemapTileUrl(theme), {
       maxZoom: 19,
-      subdomains: 'abcd'
+      maxNativeZoom: 16
     }).addTo(map);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -158,7 +157,7 @@ export default function LiveMap({
   // o mapa ficava permanentemente escuro mesmo com o resto da UI em tema claro.
   useEffect(() => {
     if (!tileLayerRef.current) return;
-    tileLayerRef.current.setUrl(getCartoTileUrl(theme));
+    tileLayerRef.current.setUrl(getBasemapTileUrl(theme));
   }, [theme]);
 
   // Monitorar e seguir GPS continuamente quando "Iniciar Percurso" estiver ativo
