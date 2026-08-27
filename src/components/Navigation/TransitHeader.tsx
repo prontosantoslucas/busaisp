@@ -20,8 +20,6 @@ interface TransitHeaderProps {
   activeVehiclesCount?: number;
   onToggleMap?: () => void;
   isMapFullscreen?: boolean;
-  theme?: 'dark' | 'light';
-  onToggleTheme?: () => void;
 }
 
 const actionButtonBase: React.CSSProperties = {
@@ -44,9 +42,7 @@ export default function TransitHeader({
   hasGps,
   activeVehiclesCount = 0,
   onToggleMap,
-  isMapFullscreen = false,
-  theme = 'dark',
-  onToggleTheme
+  isMapFullscreen = false
 }: TransitHeaderProps) {
   return (
     <header
@@ -107,7 +103,7 @@ export default function TransitHeader({
         </div>
       </div>
 
-      {/* Ações Rápidas: Mapa, Voz, Tema e Configurações */}
+      {/* Ações Rápidas: Mapa, Voz e Configurações */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         {onToggleMap && (
           <button
@@ -136,20 +132,6 @@ export default function TransitHeader({
         >
           {isVoiceMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
-
-        {onToggleTheme && (
-          <button
-            onClick={onToggleTheme}
-            title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-            style={{
-              ...actionButtonBase,
-              background: 'var(--bus-surface-elevated)',
-              color: 'var(--bus-text-secondary)'
-            }}
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-        )}
 
         <button
           onClick={onOpenSettings}

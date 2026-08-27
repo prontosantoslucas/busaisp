@@ -297,7 +297,7 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
   }, [allFeedItems, selectedFilter, searchQuery]);
 
   return (
-    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', paddingBottom: '24px' }}>
       {/* 1. CABEÇALHO DA CENTRAL DE NOTÍCIAS */}
       <div
         className="bus-glass-panel"

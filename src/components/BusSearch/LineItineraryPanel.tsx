@@ -87,7 +87,7 @@ export default function LineItineraryPanel({
   const accessibleVehiclesCount = veiculos.filter(v => v.a).length;
 
   return (
-    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', paddingBottom: '24px' }}>
       {/* 1. BUSCA DE LINHAS & RADAR */}
       <div
         className="bus-glass-panel"

@@ -448,28 +448,40 @@ export default function TransitHomeHub({
                 padding: '10px 12px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                gap: '10px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="bus-badge">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                <div className="bus-badge" style={{ flexShrink: 0 }}>
                   <Bus size={14} />
                   <span>{liveRoutePlan.mode === 'RAIL' ? liveRoutePlan.recommendedLine.lt : `${liveRoutePlan.recommendedLine.lt}-${liveRoutePlan.recommendedLine.tl}`}</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--bus-text-primary)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--bus-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {liveRoutePlan.departureStop.np}
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Footprints size={12} /> {liveRoutePlan.totalWalkDurationMinutes} min a pé até o ponto
+                  <span style={{ fontSize: '11px', color: 'var(--bus-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Footprints size={12} style={{ flexShrink: 0 }} /> {liveRoutePlan.totalWalkDurationMinutes} min a pé até o ponto
                   </span>
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <span
                   className="bus-num"
-                  style={{ fontSize: '11px', fontWeight: 700, color: etaColors.color, background: etaColors.background, padding: '3px 7px', borderRadius: 'var(--bus-radius-sm)' }}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: etaColors.color,
+                    background: etaColors.background,
+                    padding: '4px 8px',
+                    borderRadius: 'var(--bus-radius-sm)',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
                   {liveRoutePlan.nextBusEtaMinutes < 0 ? 'Sem previsão' : liveRoutePlan.nextBusEtaMinutes <= 2 ? 'Chegando agora' : `em ${liveRoutePlan.nextBusEtaMinutes} min`}
                 </span>

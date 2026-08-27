@@ -102,7 +102,7 @@ export default function TransitRouteResults({
   ];
 
   return (
-    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', paddingBottom: '24px' }}>
       {/* 1. CABEÇALHO COM ORIGEM E DESTINO */}
       <div
         className="bus-glass-panel"
@@ -192,8 +192,8 @@ export default function TransitRouteResults({
 
         {/* Horário: sair agora, partir às X, ou chegar até X */}
         {onScheduledTimeChange && onTimeModeChange && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               {([
                 { id: 'NOW' as const, label: 'Agora' },
                 { id: 'DEPART_AT' as const, label: 'Partir às' },
@@ -211,35 +211,45 @@ export default function TransitRouteResults({
                     }
                   }}
                   className={`bus-pill ${timeMode === m.id ? 'active' : ''}`}
-                  style={{ fontSize: '11.5px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  style={{ fontSize: '11.5px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '5px', flex: 1, justifyContent: 'center' }}
                 >
                   <Clock size={13} />
                   <span>{m.label}</span>
                 </button>
               ))}
-
-              {timeMode !== 'NOW' && (
-                <div
-                  className="bus-pill active"
-                  style={{ fontSize: '11.5px', padding: '2px 10px 2px 12px', display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}
-                >
-                  <input
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => onScheduledTimeChange(e.target.value)}
-                    className="bus-num"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'inherit',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      flex: 1
-                    }}
-                  />
-                </div>
-              )}
             </div>
+
+            {timeMode !== 'NOW' && (
+              <div
+                className="bus-pill active"
+                style={{
+                  fontSize: '12px',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  width: '100%'
+                }}
+              >
+                <span style={{ fontSize: '11.5px', opacity: 0.9 }}>Horário selecionado:</span>
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => onScheduledTimeChange(e.target.value)}
+                  className="bus-num"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'inherit',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    outline: 'none',
+                    textAlign: 'right'
+                  }}
+                />
+              </div>
+            )}
 
             {routes[selectedRouteIndex]?.arrivalTimeUnreachable && (
               <div style={{ fontSize: '10.5px', color: 'var(--bus-live)', display: 'flex', alignItems: 'center', gap: '5px' }}>

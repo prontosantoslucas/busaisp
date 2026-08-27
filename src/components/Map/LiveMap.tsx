@@ -961,132 +961,171 @@ export default function LiveMap({
         );
       })()}
 
-      {/* Botões de Ação Flutuantes */}
-      <div
-        style={{
-          position: 'absolute',
-          right: '16px',
-          bottom: '84px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: '10px',
-          zIndex: 999
-        }}
-      >
-        {/* Toggle de Camada do Mapa de Calor de Trânsito com Motivos */}
-        <button
-          onClick={() => setShowTrafficHeatmap(!showTrafficHeatmap)}
-          className="bus-pill"
-          style={{
-            background: showTrafficHeatmap ? 'linear-gradient(135deg, #EF4444, #F59E0B)' : 'var(--bus-surface-elevated)',
-            color: showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-text-primary)',
-            border: showTrafficHeatmap ? '1.5px solid #EF4444' : '1px solid var(--bus-border)',
-            position: 'relative',
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: showTrafficHeatmap ? '0 0 12px rgba(239, 68, 68, 0.5)' : 'none'
+      {/* Botões de Ação Flutuantes — exibidos APENAS quando o mapa está em tela cheia para não sobrepor painéis */}
+      {isMapFullscreen && (
+        <div
+          ref={(el) => {
+            if (el && typeof L !== 'undefined' && L.DomEvent) {
+              L.DomEvent.disableClickPropagation(el);
+              L.DomEvent.disableScrollPropagation(el);
+            }
           }}
-          title={showTrafficHeatmap ? 'Ocultar Mapa de Calor de Trânsito' : 'Exibir Mapa de Calor de Trânsito'}
-          aria-label="Mapa de Calor de Trânsito"
-        >
-          <Flame size={19} fill={showTrafficHeatmap ? '#FFFFFF' : 'none'} color={showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-red)'} />
-        </button>
-
-        {/* Toggle de Camada de Incidentes (Waze/CET) */}
-        <button
-          onClick={() => setShowIncidents(!showIncidents)}
-          className="bus-pill"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
           style={{
-            background: showIncidents ? 'var(--bus-red)' : 'var(--bus-surface-elevated)',
-            color: showIncidents ? '#FFFFFF' : 'var(--bus-text-primary)',
-            border: showIncidents ? '1.5px solid var(--bus-red)' : '1px solid var(--bus-border)',
-            position: 'relative',
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            padding: 0,
+            position: 'absolute',
+            right: '16px',
+            bottom: isPercursoActive ? '24px' : '84px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: '10px',
+            zIndex: 9999,
+            pointerEvents: 'auto'
           }}
-          title={showIncidents ? 'Ocultar Incidentes de Trânsito' : 'Exibir Incidentes de Trânsito'}
-          aria-label="Incidentes de Trânsito"
         >
-          <AlertTriangle size={18} />
-          {incidents.length > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                background: 'var(--bus-red)',
-                color: '#fff',
-                fontSize: '10px',
-                fontWeight: 800,
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1.5px solid var(--bus-surface)'
-              }}
-            >
-              {incidents.length}
-            </span>
-          )}
-        </button>
+          {/* Toggle de Camada do Mapa de Calor de Trânsito */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTrafficHeatmap((prev) => !prev);
+            }}
+            className="bus-pill"
+            style={{
+              background: showTrafficHeatmap ? 'linear-gradient(135deg, #EF4444, #F59E0B)' : 'var(--bus-surface-elevated)',
+              color: showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-text-primary)',
+              border: showTrafficHeatmap ? '1.5px solid #EF4444' : '1px solid var(--bus-border)',
+              position: 'relative',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: showTrafficHeatmap ? '0 0 14px rgba(239, 68, 68, 0.5)' : 'var(--bus-shadow-raised)',
+              cursor: 'pointer',
+              touchAction: 'manipulation'
+            }}
+            title={showTrafficHeatmap ? 'Ocultar Mapa de Calor de Trânsito' : 'Exibir Mapa de Calor de Trânsito'}
+            aria-label="Mapa de Calor de Trânsito"
+          >
+            <Flame size={20} fill={showTrafficHeatmap ? '#FFFFFF' : 'none'} color={showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-red)'} />
+          </button>
 
-        <button
-          onClick={handleLocateMe}
-          className="bus-pill"
-          style={{
-            background: 'var(--bus-surface-elevated)',
-            border: '1px solid var(--bus-border)',
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          title="Minha Localização GPS"
-          aria-label="Localização atual"
-        >
-          <Locate size={19} className={isLocating ? 'animate-spin' : ''} color="var(--bus-violet)" />
-        </button>
+          {/* Toggle de Camada de Incidentes (Waze/CET) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowIncidents((prev) => !prev);
+            }}
+            className="bus-pill"
+            style={{
+              background: showIncidents ? 'var(--bus-red)' : 'var(--bus-surface-elevated)',
+              color: showIncidents ? '#FFFFFF' : 'var(--bus-text-primary)',
+              border: showIncidents ? '1.5px solid var(--bus-red)' : '1px solid var(--bus-border)',
+              position: 'relative',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'var(--bus-shadow-raised)',
+              cursor: 'pointer',
+              touchAction: 'manipulation'
+            }}
+            title={showIncidents ? 'Ocultar Incidentes de Trânsito' : 'Exibir Incidentes de Trânsito'}
+            aria-label="Incidentes de Trânsito"
+          >
+            <AlertTriangle size={19} color={showIncidents ? '#FFFFFF' : 'var(--bus-red)'} />
+            {incidents.length > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: 'var(--bus-red)',
+                  color: '#fff',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1.5px solid var(--bus-surface)'
+                }}
+              >
+                {incidents.length}
+              </span>
+            )}
+          </button>
 
-        <button
-          onClick={onRefresh}
-          className="bus-pill"
-          style={{
-            background: 'var(--bus-surface-elevated)',
-            border: '1px solid var(--bus-border)',
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--bus-text-primary)'
-          }}
-          title="Atualizar posições dos ônibus"
-          aria-label="Atualizar posições"
-        >
-          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
-        </button>
-      </div>
+          {/* Botão Recentralizar GPS */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLocateMe();
+            }}
+            className="bus-pill"
+            style={{
+              background: 'var(--bus-surface-elevated)',
+              border: '1px solid var(--bus-border)',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'var(--bus-shadow-raised)',
+              cursor: 'pointer',
+              touchAction: 'manipulation'
+            }}
+            title="Minha Localização GPS"
+            aria-label="Localização atual"
+          >
+            <Locate size={20} className={isLocating ? 'animate-spin' : ''} color="var(--bus-violet)" />
+          </button>
 
-      {/* Mini Legenda do Mapa de Calor de Trânsito (Quando ativo) */}
-      {showTrafficHeatmap && !isPercursoActive && (
+          {/* Botão Atualizar Veículos / Posições */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRefresh) onRefresh();
+            }}
+            className="bus-pill"
+            style={{
+              background: 'var(--bus-surface-elevated)',
+              border: '1px solid var(--bus-border)',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--bus-text-primary)',
+              boxShadow: 'var(--bus-shadow-raised)',
+              cursor: 'pointer',
+              touchAction: 'manipulation'
+            }}
+            title="Atualizar posições dos ônibus"
+            aria-label="Atualizar posições"
+          >
+            <RefreshCw size={19} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      )}
+
+      {/* Mini Legenda do Mapa de Calor de Trânsito (Quando ativo no modo tela cheia) */}
+      {isMapFullscreen && showTrafficHeatmap && !isPercursoActive && (
         <div
           style={{
             position: 'absolute',
@@ -1122,8 +1161,8 @@ export default function LiveMap({
         </div>
       )}
 
-      {/* Legenda de Destino e Frota Flutuante (Oculta durante percurso ativo para não colidir com controles) */}
-      {!isPercursoActive && selectedLine && (
+      {/* Legenda de Destino e Frota Flutuante (Apenas no mapa em tela cheia e fora de percurso ativo) */}
+      {isMapFullscreen && !isPercursoActive && selectedLine && (
         <div
           style={{
             position: 'absolute',
@@ -1156,9 +1195,8 @@ export default function LiveMap({
         </div>
       )}
 
-      {/* Cartão flutuante: "Linhas que passam neste ponto" — aparece ao tocar em qualquer
-          lugar do mapa (a parada real mais próxima é localizada automaticamente). */}
-      {isLocatingTappedStop && (
+      {/* Cartão flutuante: "Linhas que passam neste ponto" (Apenas mapa em tela cheia e fora de percurso) */}
+      {isMapFullscreen && !isPercursoActive && isLocatingTappedStop && (
         <div
           className="bus-glass-panel animate-fade-in"
           style={{
@@ -1182,8 +1220,17 @@ export default function LiveMap({
         </div>
       )}
 
-      {!isLocatingTappedStop && tappedParada && !isArrivalsModalOpen && (
+      {isMapFullscreen && !isPercursoActive && !isLocatingTappedStop && tappedParada && !isArrivalsModalOpen && (
         <div
+          ref={(el) => {
+            if (el && typeof L !== 'undefined' && L.DomEvent) {
+              L.DomEvent.disableClickPropagation(el);
+              L.DomEvent.disableScrollPropagation(el);
+            }
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className="bus-glass-panel animate-slide-up"
           style={{
             position: 'absolute',
@@ -1192,13 +1239,14 @@ export default function LiveMap({
             right: '16px',
             maxWidth: '420px',
             margin: '0 auto',
-            zIndex: 995,
+            zIndex: 9995,
             padding: '12px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '10px',
-            border: '1px solid var(--bus-border-highlight)'
+            border: '1px solid var(--bus-border-highlight)',
+            pointerEvents: 'auto'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
@@ -1227,14 +1275,20 @@ export default function LiveMap({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <button
-              onClick={() => setIsArrivalsModalOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsArrivalsModalOpen(true);
+              }}
               className="bus-btn-primary"
-              style={{ padding: '8px 12px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
+              style={{ padding: '8px 12px', fontSize: '11.5px', whiteSpace: 'nowrap', cursor: 'pointer' }}
             >
               Linhas neste ponto
             </button>
             <button
-              onClick={() => setTappedParada(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTappedParada(null);
+              }}
               style={{ background: 'none', border: 'none', color: 'var(--bus-text-muted)', cursor: 'pointer', padding: '4px' }}
               aria-label="Fechar"
             >

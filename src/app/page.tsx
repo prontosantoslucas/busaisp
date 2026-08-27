@@ -547,12 +547,12 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Se a navegação ESTIVER ativa, posicionar o botão na base esquerda (abaixo do HUD do topo) */}
+          {/* Se a navegação ESTIVER ativa, posicionar o botão na base esquerda */}
           {isPercursoActive && (
             <div
               style={{
                 position: 'absolute',
-                bottom: '84px',
+                bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
                 left: '16px',
                 zIndex: 995,
                 animation: 'fadeIn 0.2s ease'
@@ -563,18 +563,19 @@ export default function HomePage() {
                 className="bus-glass-panel"
                 style={{
                   borderRadius: 'var(--bus-radius-full)',
-                  padding: '10px 16px',
+                  padding: '12px 18px',
                   color: 'var(--bus-text-primary)',
-                  fontSize: '12px',
+                  fontSize: '13px',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   cursor: 'pointer',
-                  boxShadow: 'var(--bus-shadow-dock)'
+                  boxShadow: 'var(--bus-shadow-dock)',
+                  border: '1.5px solid var(--bus-border-highlight)'
                 }}
               >
-                <ChevronUp size={16} color="var(--bus-violet)" />
+                <ChevronUp size={18} color="var(--bus-violet)" />
                 <span>Ver Painel da Viagem</span>
               </button>
             </div>
@@ -613,8 +614,6 @@ export default function HomePage() {
             activeVehiclesCount={veiculos.length}
             onToggleMap={() => setIsMapFullscreen(!isMapFullscreen)}
             isMapFullscreen={isMapFullscreen}
-            theme={theme}
-            onToggleTheme={handleToggleTheme}
           />
 
           {/* Abas Principais */}
@@ -752,26 +751,33 @@ export default function HomePage() {
       )}
 
 
-      {/* 5. MODAL DE CONFIGURAÇÃO DE TOKEN */}
+      {/* 5. MODAL DE CONFIGURAÇÕES */}
       <TokenConfigModal
         isOpen={isTokenModalOpen}
         onClose={() => setIsTokenModalOpen(false)}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        isVoiceMuted={isVoiceMuted}
+        onToggleVoice={handleToggleVoice}
+        hasGps={!!userCoords}
       />
 
-      {/* 6. DOCK FLUTUANTE DE NAVEGAÇÃO INFERIOR */}
-      <TransitDock
-        activeTab={activeTab}
-        onChangeTab={(tab) => {
-          // Só volta para a tela inicial de Rotas se o usuário tocar em "Rotas" de novo
-          // já estando nela (reset intencional) — trocar de aba e voltar não deve perder
-          // a viagem/rota em andamento (resultados, detalhe ou navegação ativa).
-          if (tab === 'ROTAS' && activeTab === 'ROTAS') setScreenMode('HOME');
-          setActiveTab(tab);
-          if (tab !== 'ROTAS') setIsMapFullscreen(false);
-        }}
-        favoritesCount={favorites.length}
-        incidentsCount={incidents.length}
-      />
+      {/* 6. DOCK FLUTUANTE DE NAVEGAÇÃO INFERIOR — oculto durante percurso ativo */}
+      {!isPercursoActive && (
+        <TransitDock
+          activeTab={activeTab}
+          onChangeTab={(tab) => {
+            // Só volta para a tela inicial de Rotas se o usuário tocar em "Rotas" de novo
+            // já estando nela (reset intencional) — trocar de aba e voltar não deve perder
+            // a viagem/rota em andamento (resultados, detalhe ou navegação ativa).
+            if (tab === 'ROTAS' && activeTab === 'ROTAS') setScreenMode('HOME');
+            setActiveTab(tab);
+            if (tab !== 'ROTAS') setIsMapFullscreen(false);
+          }}
+          favoritesCount={favorites.length}
+          incidentsCount={incidents.length}
+        />
+      )}
     </div>
   );
 }

@@ -370,24 +370,31 @@ html, body {
     width: 100% !important;
     max-width: 100% !important;
     height: 100% !important;
-    max-height: 100% !important;
+    max-height: 100dvh !important;
     border-radius: 0 !important;
-    padding: max(12px, var(--safe-top)) 12px calc(88px + var(--safe-bottom)) 12px !important;
+    padding: max(10px, var(--safe-top)) 12px calc(108px + var(--safe-bottom)) 12px !important;
+    background: var(--bus-bg) !important;
     box-shadow: none !important;
     border: none !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior-y: contain !important;
+    z-index: 950 !important;
   }
 
   .bus-card {
-    padding: 16px 14px !important;
+    padding: 14px 12px !important;
     border-radius: 14px !important;
   }
 
   .transit-bottom-dock {
-    bottom: max(12px, var(--safe-bottom)) !important;
-    width: calc(100% - 24px) !important;
+    bottom: max(10px, var(--safe-bottom)) !important;
+    width: calc(100% - 20px) !important;
     max-width: 440px !important;
+  }
+
+  /* Ocultar botões de zoom nativo do Leaflet no mobile para não poluir ou vazar */
+  .leaflet-control-zoom {
+    display: none !important;
   }
 }
 

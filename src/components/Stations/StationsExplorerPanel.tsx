@@ -124,7 +124,7 @@ export default function StationsExplorerPanel({
   ];
 
   return (
-    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', paddingBottom: '24px' }}>
       {/* Top Toggle: Status da Operação vs Estações no Mapa */}
       <div className="bus-glass-panel" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
