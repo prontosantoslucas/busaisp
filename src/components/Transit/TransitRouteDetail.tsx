@@ -14,7 +14,8 @@ import {
   MapPin,
   Clock,
   Volume2,
-  VolumeX
+  VolumeX,
+  AlertTriangle
 } from 'lucide-react';
 import { voiceService } from '@/lib/voiceService';
 import { getEtaColorTokens } from '@/lib/etaStyle';
@@ -213,6 +214,49 @@ export default function TransitRouteDetail({
           {isVoiceMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           <span>{isVoiceMuted ? 'Iniciar Percurso' : 'Iniciar Percurso com Alertas de Voz'}</span>
         </button>
+      )}
+
+      {/* Alerta de Impacto de Trânsito / Incidentes no Trajeto */}
+      {route.trafficDelayMinutes > 0 && (
+        <div
+          style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--bus-radius-md)',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+          }}
+        >
+          <div
+            style={{
+              background: '#EF4444',
+              color: '#fff',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              marginTop: '1px'
+            }}
+          >
+            <AlertTriangle size={14} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Lentidão ou Ocorrência no Corredor</span>
+              <span className="bus-num">+{route.trafficDelayMinutes} min adicionados</span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-secondary)', marginTop: '4px', lineHeight: 1.4 }}>
+              {route.incidentsOnRoute && route.incidentsOnRoute.length > 0
+                ? `Problemas detectados na via: ${route.incidentsOnRoute.map(i => i.title).join(', ')}. O tempo previsto já inclui este atraso.`
+                : `Trânsito intenso detectado nas vias deste trajeto. O tempo total da viagem foi ajustado com +${route.trafficDelayMinutes} min.`}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 3. TIMELINE PASSO A PASSO DA VIAGEM */}

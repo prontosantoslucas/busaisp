@@ -16,8 +16,17 @@ vi.mock('@/lib/osrm', () => ({
   getSnappedRoutePolyline: vi.fn().mockImplementation((pts) => Promise.resolve(pts))
 }));
 
+vi.mock('@/lib/trafficService', () => ({
+  getLiveTrafficIncidents: vi.fn().mockResolvedValue({
+    incidents: [],
+    summary: { total: 0, accidents: 0, police: 0, construction: 0, jams: 0, hazards: 0 },
+    lastUpdated: ''
+  })
+}));
+
 import { findNearbyStops, findDirectRoutes, findRoutesFromStops, getTripDetailedStops } from '@/lib/gtfs';
 import { buscarPrevisaoParada } from '@/lib/sptrans';
+import { getLiveTrafficIncidents } from '@/lib/trafficService';
 import { calculateRoute } from '@/lib/routing';
 
 const origin = { name: 'Origem', lat: -23.43, lng: -46.58 };
@@ -354,5 +363,110 @@ describe('calculateRoute', () => {
     expect(result.primaryRoute.departureEtas).toEqual([7]);
 
     vi.useRealTimers();
+  });
+
+  it('desduplica múltiplas viagens da mesma linha retornando apenas uma opção por linha distinta', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '101', name: 'PARADA PERTO', lat: -23.43, lng: -46.58, distanceMeters: 30 }])
+      .mockResolvedValueOnce([{ stopId: '201', name: 'PARADA DESTINO', lat: -23.51, lng: -46.62, distanceMeters: 40 }]);
+
+    // Banco devolve 5 trips da MESMA linha 175T e 1 trip da linha 172N
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      { routeId: '175T-10', routeShortName: '175T', routeLongName: 'TREMEMBE - METRO SANTANA', tripId: 't1', tripHeadsign: 'METRO SANTANA', originStopId: '101', originDepartureSeconds: 100, destStopId: '201', destArrivalSeconds: 800 },
+      { routeId: '175T-10', routeShortName: '175T', routeLongName: 'TREMEMBE - METRO SANTANA', tripId: 't2', tripHeadsign: 'METRO SANTANA', originStopId: '101', originDepartureSeconds: 200, destStopId: '201', destArrivalSeconds: 900 },
+      { routeId: '175T-10', routeShortName: '175T', routeLongName: 'TREMEMBE - METRO SANTANA', tripId: 't3', tripHeadsign: 'METRO SANTANA', originStopId: '101', originDepartureSeconds: 300, destStopId: '201', destArrivalSeconds: 1000 },
+      { routeId: '175T-10', routeShortName: '175T', routeLongName: 'TREMEMBE - METRO SANTANA', tripId: 't4', tripHeadsign: 'METRO SANTANA', originStopId: '101', originDepartureSeconds: 400, destStopId: '201', destArrivalSeconds: 1100 },
+      { routeId: '172N-10', routeShortName: '172N', routeLongName: 'SHOPPING CENTER NORTE - METRO BELÉM', tripId: 't5', tripHeadsign: 'METRO BELÉM', originStopId: '101', originDepartureSeconds: 150, destStopId: '201', destArrivalSeconds: 850 }
+    ]);
+
+    (buscarPrevisaoParada as any).mockResolvedValue({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    // Deve retornar 2 opções distintas (175T e 172N), não 5 cópias de 175T
+    expect(result.alternatives).toHaveLength(2);
+    const lineNames = result.alternatives.map(a => a.recommendedLine.lt);
+    expect(lineNames).toContain('175T');
+    expect(lineNames).toContain('172N');
+    expect(new Set(lineNames).size).toBe(2);
+  });
+
+  it('prioriza linha no ponto onde o usuário já está em vez de mandar andar desnecessariamente', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([
+        { stopId: '101', name: 'PARADA ONDE ESTOU (10m)', lat: -23.4300, lng: -46.5800, distanceMeters: 10 },
+        { stopId: '102', name: 'PARADA DISTANTE (400m)', lat: -23.4340, lng: -46.5830, distanceMeters: 400 }
+      ])
+      .mockResolvedValueOnce([
+        { stopId: '201', name: 'PARADA DESTINO', lat: -23.5100, lng: -46.6200, distanceMeters: 50 }
+      ]);
+
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      // Linha A sai do ponto onde o usuário já está (101)
+      { routeId: '1000-10', routeShortName: '1000', routeLongName: 'PONTO ATUAL - DESTINO', tripId: 't1', tripHeadsign: 'DESTINO', originStopId: '101', originDepartureSeconds: 0, destStopId: '201', destArrivalSeconds: 1200 },
+      // Linha B sai de uma parada mais distante (102)
+      { routeId: '2000-10', routeShortName: '2000', routeLongName: 'PONTO DISTANTE - DESTINO', tripId: 't2', tripHeadsign: 'DESTINO', originStopId: '102', originDepartureSeconds: 0, destStopId: '201', destArrivalSeconds: 1100 }
+    ]);
+
+    (buscarPrevisaoParada as any).mockResolvedValue({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    // Ambas as opções devem estar presentes, mas a linha que sai de onde o usuário está deve ser a primeira
+    expect(result.alternatives).toHaveLength(2);
+    expect(result.primaryRoute.recommendedLine.lt).toBe('1000');
+    expect(result.primaryRoute.departureStop.cp).toBe(101);
+  });
+
+  it('considera problemas e incidentes de trânsito no trajeto adicionando atraso na duração e hora de chegada', async () => {
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([{ stopId: '101', name: 'PARADA INICIAL', lat: -23.43, lng: -46.58, distanceMeters: 50 }])
+      .mockResolvedValueOnce([{ stopId: '201', name: 'PARADA FINAL', lat: -23.51, lng: -46.62, distanceMeters: 50 }]);
+
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      {
+        routeId: '1703-10',
+        routeShortName: '1703',
+        routeLongName: 'JD. FONTALIS - CENTER NORTE',
+        tripId: 'trip_1',
+        tripHeadsign: 'CENTER NORTE',
+        originStopId: '101',
+        originDepartureSeconds: 0,
+        destStopId: '201',
+        destArrivalSeconds: 0
+      }
+    ]);
+
+    (buscarPrevisaoParada as any).mockResolvedValue({ previsao: null, isMock: false });
+
+    // Simula um acidente crítico no meio do trajeto (-23.47, -46.60)
+    (getLiveTrafficIncidents as any).mockResolvedValueOnce({
+      incidents: [
+        {
+          id: 'inc_1',
+          type: 'ACCIDENT',
+          title: 'Acidente grave na Av. General Ataliba Leonel',
+          description: 'Bloqueio parcial de faixa',
+          street: 'Av. General Ataliba Leonel',
+          neighborhood: 'Santana',
+          lat: -23.47,
+          lng: -46.60,
+          severity: 'CRITICAL',
+          delaySeconds: 600, // 10 minutos
+          source: 'TOMTOM',
+          updatedAt: '12:00'
+        }
+      ],
+      summary: { total: 1, accidents: 1, police: 0, construction: 0, jams: 0, hazards: 0 },
+      lastUpdated: '12:00'
+    });
+
+    const result = await calculateRoute(origin, dest);
+
+    expect(result.primaryRoute.trafficDelayMinutes).toBeGreaterThan(0);
+    expect(result.primaryRoute.trafficStatus).toBe('INTENSO');
+    expect(result.primaryRoute.incidentsOnRoute).toBeDefined();
+    expect(result.primaryRoute.incidentsOnRoute?.length).toBe(1);
+    expect(result.primaryRoute.incidentsOnRoute?.[0].title).toContain('Acidente');
   });
 });

@@ -12,6 +12,7 @@ import { StationItem } from '@/lib/stationsData';
 import { RoutePlan } from '@/lib/routing';
 import { getEtaColorTokens } from '@/lib/etaStyle';
 import { TrafficIncident } from '@/types/traffic';
+import { getTrafficCorridorsAndHotspots } from '@/lib/trafficService';
 import StopArrivalsModal from '@/components/Map/StopArrivalsModal';
 import {
   RefreshCw,
@@ -20,7 +21,9 @@ import {
   Navigation,
   AlertTriangle,
   MapPin,
-  X
+  X,
+  Flame,
+  Layers
 } from 'lucide-react';
 
 export interface LiveMapProps {
@@ -89,6 +92,7 @@ export default function LiveMap({
   const stopMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stationMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const incidentMarkersGroupRef = useRef<L.LayerGroup | null>(null);
+  const trafficHeatmapGroupRef = useRef<L.LayerGroup | null>(null);
   const routePolylinesGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
@@ -97,9 +101,13 @@ export default function LiveMap({
   const [isLocating, setIsLocating] = useState(false);
   const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
   const [showIncidents, setShowIncidents] = useState(true);
+  const [showTrafficHeatmap, setShowTrafficHeatmap] = useState(false);
   const [tappedParada, setTappedParada] = useState<SPTransParada | null>(null);
   const [isLocatingTappedStop, setIsLocatingTappedStop] = useState(false);
   const [isArrivalsModalOpen, setIsArrivalsModalOpen] = useState(false);
+
+  const lastFittedRouteIdRef = useRef<string | null>(null);
+  const lastFittedLineRef = useRef<number | null>(null);
 
   // Inicializar o Mapa Leaflet com CartoDB Dark Matter (Modo Noturno Puro)
   useEffect(() => {
@@ -128,6 +136,7 @@ export default function LiveMap({
     stopMarkersGroupRef.current = L.layerGroup().addTo(map);
     stationMarkersGroupRef.current = L.layerGroup().addTo(map);
     incidentMarkersGroupRef.current = L.layerGroup().addTo(map);
+    trafficHeatmapGroupRef.current = L.layerGroup().addTo(map);
     routePolylinesGroupRef.current = L.layerGroup().addTo(map);
 
     // Toque em qualquer ponto do mapa: buscar a parada de ônibus real mais próxima
@@ -415,7 +424,9 @@ export default function LiveMap({
 
     routePolylinesGroupRef.current.addLayer(destMarker);
 
-    if (!isPercursoActive && allCoords.length > 0) {
+    // Enquadrar no traçado apenas quando a rota for selecionada pela primeira vez (evita arrastar a câmera de volta se o usuário estiver explorando o mapa)
+    if (!isPercursoActive && allCoords.length > 0 && activeRoute.id !== lastFittedRouteIdRef.current) {
+      lastFittedRouteIdRef.current = activeRoute.id;
       map.fitBounds(L.latLngBounds(allCoords), { padding: [60, 60], maxZoom: 16 });
     }
   }, [activeRoute, isPercursoActive]);
@@ -578,7 +589,8 @@ export default function LiveMap({
     });
 
     if (bounds.length > 0 && mapInstanceRef.current && !isPercursoActive) {
-      if (!activeRoute) {
+      if (!activeRoute && selectedLine && selectedLine.cl !== lastFittedLineRef.current) {
+        lastFittedLineRef.current = selectedLine.cl;
         const boundsWithUser = effectiveCoords ? [...bounds, effectiveCoords] : bounds;
         mapInstanceRef.current.fitBounds(L.latLngBounds(boundsWithUser), { padding: [50, 50], maxZoom: 15 });
       }
@@ -683,6 +695,149 @@ export default function LiveMap({
       }
     });
   }, [stations, selectedStation]);
+
+  // Atualizar Mapa de Calor e Corredores de Trânsito com Diagnóstico de Motivos
+  useEffect(() => {
+    if (!trafficHeatmapGroupRef.current || !mapInstanceRef.current) return;
+
+    trafficHeatmapGroupRef.current.clearLayers();
+
+    if (!showTrafficHeatmap) return;
+
+    const heatmapData = getTrafficCorridorsAndHotspots(incidents);
+
+    heatmapData.hotspots.forEach((h) => {
+      // Cores e estilos de alto contraste conforme o status do fluxo
+      const colorMap = {
+        FLUINDO: {
+          main: '#10B981',
+          bg: 'rgba(16, 185, 129, 0.22)',
+          border: '#059669',
+          label: 'FLUINDO NORMAL',
+          icon: '🟢'
+        },
+        MODERADO: {
+          main: '#F59E0B',
+          bg: 'rgba(245, 158, 11, 0.28)',
+          border: '#D97706',
+          label: 'TRÁFEGO MODERADO',
+          icon: '🟠'
+        },
+        INTENSO: {
+          main: '#EF4444',
+          bg: 'rgba(239, 68, 68, 0.35)',
+          border: '#DC2626',
+          label: 'CONGESTIONAMENTO',
+          icon: '🔴'
+        },
+        CRITICO: {
+          main: '#991B1B',
+          bg: 'rgba(153, 27, 27, 0.45)',
+          border: '#7F1D1D',
+          label: 'TRÂNSITO CRÍTICO / RETENÇÃO',
+          icon: '🟣'
+        }
+      };
+
+      const cTokens = colorMap[h.status];
+
+      // 1. Mancha de calor externa translúcida
+      const outerGlow = L.circle([h.lat, h.lng], {
+        radius: h.radiusMeters,
+        fillColor: cTokens.main,
+        fillOpacity: 0.24,
+        color: cTokens.border,
+        weight: 1.5,
+        dashArray: '3, 4'
+      });
+
+      // 2. Núcleo central de calor
+      const innerCore = L.circle([h.lat, h.lng], {
+        radius: Math.round(h.radiusMeters * 0.45),
+        fillColor: cTokens.main,
+        fillOpacity: 0.48,
+        color: cTokens.border,
+        weight: 2
+      });
+
+      // 3. Marcador flutuante com badge de velocidade / atraso
+      const htmlIcon = `
+        <div style="cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <div style="background: ${cTokens.main}; color: #FFFFFF; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 12px; border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+            <span>${h.delayMinutes > 0 ? `+${h.delayMinutes}m` : `${h.avgSpeedKmh} km/h`}</span>
+          </div>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: htmlIcon,
+        className: 'traffic-heatmap-badge',
+        iconSize: [56, 24],
+        iconAnchor: [28, 12]
+      });
+
+      const marker = L.marker([h.lat, h.lng], { icon: customIcon, zIndexOffset: 300 });
+
+      // 4. Popup detalhado com os "Motivos" do trânsito
+      const reasonsListHtml = h.reasons
+        .map((r) => {
+          const icon = r.type === 'ACCIDENT' ? '💥' : r.type === 'CONSTRUCTION' ? '🚧' : r.type === 'RUSH_HOUR' ? '🚗' : 'ℹ️';
+          return `
+            <div style="margin-top: 6px; padding: 6px 8px; background: var(--bus-surface-sunken, rgba(255,255,255,0.06)); border-radius: 6px; border-left: 3px solid ${cTokens.main}; font-size: 11.5px; line-height: 1.35;">
+              <strong style="color: var(--bus-text-primary, #FFFFFF); display: flex; align-items: center; gap: 4px;">
+                <span>${icon}</span> <span>${r.title}</span>
+                ${r.delayMinutes > 0 ? `<span style="margin-left: auto; color: ${cTokens.main}; font-weight: 800;">+${r.delayMinutes} min</span>` : ''}
+              </strong>
+              <div style="color: var(--bus-text-secondary, #94A3B8); margin-top: 2px;">
+                ${r.description}
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 250px; max-width: 300px; padding: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+            <span style="background: ${cTokens.bg}; color: ${cTokens.main}; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid ${cTokens.border};">
+              ${cTokens.icon} ${cTokens.label}
+            </span>
+            <span style="font-size: 10.5px; color: var(--bus-text-muted, #64748B);">
+              ${h.updatedAt}
+            </span>
+          </div>
+
+          <strong style="color: var(--bus-text-primary, #FFFFFF); font-size: 14px; display: block; margin-top: 4px; line-height: 1.25;">
+            ${h.name}
+          </strong>
+          <div style="font-size: 11.5px; color: var(--bus-violet, #8B5CF6); font-weight: 600; margin-top: 2px;">
+            ${h.corridor}
+          </div>
+          <div style="font-size: 11px; color: var(--bus-text-secondary, #94A3B8); margin-bottom: 6px;">
+            Região: ${h.neighborhood}
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bus-surface-elevated, rgba(255,255,255,0.08)); padding: 6px 10px; border-radius: 6px; font-size: 11.5px; margin-bottom: 6px;">
+            <span>Velocidade Atual: <strong style="color:${cTokens.main}; font-size: 13px;">${h.avgSpeedKmh} km/h</strong></span>
+            <span style="color: var(--bus-text-secondary, #94A3B8);">Padrão: ${h.normalSpeedKmh} km/h</span>
+          </div>
+
+          <div style="font-size: 11.5px; font-weight: 700; color: var(--bus-text-primary, #FFFFFF); margin-top: 8px;">
+            Diagnóstico dos Motivos:
+          </div>
+          ${reasonsListHtml}
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml);
+      outerGlow.bindPopup(popupHtml);
+      innerCore.bindPopup(popupHtml);
+
+      trafficHeatmapGroupRef.current?.addLayer(outerGlow);
+      trafficHeatmapGroupRef.current?.addLayer(innerCore);
+      trafficHeatmapGroupRef.current?.addLayer(marker);
+    });
+  }, [showTrafficHeatmap, incidents]);
 
   const handleLocateMe = () => {
     if (effectiveCoords && mapInstanceRef.current) {
@@ -819,6 +974,30 @@ export default function LiveMap({
           zIndex: 999
         }}
       >
+        {/* Toggle de Camada do Mapa de Calor de Trânsito com Motivos */}
+        <button
+          onClick={() => setShowTrafficHeatmap(!showTrafficHeatmap)}
+          className="bus-pill"
+          style={{
+            background: showTrafficHeatmap ? 'linear-gradient(135deg, #EF4444, #F59E0B)' : 'var(--bus-surface-elevated)',
+            color: showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-text-primary)',
+            border: showTrafficHeatmap ? '1.5px solid #EF4444' : '1px solid var(--bus-border)',
+            position: 'relative',
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: showTrafficHeatmap ? '0 0 12px rgba(239, 68, 68, 0.5)' : 'none'
+          }}
+          title={showTrafficHeatmap ? 'Ocultar Mapa de Calor de Trânsito' : 'Exibir Mapa de Calor de Trânsito'}
+          aria-label="Mapa de Calor de Trânsito"
+        >
+          <Flame size={19} fill={showTrafficHeatmap ? '#FFFFFF' : 'none'} color={showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-red)'} />
+        </button>
+
         {/* Toggle de Camada de Incidentes (Waze/CET) */}
         <button
           onClick={() => setShowIncidents(!showIncidents)}
@@ -905,6 +1084,43 @@ export default function LiveMap({
           <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
         </button>
       </div>
+
+      {/* Mini Legenda do Mapa de Calor de Trânsito (Quando ativo) */}
+      {showTrafficHeatmap && !isPercursoActive && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: selectedLine ? '124px' : '84px',
+            left: '16px',
+            zIndex: 990,
+            background: 'var(--bus-surface-elevated)',
+            border: '1px solid var(--bus-border-highlight)',
+            padding: '6px 12px',
+            borderRadius: 'var(--bus-radius-full)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--bus-text-primary)',
+            boxShadow: 'var(--bus-shadow-raised)',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10B981' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
+            Fluindo
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#F59E0B' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B' }} />
+            Moderado
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#EF4444' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444' }} />
+            Intenso
+          </span>
+        </div>
+      )}
 
       {/* Legenda de Destino e Frota Flutuante (Oculta durante percurso ativo para não colidir com controles) */}
       {!isPercursoActive && selectedLine && (

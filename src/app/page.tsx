@@ -93,8 +93,10 @@ export default function HomePage() {
   const [routeSearchError, setRouteSearchError] = useState<string | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
-  // Horário de saída planejado ("HH:MM"); vazio = "sair agora".
+  // Horário planejado ("HH:MM"); vazio/timeMode NOW = "sair agora". timeMode indica
+  // se scheduledTime representa horário de PARTIDA ou de CHEGADA desejada.
   const [scheduledTime, setScheduledTime] = useState('');
+  const [timeMode, setTimeMode] = useState<'NOW' | 'DEPART_AT' | 'ARRIVE_BY'>('NOW');
 
   const [selectedLine, setSelectedLine] = useState<SPTransLinha | null>(null);
   const [selectedParada, setSelectedParada] = useState<SPTransParada | null>(null);
@@ -317,12 +319,18 @@ export default function HomePage() {
   }, [selectedLine, loadVeiculos]);
 
   // Executar Cálculo de Rotas
-  const handleCalculateRoutes = async (destParam?: string, origParam?: string, scheduledTimeParam?: string) => {
+  const handleCalculateRoutes = async (
+    destParam?: string,
+    origParam?: string,
+    scheduledTimeParam?: string,
+    timeModeParam?: 'NOW' | 'DEPART_AT' | 'ARRIVE_BY'
+  ) => {
     const destToUse = destParam || destino;
     const origToUse = origParam || origem;
     // Usa o valor explícito quando fornecido (evita ler o estado antigo antes do
     // re-render, no caso de troca de horário disparar o cálculo imediatamente).
     const timeToUse = scheduledTimeParam !== undefined ? scheduledTimeParam : scheduledTime;
+    const modeToUse = timeModeParam !== undefined ? timeModeParam : timeMode;
     if (!destToUse || destToUse.trim().length < 2) return;
 
     setIsCalculating(true);
@@ -341,7 +349,11 @@ export default function HomePage() {
         origLng: String(origCoords[1])
       });
 
-      if (timeToUse) {
+      if (timeToUse && modeToUse === 'ARRIVE_BY') {
+        // Servidor calcula o horário de partida necessário (ver calculateRouteArrivingBy) —
+        // não fazemos essa conta no cliente reaproveitando um cálculo de "agora".
+        params.set('chegadaHorario', timeToUse);
+      } else if (timeToUse && modeToUse === 'DEPART_AT') {
         const [h, m] = timeToUse.split(':').map(Number);
         if (!Number.isNaN(h) && !Number.isNaN(m)) {
           const spNow = getSaoPauloTime();
@@ -646,6 +658,12 @@ export default function HomePage() {
               onScheduledTimeChange={(time: string) => {
                 setScheduledTime(time);
                 handleCalculateRoutes(undefined, undefined, time);
+              }}
+              timeMode={timeMode}
+              onTimeModeChange={(mode, time) => {
+                setTimeMode(mode);
+                setScheduledTime(time);
+                handleCalculateRoutes(undefined, undefined, time, mode);
               }}
               isRouteFavorited={isRouteFavorited}
               onToggleRouteFavorite={handleToggleRouteFavoriteFor}

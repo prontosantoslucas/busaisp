@@ -11,10 +11,12 @@ import {
 } from '@/lib/gtfs';
 import { getSnappedRoutePolyline } from '@/lib/osrm';
 import { formatSaoPauloTime, getSaoPauloTime, getDiffMinutesFromSaoPaulo } from '@/lib/dateUtils';
-import { getDistanceMeters } from '@/lib/geoUtils';
+import { getDistanceMeters, distanceToPolylineMeters } from '@/lib/geoUtils';
 import { findRailRoutePlan } from '@/lib/railRouting';
+import { getLiveTrafficIncidents } from '@/lib/trafficService';
+import { TrafficIncident } from '@/types/traffic';
 
-export { getDistanceMeters };
+export { getDistanceMeters, distanceToPolylineMeters };
 
 export interface RouteLocation {
   name: string;
@@ -84,6 +86,7 @@ export interface RoutePlan {
   lastTelemetryText: string;
   trafficStatus: 'FLUINDO' | 'MODERADO' | 'INTENSO';
   trafficDelayMinutes: number;
+  incidentsOnRoute?: TrafficIncident[];
   steps: RouteStep[];
   polyline: {
     walkToStop: [number, number][];
@@ -91,6 +94,10 @@ export interface RoutePlan {
     walkToDest: [number, number][];
   };
   mode?: 'BUS' | 'RAIL';
+  // Presente só em buscas "Chegar até": true quando nem saindo agora dá tempo de
+  // chegar no horário desejado — o plano retornado é o de sair imediatamente mesmo
+  // assim, nunca uma chegada forçada/inventada para bater o horário pedido.
+  arrivalTimeUnreachable?: boolean;
 }
 
 export interface RouteSearchResult {
@@ -351,8 +358,31 @@ export async function buildMultiLegPlan(
   totalWalkDistanceMeters += walkToStopMeters;
   totalWalkDurationMinutes += walkToStopMinutes;
   totalEstimatedSteps += walkToStopSteps;
-  totalDurationMinutes += walkToStopMinutes;
   totalDistanceMeters += walkToStopMeters;
+
+  // Determinar o momento efetivo de partida considerando a caminhada até o ponto e os ETAs em tempo real
+  let departureDelayMinutes = walkToStopMinutes;
+  if (firstLeg.etaMinutes >= 0) {
+    // Se o usuário precisa de walkToStopMinutes para caminhar até a parada,
+    // o veículo viável deve ter ETA >= walkToStopMinutes - 1 (margem de tolerância).
+    const viableEta = (firstLeg.departureEtas && firstLeg.departureEtas.length > 0)
+      ? firstLeg.departureEtas.find(e => e >= Math.max(0, walkToStopMinutes - 1))
+      : (firstLeg.etaMinutes >= Math.max(0, walkToStopMinutes - 1) ? firstLeg.etaMinutes : undefined);
+
+    if (viableEta !== undefined) {
+      // O usuário caminha walkToStopMinutes e aguarda até viableEta minutos a partir de agora
+      departureDelayMinutes = viableEta;
+    } else {
+      // O primeiro veículo passaria antes do usuário chegar a pé; estima próximo ônibus em ~8 min após chegada
+      departureDelayMinutes = walkToStopMinutes + 8;
+    }
+  } else {
+    // Sem previsão em tempo real: estima espera média razoável de ~5 min no ponto
+    departureDelayMinutes = walkToStopMinutes + 5;
+  }
+
+  // O tempo até o embarque real (caminhada + espera) entra na duração total
+  totalDurationMinutes += departureDelayMinutes;
 
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i];
@@ -739,7 +769,7 @@ async function findMultiLegPlans(
     const frontierByStopId = new Map(frontier.map(f => [f.stop.stopId, f]));
     const frontierStopIds = Array.from(frontierByStopId.keys());
 
-    const directRoutes = await findDirectRoutes(frontierStopIds, destStopIds, 25);
+    const directRoutes = await findDirectRoutes(frontierStopIds, destStopIds, 40);
 
     // Ordenar directRoutes para preferir linhas diurnas se não for de madrugada
     directRoutes.sort((a, b) => {
@@ -752,6 +782,7 @@ async function findMultiLegPlans(
       return 0;
     });
 
+    const seenDirectLineKeys = new Set<string>();
     const directCandidates: Array<{ route: DirectRoute; originEntry: FrontierEntry; destStopInfo: NearbyStop; line: SPTransLinha }> = [];
     for (const route of directRoutes) {
       const originEntry = frontierByStopId.get(route.originStopId);
@@ -764,6 +795,14 @@ async function findMultiLegPlans(
       // Linha noturna (prefixo "N") não circula fora do horário de madrugada — nunca
       // recomendar uma linha que o usuário não conseguiria de fato embarcar agora.
       if (!isNightTime && isNightLine(line.lt)) continue;
+
+      // Desduplicação inteligente: evitar incluir dezenas de viagens repetidas da mesma linha.
+      // Como frontierByStopId prioriza paradas mais próximas do usuário, a primeira ocorrência
+      // de cada linha usará a melhor parada de embarque disponível.
+      const lineKey = `${line.lt}-${line.tl}`;
+      if (seenDirectLineKeys.has(lineKey) || seenDirectLineKeys.has(line.lt)) continue;
+      seenDirectLineKeys.add(lineKey);
+      seenDirectLineKeys.add(line.lt);
 
       directCandidates.push({ route, originEntry, destStopInfo, line });
       if (directCandidates.length >= MAX_ALTERNATIVES) break;
@@ -938,11 +977,19 @@ export async function calculateRoute(
     destNearby = await findNearbyStops(destLoc.lat, destLoc.lng, 4000, 25);
   }
 
-  // Busca trilho (Metrô/CPTM) em paralelo com ônibus — só usa se origem e destino
-  // tiverem estação próxima na MESMA linha (sem baldeação de trilho, ver railRouting.ts).
+  // Busca trilho (Metrô/CPTM) e incidentes de trânsito em paralelo com ônibus
   const railPlanPromise = findRailRoutePlan(originLoc, destLoc, targetOffsetMinutes).catch((err) => {
     console.warn('[calculateRoute] Falha ao buscar rota de trilho:', err);
     return null;
+  });
+
+  const trafficIncidentsPromise = getLiveTrafficIncidents(
+    (originLoc.lat + destLoc.lat) / 2,
+    (originLoc.lng + destLoc.lng) / 2,
+    25
+  ).catch((err) => {
+    console.warn('[calculateRoute] Falha ao buscar incidentes de trânsito:', err);
+    return { incidents: [], summary: { total: 0, accidents: 0, police: 0, construction: 0, jams: 0, hazards: 0 }, lastUpdated: '' };
   });
 
   let plans: RoutePlan[] = [];
@@ -960,8 +1007,64 @@ export async function calculateRoute(
     }
   }
 
-  const railPlan = await railPlanPromise;
+  const [railPlan, trafficData] = await Promise.all([
+    railPlanPromise,
+    trafficIncidentsPromise
+  ]);
+
   if (railPlan) plans.push(railPlan);
+
+  // Aplicar impacto de incidentes de trânsito reais no trajeto ou próximo a ele
+  const liveIncidents = trafficData?.incidents || [];
+  if (liveIncidents.length > 0) {
+    for (const plan of plans) {
+      // Trilho (Metrô/CPTM) trafega em via segregada e não sofre interferência do tráfego de superfície
+      if (plan.mode === 'RAIL') continue;
+
+      const transitCoords = plan.polyline.transit;
+      if (!transitCoords || transitCoords.length === 0) continue;
+
+      const matchedIncidents = liveIncidents.filter((inc) => {
+        const dist = distanceToPolylineMeters([inc.lat, inc.lng], transitCoords);
+        return dist <= 350; // Ocorrência dentro de 350m do corredor de ônibus
+      });
+
+      if (matchedIncidents.length > 0) {
+        let delayMinutes = 0;
+        matchedIncidents.forEach((inc) => {
+          if (typeof inc.delaySeconds === 'number' && inc.delaySeconds > 0) {
+            delayMinutes += Math.round(inc.delaySeconds / 60);
+          } else if (inc.severity === 'CRITICAL') {
+            delayMinutes += 10;
+          } else if (inc.severity === 'HIGH' || inc.type === 'ACCIDENT') {
+            delayMinutes += 6;
+          } else if (inc.severity === 'MEDIUM' || inc.type === 'JAM') {
+            delayMinutes += 4;
+          } else {
+            delayMinutes += 2;
+          }
+        });
+
+        const totalDelay = Math.min(25, Math.max(2, delayMinutes));
+        plan.trafficDelayMinutes = totalDelay;
+        plan.totalDurationMinutes += totalDelay;
+        plan.trafficStatus = totalDelay >= 7 ? 'INTENSO' : 'MODERADO';
+        plan.incidentsOnRoute = matchedIncidents;
+
+        // Recalcular hora prevista de chegada com o atraso de trânsito considerado
+        const refDate = new Date(Date.now() + targetOffsetMinutes * 60000);
+        const arrivalDate = new Date(refDate.getTime() + plan.totalDurationMinutes * 60000);
+        plan.arrivalHour = formatSaoPauloTime(arrivalDate);
+
+        // Adicionar alerta na instrução do ônibus
+        const busStep = plan.steps.find(s => s.type === 'BUS');
+        if (busStep) {
+          const incTitles = matchedIncidents.slice(0, 2).map(i => i.title).join(', ');
+          busStep.detailedWalkGuide = `${busStep.detailedWalkGuide || ''} · ⚠️ Lentidão/Ocorrência na via (+${totalDelay} min): ${incTitles}`.trim();
+        }
+      }
+    }
+  }
 
   if (plans.length === 0) {
     if (origNearby.length === 0) {
@@ -973,21 +1076,90 @@ export async function calculateRoute(
     throw new Error('Nenhuma linha encontrada conectando a origem ao destino.');
   }
 
-  // Ordenação única: menor tempo total -> menor caminhada -> menos baldeações.
-  // Uma rota com 1 baldeação pode ser mais rápida que uma direta com caminhada
-  // longa, então ela deve poder aparecer primeiro — não priorizamos rotas
-  // diretas artificialmente. Trilho entra na mesma ordenação, sem prioridade
-  // artificial sobre ônibus nem o contrário.
-  plans.sort((a, b) =>
-    a.totalDurationMinutes - b.totalDurationMinutes ||
-    a.totalWalkDistanceMeters - b.totalWalkDistanceMeters ||
-    a.transferCount - b.transferCount
-  );
+  // Ordenação inteligente:
+  // 1. Menor tempo total decorrido (espera real no ponto + caminhada + tempo no veículo).
+  // 2. Se tempos forem semelhantes, priorizar o embarque mais próximo de onde o usuário já está (menor caminhada inicial).
+  // 3. Menor distância total de caminhada.
+  // 4. Menos baldeações (viagem direta é preferível a trocar de ônibus quando os tempos são equivalentes).
+  plans.sort((a, b) => {
+    if (a.totalDurationMinutes !== b.totalDurationMinutes) {
+      return a.totalDurationMinutes - b.totalDurationMinutes;
+    }
+    const aWalkToStop = a.steps.find(s => s.type === 'WALK')?.distanceMeters || 0;
+    const bWalkToStop = b.steps.find(s => s.type === 'WALK')?.distanceMeters || 0;
+    if (aWalkToStop !== bWalkToStop) {
+      return aWalkToStop - bWalkToStop;
+    }
+    if (a.totalWalkDistanceMeters !== b.totalWalkDistanceMeters) {
+      return a.totalWalkDistanceMeters - b.totalWalkDistanceMeters;
+    }
+    return a.transferCount - b.transferCount;
+  });
 
-  const finalPlans = plans.slice(0, MAX_ALTERNATIVES);
+  // Garantir que a lista final não tenha planos redundantes
+  const seenSignatures = new Set<string>();
+  const uniquePlans: RoutePlan[] = [];
+  for (const plan of plans) {
+    const sig = `${plan.mode || 'BUS'}_${plan.recommendedLine.lt}_${plan.departureStop.cp}_${plan.arrivalStop.cp}_${plan.transferCount}`;
+    if (!seenSignatures.has(sig)) {
+      seenSignatures.add(sig);
+      uniquePlans.push(plan);
+    }
+    if (uniquePlans.length >= MAX_ALTERNATIVES) break;
+  }
+
+  const finalPlans = uniquePlans.length > 0 ? uniquePlans : plans.slice(0, MAX_ALTERNATIVES);
 
   return {
     primaryRoute: finalPlans[0],
     alternatives: finalPlans
   };
+}
+
+/**
+ * Calcula uma rota para CHEGAR até um horário desejado (em vez de partir num
+ * horário). Faz duas buscas reais em vez de reaproveitar a rota de "agora" com o
+ * horário só remarcado por conta — isso seria inventar, já que os ônibus
+ * disponíveis, linhas noturnas e previsões reais mudam conforme o horário do dia:
+ *
+ * 1ª busca: calcula a rota partindo agora, só para estimar a duração real da viagem.
+ * 2ª busca: usa essa duração pra decidir o horário de partida necessário, e
+ *           RECALCULA a rota de verdade nesse horário (não reaproveita a 1ª).
+ *
+ * Se nem saindo agora dá tempo de chegar no horário pedido, retorna o plano de
+ * sair imediatamente mesmo assim, com `arrivalTimeUnreachable: true` — nunca finge
+ * uma chegada que não é fisicamente possível.
+ */
+export async function calculateRouteArrivingBy(
+  originLoc: RouteLocation,
+  destLoc: RouteLocation,
+  desiredArrivalHHMM: string
+): Promise<RouteSearchResult> {
+  const parts = desiredArrivalHHMM.split(':').map(Number);
+  if (parts.length !== 2 || parts.some(Number.isNaN)) {
+    throw new Error('Horário de chegada inválido.');
+  }
+  const [desiredHours, desiredMinutes] = parts;
+
+  const spNow = getSaoPauloTime();
+  const nowMinutes = spNow.hours * 60 + spNow.minutes;
+  const desiredArrivalMinutesTotal = desiredHours * 60 + desiredMinutes;
+  let desiredArrivalOffsetMinutes = desiredArrivalMinutesTotal - nowMinutes;
+  if (desiredArrivalOffsetMinutes < 0) desiredArrivalOffsetMinutes += 24 * 60;
+
+  const baseline = await calculateRoute(originLoc, destLoc, 0);
+  const estimatedDurationMinutes = baseline.primaryRoute.totalDurationMinutes;
+
+  let departureOffsetMinutes = desiredArrivalOffsetMinutes - estimatedDurationMinutes;
+  const isUnreachable = departureOffsetMinutes < 0;
+  if (isUnreachable) departureOffsetMinutes = 0;
+
+  const result = await calculateRoute(originLoc, destLoc, departureOffsetMinutes);
+
+  if (isUnreachable) {
+    result.primaryRoute.arrivalTimeUnreachable = true;
+    result.alternatives.forEach((r) => { r.arrivalTimeUnreachable = true; });
+  }
+
+  return result;
 }

@@ -65,103 +65,7 @@ export interface UnifiedNewsItem {
   categoryTag: string;
 }
 
-const STATIC_MOBILITY_NEWS: UnifiedNewsItem[] = [
-  {
-    id: 'news-tarifa-zero',
-    sourceType: 'INFORMATIVOS',
-    title: 'Domingão Tarifa Zero: Ônibus da SPTrans são 100% gratuitos',
-    subtitle: 'Válido em toda a capital aos domingos e feriados oficiais',
-    description:
-      'A gratuidade no transporte coletivo municipal por ônibus em São Paulo funciona todos os domingos e feriados oficiais da 0h às 23h59. Não é debitada tarifa no validador.',
-    fullContent:
-      'O programa Domingão Tarifa Zero garante acesso livre a todas as mais de 1.300 linhas de ônibus municipais operadas pela SPTrans em São Paulo. A medida incentiva o lazer, a convivência comunitária e o acesso a parques, centros culturais e áreas públicas.\n\n• Horário: De 0h00 até 23h59 de todos os domingos e feriados de São Paulo.\n• Validação: Basta aproximar qualquer Bilhete Único ativo na catraca (nenhum saldo é debitado) ou solicitar liberação pelo cobrador/motorista.\n• Abrangência: Todos os ônibus convencionais, articulados, trólebus e micro-ônibus da SPTrans em todas as zonas da cidade.',
-    timestamp: 'Atualizado hoje',
-    badge: {
-      label: 'TARIFA ZERO',
-      bg: 'rgba(16, 185, 129, 0.22)',
-      text: '#34D399',
-      border: 'rgba(16, 185, 129, 0.5)'
-    },
-    source: 'Prefeitura de São Paulo / SPTrans',
-    categoryTag: 'Benefícios & Tarifas'
-  },
-  {
-    id: 'news-paulista-aberta',
-    sourceType: 'SPTRANS',
-    title: 'Avenida Paulista Aberta: Linhas de ônibus com desvios operacionais',
-    subtitle: 'Domingos e feriados das 9h às 16h',
-    description:
-      'Durante o programa Ruas Abertas, as linhas municipais que cruzam a Av. Paulista são desviadas pela Alameda Santos e Rua São Carlos do Pinhal. Pontos temporários devidamente sinalizados.',
-    fullContent:
-      'O tráfego de veículos e ônibus permanece interditado na Avenida Paulista entre a Praça Oswaldo Cruz e a Rua da Consolação aos domingos.\n\n• Desvio Sentido Paraíso/Centro: Os coletivos trafegam pela Alameda Santos, com pontos de embarque e desembarque provisórios instalados.\n• Desvio Sentido Rebouças/Consolação: Os ônibus seguem pela Rua São Carlos do Pinhal e Alameda Jaú.\n• Dica: Utilize as estações da Linha 2-Verde do Metrô (Brigadeiro, Trianon-Masp, Consolação) para travessia rápida.',
-    timestamp: 'Programação semanal',
-    badge: {
-      label: 'DESVIOS SPTRANS',
-      bg: 'var(--bus-violet-soft)',
-      text: 'var(--bus-violet)',
-      border: 'var(--bus-border-highlight)'
-    },
-    source: 'CET / SPTrans',
-    categoryTag: 'Desvios de Itinerário'
-  },
-  {
-    id: 'news-bilhete-unico',
-    sourceType: 'INFORMATIVOS',
-    title: 'Regras do Bilhete Único: Até 4 embarques em ônibus em até 3 horas',
-    subtitle: 'Integração temporal no transporte público',
-    description:
-      'O Bilhete Único Comum permite a utilização de até 4 ônibus da SPTrans no intervalo de 3 horas pagando uma única tarifa de R$ 4,40. A integração com trilhos tem desconto especial.',
-    fullContent:
-      'Com o Bilhete Único você economiza em todas as suas viagens na cidade de São Paulo:\n\n• Integração Ônibus + Ônibus: Até 4 embarques em linhas diferentes da SPTrans no período de 3 horas.\n• Integração Ônibus + Metrô/CPTM: Tarifa integrada especial de R$ 8,20 no período de 3 horas.\n• Recarga: Disponível pelo aplicativo oficial, terminais de autoatendimento nas estações e pontos credenciados.',
-    timestamp: 'Informativo Oficial',
-    badge: {
-      label: 'BILHETE ÚNICO',
-      bg: 'rgba(99, 102, 241, 0.22)',
-      text: '#A5B4FC',
-      border: 'rgba(99, 102, 241, 0.5)'
-    },
-    source: 'SPTrans Oficial',
-    categoryTag: 'Regras de Uso'
-  },
-  {
-    id: 'news-frota-verde',
-    sourceType: 'SPTRANS',
-    title: 'Mais de 1.000 novos ônibus elétricos e climatizados em circulação',
-    subtitle: 'Renovação da frota municipal sustentável',
-    description:
-      'A SPTrans continua a expansão dos ônibus elétricos a bateria com ar-condicionado, carregadores USB, Wi-Fi e motores silenciosos de emissão zero em corredores da Zona Leste e Sul.',
-    fullContent:
-      'A cidade de São Paulo acelera a transição energética do transporte público:\n\n• Conforto: Veículos 100% elétricos com suspensão a ar pneumática, tomadas USB nos assentos e ar-condicionado digital.\n• Sustentabilidade: Emissão zero de poluentes e ruído reduzido em mais de 70% nas vias públicas.\n• Linhas atendidas: Principais eixos das zonas Sul, Leste e corredores Santo Amaro/9 de Julho.',
-    timestamp: 'Boletim de Frota',
-    badge: {
-      label: 'FROTA ELÉTRICA',
-      bg: 'rgba(16, 185, 129, 0.22)',
-      text: '#34D399',
-      border: 'rgba(16, 185, 129, 0.5)'
-    },
-    source: 'Olho Vivo SPTrans',
-    categoryTag: 'Tecnologia & Frota'
-  },
-  {
-    id: 'news-metro-expansao',
-    sourceType: 'TRILHOS',
-    title: 'Avanço nas obras das Linhas 6-Laranja e 17-Ouro do Metrô',
-    subtitle: 'Interligação entre bairros e malha sobre trilhos',
-    description:
-      'Novas estações conectando a Zona Norte à região central e o monotrilho do Aeroporto de Congonhas seguem em fase avançada de montagem eletromecânica e testes de via.',
-    fullContent:
-      'As novas linhas sobre trilhos de São Paulo trarão alívio imediato ao trânsito:\n\n• Linha 6-Laranja: Ligará a Brasilândia e Freguesia do Ó ao centro (São Joaquim/Higienópolis-Mackenzie) com 15 estações.\n• Linha 17-Ouro: Monotrilho ligando o Aeroporto de Congonhas à Linha 9-Esmeralda (Morumbi) e Linha 5-Lilás.\n• Conexão: Maior integração rápida com linhas de ônibus nos terminais intermodais.',
-    timestamp: 'STM Notícias',
-    badge: {
-      label: 'OBRAS METRÔ',
-      bg: 'rgba(245, 158, 11, 0.22)',
-      text: '#FBBF24',
-      border: 'rgba(245, 158, 11, 0.5)'
-    },
-    source: 'Secretaria dos Transportes Metropolitanos',
-    categoryTag: 'Expansão de Malha'
-  }
-];
+import { PERMANENT_MOBILITY_GUIDES } from '@/lib/newsService';
 
 export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap }: TransitNewsPanelProps) {
   const [selectedFilter, setSelectedFilter] = useState<NewsFilterType>('ALL');
@@ -172,9 +76,28 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
   const [speakingItemId, setSpeakingItemId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Notícias dinâmicas ao vivo da SPTrans, CET e Trilhos
+  const [liveNews, setLiveNews] = useState<UnifiedNewsItem[]>([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
+
   // Status dos Trilhos
   const [railsData, setRailsData] = useState<RailsResponse | null>(null);
   const [isLoadingRails, setIsLoadingRails] = useState(false);
+
+  const fetchLiveNews = async () => {
+    setIsLoadingNews(true);
+    try {
+      const res = await fetch('/api/noticias');
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        setLiveNews(json.data);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar notícias em tempo real:', e);
+    } finally {
+      setIsLoadingNews(false);
+    }
+  };
 
   const fetchRails = async () => {
     setIsLoadingRails(true);
@@ -191,7 +114,13 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
     }
   };
 
+  const handleRefreshAll = () => {
+    fetchLiveNews();
+    fetchRails();
+  };
+
   useEffect(() => {
+    fetchLiveNews();
     fetchRails();
   }, []);
 
@@ -343,8 +272,11 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
 
   // Feed completo unificado
   const allFeedItems = useMemo<UnifiedNewsItem[]>(() => {
-    return [...incidentNewsItems, ...STATIC_MOBILITY_NEWS, ...railNewsItems];
-  }, [incidentNewsItems, railNewsItems]);
+    if (liveNews.length > 0) {
+      return liveNews;
+    }
+    return [...incidentNewsItems, ...railNewsItems, ...PERMANENT_MOBILITY_GUIDES];
+  }, [liveNews, incidentNewsItems, railNewsItems]);
 
   // Filtro por categoria e busca
   const filteredItems = useMemo(() => {
@@ -422,13 +354,13 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 </span>
               </div>
               <div style={{ fontSize: '12px', color: 'var(--bus-text-secondary)' }}>
-                CET, Metrô, SPTrans e avisos aos passageiros
+                SPTrans oficial, Metrô/CPTM e alertas da CET
               </div>
             </div>
           </div>
 
           <button
-            onClick={() => fetchRails()}
+            onClick={handleRefreshAll}
             className="bus-pill"
             style={{
               padding: '6px 12px',
@@ -440,7 +372,8 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
               color: 'var(--bus-emerald)',
               minHeight: '36px'
             }}
-            title="Atualizar Feed"
+            title="Atualizar Notícias e Trânsito"
+            disabled={isLoadingNews || isLoadingRails}
           >
             <span
               style={{
@@ -448,10 +381,10 @@ export default function TransitNewsPanel({ incidents = [], onSelectIncidentOnMap
                 height: '7px',
                 borderRadius: '50%',
                 background: 'var(--bus-emerald)',
-                animation: 'markerPulse 1.5s infinite'
+                animation: isLoadingNews ? 'spin 1s infinite linear' : 'markerPulse 1.5s infinite'
               }}
             />
-            <span>AO VIVO</span>
+            <span>{isLoadingNews ? 'ATUALIZANDO...' : 'AO VIVO'}</span>
           </button>
         </div>
 

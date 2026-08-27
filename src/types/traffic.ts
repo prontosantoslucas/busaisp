@@ -19,6 +19,36 @@ export interface TrafficIncident {
   reliability?: number; // 1 a 10
 }
 
+export interface TrafficHotspotReason {
+  type: IncidentType | 'RUSH_HOUR' | 'ROAD_NARROWING' | 'WEATHER';
+  title: string;
+  description: string;
+  delayMinutes: number;
+}
+
+export interface TrafficCorridorHotspot {
+  id: string;
+  name: string;
+  corridor: string;
+  neighborhood: string;
+  lat: number;
+  lng: number;
+  radiusMeters: number;
+  status: 'FLUINDO' | 'MODERADO' | 'INTENSO' | 'CRITICO';
+  delayMinutes: number;
+  avgSpeedKmh: number;
+  normalSpeedKmh: number;
+  reasons: TrafficHotspotReason[];
+  updatedAt: string;
+}
+
+export interface TrafficHeatmapData {
+  hotspots: TrafficCorridorHotspot[];
+  cityStatus: 'FLUINDO' | 'MODERADO' | 'INTENSO';
+  totalCongestionKm: number;
+  lastUpdated: string;
+}
+
 export interface TrafficIncidentsResponse {
   incidents: TrafficIncident[];
   summary: {
@@ -31,3 +61,4 @@ export interface TrafficIncidentsResponse {
   };
   lastUpdated: string;
 }
+

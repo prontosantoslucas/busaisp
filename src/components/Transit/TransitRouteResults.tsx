@@ -18,7 +18,8 @@ import {
   Zap,
   ArrowLeftRight,
   Radio,
-  SlidersHorizontal
+  SlidersHorizontal,
+  AlertTriangle
 } from 'lucide-react';
 
 interface TransitRouteResultsProps {
@@ -38,6 +39,8 @@ interface TransitRouteResultsProps {
   searchError?: string | null;
   scheduledTime?: string;
   onScheduledTimeChange?: (time: string) => void;
+  timeMode?: 'NOW' | 'DEPART_AT' | 'ARRIVE_BY';
+  onTimeModeChange?: (mode: 'NOW' | 'DEPART_AT' | 'ARRIVE_BY', time: string) => void;
   isRouteFavorited?: (route: RoutePlan) => boolean;
   onToggleRouteFavorite?: (route: RoutePlan) => void;
 }
@@ -59,23 +62,34 @@ export default function TransitRouteResults({
   searchError,
   scheduledTime = '',
   onScheduledTimeChange,
+  timeMode = 'NOW',
+  onTimeModeChange,
   isRouteFavorited,
   onToggleRouteFavorite
 }: TransitRouteResultsProps) {
   const [filterMode, setFilterMode] = useState<'ALL' | 'FASTEST' | 'LESS_WALK' | 'LESS_TRANSFERS'>('ALL');
   const [departuresStep, setDeparturesStep] = useState<RouteStep | null>(null);
-  const isScheduled = scheduledTime.length > 0;
+  const isScheduled = timeMode !== 'NOW';
 
   // Aplicar filtros
   const filteredRoutes = [...routes].sort((a, b) => {
     if (filterMode === 'FASTEST') {
-      return a.totalDurationMinutes - b.totalDurationMinutes;
+      return (
+        a.totalDurationMinutes - b.totalDurationMinutes ||
+        a.totalWalkDistanceMeters - b.totalWalkDistanceMeters
+      );
     }
     if (filterMode === 'LESS_WALK') {
-      return a.totalWalkDurationMinutes - b.totalWalkDurationMinutes;
+      return (
+        a.totalWalkDistanceMeters - b.totalWalkDistanceMeters ||
+        a.totalDurationMinutes - b.totalDurationMinutes
+      );
     }
     if (filterMode === 'LESS_TRANSFERS') {
-      return a.steps.length - b.steps.length;
+      return (
+        a.transferCount - b.transferCount ||
+        a.totalDurationMinutes - b.totalDurationMinutes
+      );
     }
     return 0;
   });
@@ -176,38 +190,63 @@ export default function TransitRouteResults({
           </button>
         </div>
 
-        {/* Horário de Saída: agora ou planejado */}
-        {onScheduledTimeChange && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={() => onScheduledTimeChange('')}
-              className={`bus-pill ${!isScheduled ? 'active' : ''}`}
-              style={{ fontSize: '11.5px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}
-            >
-              <Clock size={13} />
-              <span>Sair agora</span>
-            </button>
+        {/* Horário: sair agora, partir às X, ou chegar até X */}
+        {onScheduledTimeChange && onTimeModeChange && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {([
+                { id: 'NOW' as const, label: 'Agora' },
+                { id: 'DEPART_AT' as const, label: 'Partir às' },
+                { id: 'ARRIVE_BY' as const, label: 'Chegar até' }
+              ]).map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    if (m.id === 'NOW') {
+                      onTimeModeChange(m.id, '');
+                    } else {
+                      const d = new Date();
+                      const nextTime = scheduledTime || `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                      onTimeModeChange(m.id, nextTime);
+                    }
+                  }}
+                  className={`bus-pill ${timeMode === m.id ? 'active' : ''}`}
+                  style={{ fontSize: '11.5px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Clock size={13} />
+                  <span>{m.label}</span>
+                </button>
+              ))}
 
-            <div
-              className={`bus-pill ${isScheduled ? 'active' : ''}`}
-              style={{ fontSize: '11.5px', padding: '2px 10px 2px 12px', display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}
-            >
-              <Clock size={13} />
-              <input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => onScheduledTimeChange(e.target.value)}
-                className="bus-num"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'inherit',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  flex: 1
-                }}
-              />
+              {timeMode !== 'NOW' && (
+                <div
+                  className="bus-pill active"
+                  style={{ fontSize: '11.5px', padding: '2px 10px 2px 12px', display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}
+                >
+                  <input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => onScheduledTimeChange(e.target.value)}
+                    className="bus-num"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'inherit',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      flex: 1
+                    }}
+                  />
+                </div>
+              )}
             </div>
+
+            {routes[selectedRouteIndex]?.arrivalTimeUnreachable && (
+              <div style={{ fontSize: '10.5px', color: 'var(--bus-live)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <AlertTriangle size={12} />
+                <span>Nem saindo agora dá tempo de chegar nesse horário — mostrando a viagem mais rápida saindo já.</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -256,13 +295,15 @@ export default function TransitRouteResults({
           </div>
         ) : filteredRoutes.length > 0 ? (
           filteredRoutes.map((route, idx) => {
-            const isSelected = selectedRouteIndex === idx;
+            const originalIndex = routes.findIndex(r => r.id === route.id);
+            const targetIndex = originalIndex >= 0 ? originalIndex : idx;
+            const isSelected = selectedRouteIndex === targetIndex;
             const etaColors = getEtaColorTokens(route.nextBusEtaMinutes);
 
             return (
               <div
-                key={idx}
-                onClick={() => onSelectRoute(idx)}
+                key={route.id || idx}
+                onClick={() => onSelectRoute(targetIndex)}
                 className={`bus-card ${isSelected ? 'active' : ''}`}
                 style={{
                   display: 'flex',
@@ -302,6 +343,27 @@ export default function TransitRouteResults({
                         <Star size={16} fill={isRouteFavorited?.(route) ? 'var(--bus-live)' : 'none'} />
                       </button>
                     )}
+                    {route.trafficDelayMinutes > 0 && (
+                      <span
+                        className="bus-num"
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: '#EF4444',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          borderRadius: 'var(--bus-radius-sm)',
+                          padding: '2px 6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        title={`Atraso estimado de ${route.trafficDelayMinutes} min devido a lentidão/ocorrência na via`}
+                      >
+                        <AlertTriangle size={11} />
+                        +{route.trafficDelayMinutes}m trânsito
+                      </span>
+                    )}
+
                     <span
                       className="bus-num"
                       style={{

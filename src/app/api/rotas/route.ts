@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { geocodeAddress, calculateRoute, searchAddressSuggestions, RouteLocation } from '@/lib/routing';
+import { geocodeAddress, calculateRoute, calculateRouteArrivingBy, searchAddressSuggestions, RouteLocation } from '@/lib/routing';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
@@ -51,6 +51,11 @@ export async function GET(request: NextRequest) {
   const partidaMinutosParam = searchParams.get('partidaMinutos');
   const targetOffsetMinutes = partidaMinutosParam ? Math.max(0, parseInt(partidaMinutosParam, 10) || 0) : 0;
 
+  // Horário desejado de CHEGADA ("HH:MM") — modo alternativo ao de partida. Quando
+  // presente, o servidor calcula o horário de saída necessário (ver
+  // calculateRouteArrivingBy), em vez do cliente estimar isso sozinho.
+  const chegadaHorarioParam = searchParams.get('chegadaHorario');
+
   try {
     let originLoc: RouteLocation;
     let destLoc: RouteLocation;
@@ -77,7 +82,9 @@ export async function GET(request: NextRequest) {
       destLoc = await geocodeAddress(destinoStr);
     }
 
-    const routeResult = await calculateRoute(originLoc, destLoc, targetOffsetMinutes);
+    const routeResult = chegadaHorarioParam
+      ? await calculateRouteArrivingBy(originLoc, destLoc, chegadaHorarioParam)
+      : await calculateRoute(originLoc, destLoc, targetOffsetMinutes);
 
     // Registra o evento de busca de forma assíncrona (não bloqueia a resposta)
     try {
