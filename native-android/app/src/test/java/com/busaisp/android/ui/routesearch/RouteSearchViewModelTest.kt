@@ -4,9 +4,12 @@ import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.RouteRepository
 import com.busaisp.android.data.repository.RouteRepositoryResult
 import com.busaisp.android.data.repository.RouteTimeMode
+import com.busaisp.android.domain.GeoPoint
+import com.busaisp.android.domain.model.Linha
 import com.busaisp.android.domain.model.RouteAccuracy
 import com.busaisp.android.domain.model.RouteLocation
 import com.busaisp.android.domain.model.RoutePlan
+import com.busaisp.android.domain.model.RoutePolyline
 import com.busaisp.android.domain.model.RouteSearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,6 +43,12 @@ class RouteSearchViewModelTest {
         isRail = false,
         arrivalTimeUnreachable = false,
         accuracyLevel = RouteAccuracy.HIGH,
+        recommendedLine = Linha(1001, "1703-10", 10, "JD. FONTALIS", "SHOPPING CENTER NORTE"),
+        polyline = RoutePolyline(
+            walkToStop = listOf(GeoPoint(-23.55, -46.63), GeoPoint(-23.5505, -46.6305)),
+            transit = listOf(GeoPoint(-23.5505, -46.6305), GeoPoint(-23.52, -46.65)),
+            walkToDest = listOf(GeoPoint(-23.52, -46.65), GeoPoint(-23.521, -46.651))
+        ),
         steps = emptyList()
     )
 

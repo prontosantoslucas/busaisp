@@ -43,7 +43,7 @@ class LineSearchRepositoryImpl @Inject constructor(
     }
 }
 
-private fun LinhaDto.toDomain(): Linha = Linha(
+internal fun LinhaDto.toDomain(): Linha = Linha(
     codigo = cl,
     letreiro = lt,
     tipoLinha = tl,

@@ -35,6 +35,13 @@ data class RouteStepDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class PolylineDto(
+    val walkToStop: List<List<Double>>,
+    val transit: List<List<Double>>,
+    val walkToDest: List<List<Double>>
+)
+
+@JsonClass(generateAdapter = true)
 data class RoutePlanDto(
     val id: String,
     val origin: RouteLocationDto,
@@ -59,6 +66,8 @@ data class RoutePlanDto(
     val trafficDelayMinutes: Double,
     val mode: String? = null,
     val arrivalTimeUnreachable: Boolean? = null,
+    val recommendedLine: LinhaDto,
+    val polyline: PolylineDto,
     val steps: List<RouteStepDto>
 )
 

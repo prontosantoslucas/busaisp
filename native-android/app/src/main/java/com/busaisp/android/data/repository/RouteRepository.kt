@@ -1,11 +1,14 @@
 package com.busaisp.android.data.repository
 
 import com.busaisp.android.data.remote.BusaiApiService
+import com.busaisp.android.data.remote.dto.PolylineDto
 import com.busaisp.android.data.remote.dto.RouteLocationDto
 import com.busaisp.android.data.remote.dto.RoutePlanDto
 import com.busaisp.android.data.remote.dto.RouteStepDto
+import com.busaisp.android.domain.GeoPoint
 import com.busaisp.android.domain.model.RouteLocation
 import com.busaisp.android.domain.model.RoutePlan
+import com.busaisp.android.domain.model.RoutePolyline
 import com.busaisp.android.domain.model.RouteSearchResult
 import com.busaisp.android.domain.model.RouteStep
 import com.busaisp.android.domain.model.parseRouteAccuracy
@@ -138,5 +141,13 @@ private fun RoutePlanDto.toDomain() = RoutePlan(
     isRail = mode == "RAIL",
     arrivalTimeUnreachable = arrivalTimeUnreachable ?: false,
     accuracyLevel = parseRouteAccuracy(accuracyLevel),
+    recommendedLine = recommendedLine.toDomain(),
+    polyline = polyline.toDomain(),
     steps = steps.map { it.toDomain() }
+)
+
+private fun PolylineDto.toDomain() = RoutePolyline(
+    walkToStop = walkToStop.map { GeoPoint(it[0], it[1]) },
+    transit = transit.map { GeoPoint(it[0], it[1]) },
+    walkToDest = walkToDest.map { GeoPoint(it[0], it[1]) }
 )

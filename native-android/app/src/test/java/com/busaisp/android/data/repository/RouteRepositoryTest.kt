@@ -48,6 +48,12 @@ class RouteRepositoryTest {
               "lastTelemetryText": "GPS ao vivo",
               "trafficStatus": "FLUINDO",
               "trafficDelayMinutes": 0.0,
+              "recommendedLine": {"cl":1001,"lc":false,"lt":"1703","tl":10,"sl":1,"tp":"JD. FONTALIS","ts":"SHOPPING CENTER NORTE"},
+              "polyline": {
+                "walkToStop": [[-23.55,-46.63],[-23.5505,-46.6305]],
+                "transit": [[-23.5505,-46.6305],[-23.52,-46.65]],
+                "walkToDest": [[-23.52,-46.65],[-23.521,-46.651]]
+              },
               "steps": [
                 {"type":"WALK","instruction":"Caminhe até o ponto","durationMinutes":6.0,"distanceMeters":400.0},
                 {"type":"BUS","instruction":"Pegue o 1703-10","durationMinutes":30.0,"distanceMeters":7500.0,"busLine":"1703-10","stopCount":12}

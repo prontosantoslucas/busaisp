@@ -1,5 +1,7 @@
 package com.busaisp.android.domain.model
 
+import com.busaisp.android.domain.GeoPoint
+
 data class RouteLocation(
     val name: String,
     val addressDetails: String?,
@@ -25,6 +27,12 @@ data class RouteStep(
     val accuracyLevel: RouteAccuracy
 )
 
+data class RoutePolyline(
+    val walkToStop: List<GeoPoint>,
+    val transit: List<GeoPoint>,
+    val walkToDest: List<GeoPoint>
+)
+
 data class RoutePlan(
     val id: String,
     val origin: RouteLocation,
@@ -38,6 +46,8 @@ data class RoutePlan(
     val isRail: Boolean,
     val arrivalTimeUnreachable: Boolean,
     val accuracyLevel: RouteAccuracy,
+    val recommendedLine: Linha,
+    val polyline: RoutePolyline,
     val steps: List<RouteStep>
 )
 
