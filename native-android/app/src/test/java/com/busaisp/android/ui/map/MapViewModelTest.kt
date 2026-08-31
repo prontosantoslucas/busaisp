@@ -121,4 +121,67 @@ class MapViewModelTest {
         assertEquals(linhaB.codigo, withVehicles.linha.codigo)
         assertEquals("B", withVehicles.vehicles.first().prefix)
     }
+
+    // Repositório fake que emite Success e, em seguida (após um pequeno delay virtual,
+    // só para simular um novo ciclo de polling), Failure — usado para exercitar a lógica
+    // de isStale/expiração de MapViewModel.onLineSelected, que antes não tinha cobertura.
+    private class SuccessThenFailureBusRepository(
+        private val successResult: VehiclesResult.Success,
+        private val failureMessage: String = "Falha de conexão"
+    ) : BusRepository {
+        override fun observeVehicles(linha: Linha): Flow<VehiclesResult> = flow {
+            emit(successResult)
+            delay(1_000L)
+            emit(VehiclesResult.Failure(failureMessage))
+        }
+    }
+
+    // Espelha STALE_GRACE_MS de MapViewModel (é `private`, então não dá para importar
+    // a constante diretamente — mantenha os dois valores em sincronia se um mudar).
+    private val staleGraceMs = 90_000L
+
+    @Test
+    fun `falha logo apos um sucesso recente mantem os veiculos visiveis marcados como desatualizados`() = runTest {
+        // A checagem de isStale em MapViewModel usa System.currentTimeMillis() (relógio
+        // real), não o tempo virtual do TestDispatcher — por isso o timestamp "recente"
+        // é ancorado no relógio real de agora, e não em tempo virtual da coroutine.
+        val recentFetchedAt = System.currentTimeMillis()
+        val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
+        val busRepository = SuccessThenFailureBusRepository(
+            VehiclesResult.Success(listOf(vehicle), recentFetchedAt)
+        )
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+
+        viewModel.onLineSelected(linha)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is MapUiState.WithVehicles)
+        val withVehicles = state as MapUiState.WithVehicles
+        assertTrue(withVehicles.isStale)
+        assertEquals(linha.codigo, withVehicles.linha.codigo)
+        assertEquals(1, withVehicles.vehicles.size)
+        assertEquals("21045", withVehicles.vehicles.first().prefix)
+    }
+
+    @Test
+    fun `falha apos um sucesso ja expirado vira estado de erro em vez de manter dados obsoletos`() = runTest {
+        // Timestamp bem além da janela de tolerância (ancorado no relógio real, mesmo
+        // motivo do teste acima) — a checagem deve tratar isso como dado velho demais
+        // para continuar mostrando no mapa, e cair para Error.
+        val expiredFetchedAt = System.currentTimeMillis() - staleGraceMs - 5_000L
+        val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
+        val busRepository = SuccessThenFailureBusRepository(
+            VehiclesResult.Success(listOf(vehicle), expiredFetchedAt),
+            failureMessage = "Falha de conexão"
+        )
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+
+        viewModel.onLineSelected(linha)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is MapUiState.Error)
+        assertEquals("Falha de conexão", (state as MapUiState.Error).message)
+    }
 }

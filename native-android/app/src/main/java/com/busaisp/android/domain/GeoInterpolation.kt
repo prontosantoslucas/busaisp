@@ -14,6 +14,11 @@ private const val EARTH_RADIUS_METERS = 6_371_000.0
 // atualização real de GPS — evita que o ônibus "teleporte" entre pings,
 // criando movimento contínuo no mapa (fórmula de ponto de destino em
 // grande círculo, não é uma aproximação inventada).
+//
+// Atenção: esta função não limita o tempo decorrido — um `elapsedSeconds` muito
+// grande (dado muito antigo) pode projetar o veículo para uma posição implausível.
+// Quem chama é responsável por só passar dados dentro de uma janela razoável (ver,
+// por exemplo, a lógica de isStale/expiração de MapViewModel.onLineSelected).
 fun interpolatePosition(vehicle: Vehicle, nowEpochMs: Long): GeoPoint {
     val heading = vehicle.headingDegrees
     val speed = vehicle.speedKmh
