@@ -2,6 +2,7 @@ package com.busaisp.android.ui.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.LineSearchRepository
 import com.busaisp.android.domain.interpolatePosition
@@ -24,7 +25,8 @@ private const val STALE_GRACE_MS = 90_000L
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val busRepository: BusRepository,
-    private val lineSearchRepository: LineSearchRepository
+    private val lineSearchRepository: LineSearchRepository,
+    private val locationClient: LocationClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MapUiState>(MapUiState.Idle)
@@ -32,6 +34,15 @@ class MapViewModel @Inject constructor(
 
     private val _lineSearchResults = MutableStateFlow<List<Linha>>(emptyList())
     val lineSearchResults: StateFlow<List<Linha>> = _lineSearchResults.asStateFlow()
+
+    private val _userLocation = MutableStateFlow<LocationClient.Position?>(null)
+    val userLocation: StateFlow<LocationClient.Position?> = _userLocation.asStateFlow()
+
+    // A permissão de localização é checada/solicitada na UI (MapScreen); uma vez concedida,
+    // a UI chama isto para começar a observar o GPS real. Idempotente: se já houver uma
+    // coleta ativa, uma segunda chamada (ex.: usuário toca o botão de novo, ou recomposição
+    // reexecuta a checagem de permissão) não abre uma segunda subscrição concorrente.
+    private var locationJob: Job? = null
 
     // Melhoria auto-iniciada (fora do texto literal da tarefa): guarda o job do
     // polling em andamento para poder cancelá-lo ao trocar de linha. Sem isso,
@@ -63,6 +74,15 @@ class MapViewModel @Inject constructor(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    fun onLocationPermissionGranted() {
+        if (locationJob?.isActive == true) return
+        locationJob = viewModelScope.launch {
+            locationClient.observeLocation().collect { position ->
+                _userLocation.value = position
             }
         }
     }

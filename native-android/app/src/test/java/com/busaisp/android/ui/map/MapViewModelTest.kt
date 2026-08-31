@@ -1,5 +1,6 @@
 package com.busaisp.android.ui.map
 
+import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.LineSearchRepository
 import com.busaisp.android.domain.model.Linha
@@ -9,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -17,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -35,6 +38,15 @@ class MapViewModelTest {
         override suspend fun searchLinhas(query: String): List<Linha> = emptyList()
     }
 
+    // Fake mínimo de LocationClient para os testes de MapViewModel que não envolvem
+    // localização — nunca emite nada, então onLocationPermissionGranted() pode ser
+    // chamado (ou não) sem afetar o resultado desses testes.
+    private class FakeLocationClient(
+        private val positions: Flow<LocationClient.Position> = emptyFlow()
+    ) : LocationClient {
+        override fun observeLocation(): Flow<LocationClient.Position> = positions
+    }
+
     @Before
     fun setUp() { Dispatchers.setMain(dispatcher) }
 
@@ -45,7 +57,7 @@ class MapViewModelTest {
     fun `ao selecionar uma linha o estado passa a ter os veiculos reais`() = runTest {
         val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
         val busRepository = FakeBusRepository(VehiclesResult.Success(listOf(vehicle), 0L))
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -58,7 +70,7 @@ class MapViewModelTest {
     @Test
     fun `falha de rede resulta em estado de erro honesto`() = runTest {
         val busRepository = FakeBusRepository(VehiclesResult.Failure("Falha de conexão"))
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -108,7 +120,7 @@ class MapViewModelTest {
             fastVehicle = vehicleB,
             fastDelayMs = 100L
         )
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
 
         viewModel.onLineSelected(linhaA)
         dispatcher.scheduler.advanceTimeBy(50L)
@@ -150,7 +162,7 @@ class MapViewModelTest {
         val busRepository = SuccessThenFailureBusRepository(
             VehiclesResult.Success(listOf(vehicle), recentFetchedAt)
         )
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -175,7 +187,7 @@ class MapViewModelTest {
             VehiclesResult.Success(listOf(vehicle), expiredFetchedAt),
             failureMessage = "Falha de conexão"
         )
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -183,5 +195,48 @@ class MapViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state is MapUiState.Error)
         assertEquals("Falha de conexão", (state as MapUiState.Error).message)
+    }
+
+    // Fake que nunca completa (simula o fluxo real e "infinito" de atualizações de GPS),
+    // e conta quantas vezes observeLocation() foi de fato coletado — usada para provar
+    // que onLocationPermissionGranted() é idempotente (não abre uma segunda subscrição
+    // concorrente se já houver uma ativa).
+    private class CountingLocationClient(private val position: LocationClient.Position) : LocationClient {
+        var subscriptionCount = 0
+            private set
+
+        override fun observeLocation(): Flow<LocationClient.Position> = flow {
+            subscriptionCount++
+            emit(position)
+            kotlinx.coroutines.awaitCancellation()
+        }
+    }
+
+    @Test
+    fun `onLocationPermissionGranted popula userLocation com a posicao real do GPS`() = runTest {
+        val position = LocationClient.Position(-23.5, -46.6)
+        val busRepository = FakeBusRepository(VehiclesResult.Success(emptyList(), 0L))
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(flowOf(position)))
+
+        assertNull(viewModel.userLocation.value)
+
+        viewModel.onLocationPermissionGranted()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(position, viewModel.userLocation.value)
+    }
+
+    @Test
+    fun `chamar onLocationPermissionGranted duas vezes nao abre uma segunda subscricao de localizacao`() = runTest {
+        val locationClient = CountingLocationClient(LocationClient.Position(-23.5, -46.6))
+        val busRepository = FakeBusRepository(VehiclesResult.Success(emptyList(), 0L))
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), locationClient)
+
+        viewModel.onLocationPermissionGranted()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.onLocationPermissionGranted()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, locationClient.subscriptionCount)
     }
 }
