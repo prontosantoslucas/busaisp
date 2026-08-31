@@ -17,6 +17,10 @@ class LineSearchRepositoryImpl @Inject constructor(
     private val api: BusaiApiService
 ) : LineSearchRepository {
 
+    // Falhas de qualquer tipo (rede, HTTP, payload malformado, ou success:false do backend)
+    // viram lista vazia — o ViewModel que consumir isto não consegue hoje distinguir
+    // "sem resultados" de "busca falhou". Se isso virar um problema real de UX, considerar
+    // um tipo de retorno tipo Result/sealed class aqui, no estilo de VehiclesResult.
     override suspend fun searchLinhas(query: String): List<Linha> {
         return try {
             val response = api.getLinhas(query = query)

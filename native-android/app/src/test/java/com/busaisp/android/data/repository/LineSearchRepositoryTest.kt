@@ -70,6 +70,19 @@ class LineSearchRepositoryTest {
     }
 
     @Test
+    fun `searchLinhas retorna lista vazia quando a resposta HTTP 200 indica falha de negocio`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"success": false, "error": "Falha ao processar requisição SPTrans"}"""
+            )
+        )
+
+        val linhas = repository.searchLinhas("1703")
+
+        assertTrue(linhas.isEmpty())
+    }
+
+    @Test
     fun `searchLinhas retorna lista vazia em vez de crashar quando o payload vem malformado`() = runTest {
         server.enqueue(
             MockResponse().setBody(
