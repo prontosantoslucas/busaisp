@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -22,7 +23,8 @@ import com.busaisp.android.ui.routesearch.components.RouteStepRow
 fun RouteDetailScreen(
     planId: String,
     viewModel: RouteSearchViewModel = hiltViewModel(),
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onIniciarPercurso: (planId: String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -46,6 +48,13 @@ fun RouteDetailScreen(
         if (plan == null) {
             Text("Rota não encontrada", modifier = Modifier.padding(16.dp))
             return
+        }
+
+        Button(
+            onClick = { onIniciarPercurso(plan.id) },
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text("Iniciar percurso")
         }
 
         // Índice incluído na key: dois passos estruturalmente idênticos em

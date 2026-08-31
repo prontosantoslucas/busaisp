@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -31,6 +32,8 @@ object BusaiDestinations {
     const val ROUTE_RESULTS = "route_results"
     const val ROUTE_DETAIL = "route_detail/{planId}"
     fun routeDetail(planId: String) = "route_detail/$planId"
+    const val ACTIVE_NAVIGATION = "active_navigation/{planId}"
+    fun activeNavigation(planId: String) = "active_navigation/$planId"
 }
 
 private data class BottomTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
@@ -106,8 +109,29 @@ fun BusaiNavHost() {
                 RouteDetailScreen(
                     planId = planId,
                     viewModel = sharedViewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onIniciarPercurso = { navController.navigate(BusaiDestinations.activeNavigation(it)) }
                 )
+            }
+            composable(
+                BusaiDestinations.ACTIVE_NAVIGATION,
+                arguments = listOf(androidx.navigation.navArgument("planId") { type = androidx.navigation.NavType.StringType })
+            ) { backStackEntry ->
+                val planId = backStackEntry.arguments?.getString("planId").orEmpty()
+                val searchBackStackEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(BusaiDestinations.ROUTE_SEARCH)
+                }
+                val sharedViewModel: com.busaisp.android.ui.routesearch.RouteSearchViewModel = hiltViewModel(searchBackStackEntry)
+                val state = sharedViewModel.uiState.collectAsStateWithLifecycle().value
+                val plan = (state as? com.busaisp.android.ui.routesearch.RouteSearchUiState.Results)
+                    ?.result?.let { listOf(it.primaryRoute) + it.alternatives }
+                    ?.firstOrNull { it.id == planId }
+                if (plan != null) {
+                    com.busaisp.android.ui.activenav.ActiveNavigationScreen(
+                        plan = plan,
+                        onEncerrar = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
