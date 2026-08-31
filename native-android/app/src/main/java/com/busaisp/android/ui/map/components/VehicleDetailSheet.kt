@@ -35,6 +35,7 @@ fun VehicleDetailSheet(
 
     Column(
         modifier = modifier
+            .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
             .clickable { expanded = !expanded }
             .animateContentSize(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy))

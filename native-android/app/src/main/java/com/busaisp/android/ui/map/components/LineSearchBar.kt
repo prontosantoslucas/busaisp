@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,7 +39,10 @@ fun LineSearchBar(
                 .padding(bottom = if (results.isNotEmpty()) 8.dp else 0.dp)
         )
         if (results.isNotEmpty()) {
-            LazyColumn {
+            // Altura limitada para caber ~4-5 linhas: sem isso, o LazyColumn dentro de um
+            // Column sem altura definida se expande para preencher todo o espaço disponível,
+            // podendo cobrir o mapa e os botões flutuantes quando a busca retorna muitos resultados.
+            LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
                 items(results, key = { it.codigo }) { linha ->
                     Text(
                         text = "${linha.letreiro} — ${linha.terminalPrincipal} / ${linha.terminalSecundario}",

@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,14 +33,23 @@ fun MapScreen(
     viewModel: MapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val searchResults by viewModel.lineSearchResults.collectAsState()
+    val searchResults by viewModel.lineSearchResults.collectAsStateWithLifecycle()
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) viewModel.onLocationPermissionGranted() }
+    ) { granted ->
+        if (granted) {
+            viewModel.onLocationPermissionGranted()
+        } else {
+            // TODO: se a permissão foi negada permanentemente ("não perguntar novamente"),
+            // o botão "Localização atual" fica um no-op silencioso para sempre, sem nenhum
+            // feedback ao usuário. Uma tarefa futura deve adicionar um diálogo de
+            // rationale e/ou um atalho para as Configurações do app (Settings deep-link).
+        }
+    }
 
     val vehicles: List<Vehicle> = (uiState as? MapUiState.WithVehicles)?.vehicles ?: emptyList()
 

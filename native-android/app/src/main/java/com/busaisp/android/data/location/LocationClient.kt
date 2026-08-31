@@ -20,7 +20,7 @@ class FusedLocationClient @Inject constructor(
     private val fusedClient: FusedLocationProviderClient
 ) : LocationClient {
 
-    @SuppressLint("MissingPermission") // checagem de permissão é feita na camada de UI (Task 10) antes de chamar isto
+    @SuppressLint("MissingPermission") // checagem de permissão é feita na camada de UI (MapScreen.kt, Task 9) antes de chamar isto
     override fun observeLocation(): Flow<LocationClient.Position> = callbackFlow {
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5_000L).build()
         val callback = object : LocationCallback() {
