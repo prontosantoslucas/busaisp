@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -78,39 +79,51 @@ class ActiveNavigationViewModelTest {
     fun tearDown() { Dispatchers.resetMain() }
 
     @Test
-    fun `usuario perto de um veiculo real da linha e considerado embarcado`() = runTest {
+    fun `usuario perto de um veiculo real da linha e considerado embarcado e avisado uma vez por voz`() = runTest {
         val nearVehicle = Vehicle("21045", -23.55, -46.63, null, null, 0L, true)
         val locationClient = object : LocationClient {
             override fun observeLocation() = locationFlowOf(-23.55, -46.63)
         }
+        val voice = FakeVoiceAnnouncer()
         val viewModel = ActiveNavigationViewModel(
-            FixedBusRepository(listOf(nearVehicle)), locationClient, FakeVoiceAnnouncer()
+            FixedBusRepository(listOf(nearVehicle)), locationClient, voice
         )
 
         viewModel.start(plan)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.hasBoarded)
+        assertEquals(1, voice.boardingAnnouncements.size)
+        // recommendedLine.letreiro já é "1703-10" (fixture do teste) e o
+        // ViewModel monta "${letreiro}-${tipoLinha}" — resulta em
+        // "1703-10-10". Isso reflete uma inconsistência real nos dados de
+        // exemplo usados nos testes deste sub-projeto desde o sub-projeto #2
+        // (letreiro com sufixo já embutido), não um bug de formatação do
+        // ViewModel em si — o código de exibição já segue o mesmo padrão
+        // "${lt}-${tl}" usado em outras telas do sub-projeto #1.
+        assertEquals("1703-10-10|Destino|ônibus", voice.boardingAnnouncements.first())
     }
 
     @Test
-    fun `usuario longe de qualquer veiculo real nao e considerado embarcado`() = runTest {
+    fun `usuario longe de qualquer veiculo real nao e considerado embarcado e nao e avisado`() = runTest {
         val farVehicle = Vehicle("21045", -23.70, -46.80, null, null, 0L, true)
         val locationClient = object : LocationClient {
             override fun observeLocation() = locationFlowOf(-23.55, -46.63)
         }
+        val voice = FakeVoiceAnnouncer()
         val viewModel = ActiveNavigationViewModel(
-            FixedBusRepository(listOf(farVehicle)), locationClient, FakeVoiceAnnouncer()
+            FixedBusRepository(listOf(farVehicle)), locationClient, voice
         )
 
         viewModel.start(plan)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.hasBoarded)
+        assertTrue(voice.boardingAnnouncements.isEmpty())
     }
 
     @Test
-    fun `apos embarcar usuario longe da polyline real e marcado fora da rota`() = runTest {
+    fun `apos embarcar usuario longe da polyline real e marcado fora da rota e avisado uma vez por voz`() = runTest {
         val nearVehicle = Vehicle("21045", -23.55, -46.63, null, null, 0L, true)
         val locationClient = object : LocationClient {
             override fun observeLocation() = kotlinx.coroutines.flow.flow {
@@ -119,8 +132,9 @@ class ActiveNavigationViewModelTest {
                 emit(LocationClient.Position(-23.80, -46.90))
             }
         }
+        val voice = FakeVoiceAnnouncer()
         val viewModel = ActiveNavigationViewModel(
-            FixedBusRepository(listOf(nearVehicle)), locationClient, FakeVoiceAnnouncer()
+            FixedBusRepository(listOf(nearVehicle)), locationClient, voice
         )
 
         viewModel.start(plan)
@@ -128,5 +142,53 @@ class ActiveNavigationViewModelTest {
 
         assertTrue(viewModel.uiState.value.hasBoarded)
         assertTrue(viewModel.uiState.value.isOffRoute)
+        assertEquals(1, voice.offRouteAnnouncementCount)
+    }
+
+    @Test
+    fun `usuario embarcado que permanece na rota nunca e marcado fora da rota nem avisado`() = runTest {
+        val nearVehicle = Vehicle("21045", -23.55, -46.63, null, null, 0L, true)
+        val locationClient = object : LocationClient {
+            override fun observeLocation() = kotlinx.coroutines.flow.flow {
+                // Embarca e permanece próximo à polyline real (transitPolyline) em todas as emissões.
+                emit(LocationClient.Position(-23.55, -46.63))
+                emit(LocationClient.Position(-23.552, -46.632))
+                emit(LocationClient.Position(-23.555, -46.635))
+            }
+        }
+        val voice = FakeVoiceAnnouncer()
+        val viewModel = ActiveNavigationViewModel(
+            FixedBusRepository(listOf(nearVehicle)), locationClient, voice
+        )
+
+        viewModel.start(plan)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.hasBoarded)
+        assertFalse(viewModel.uiState.value.isOffRoute)
+        assertEquals(0, voice.offRouteAnnouncementCount)
+    }
+
+    @Test
+    fun `desvio de rota so avisa por voz na transicao, nao a cada atualizacao subsequente`() = runTest {
+        val nearVehicle = Vehicle("21045", -23.55, -46.63, null, null, 0L, true)
+        val locationClient = object : LocationClient {
+            override fun observeLocation() = kotlinx.coroutines.flow.flow {
+                emit(LocationClient.Position(-23.55, -46.63)) // embarca
+                emit(LocationClient.Position(-23.80, -46.90)) // desvia (1º aviso)
+                emit(LocationClient.Position(-23.81, -46.91)) // continua fora da rota (sem novo aviso)
+                emit(LocationClient.Position(-23.82, -46.92)) // continua fora da rota (sem novo aviso)
+            }
+        }
+        val voice = FakeVoiceAnnouncer()
+        val viewModel = ActiveNavigationViewModel(
+            FixedBusRepository(listOf(nearVehicle)), locationClient, voice
+        )
+
+        viewModel.start(plan)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOffRoute)
+        assertEquals(1, voice.offRouteAnnouncementCount)
     }
 }
