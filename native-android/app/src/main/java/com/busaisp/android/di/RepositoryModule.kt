@@ -4,6 +4,8 @@ import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.BusRepositoryImpl
 import com.busaisp.android.data.repository.LineSearchRepository
 import com.busaisp.android.data.repository.LineSearchRepositoryImpl
+import com.busaisp.android.data.repository.RouteRepository
+import com.busaisp.android.data.repository.RouteRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindLineSearchRepository(impl: LineSearchRepositoryImpl): LineSearchRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRouteRepository(impl: RouteRepositoryImpl): RouteRepository
 }
