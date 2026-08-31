@@ -23,11 +23,11 @@
 - Test: `native-android/app/src/test/java/com/busaisp/android/data/repository/RailsRepositoryTest.kt`
 - Test: `native-android/app/src/test/java/com/busaisp/android/data/repository/NewsRepositoryTest.kt`
 
-- [ ] **Step 1: Criar modelos de domínio e DTOs de Trilhos e Notícias**
-- [ ] **Step 2: Criar interfaces de API Retrofit `RailsApi` e `NewsApi`**
-- [ ] **Step 3: Criar testes unitários com MockWebServer (`RailsRepositoryTest` e `NewsRepositoryTest`)**
-- [ ] **Step 4: Implementar repositórios e módulo Hilt**
-- [ ] **Step 5: Executar testes de unidade e verificar sucesso**
+- [x] **Step 1: Criar modelos de domínio e DTOs de Trilhos e Notícias**
+- [x] **Step 2: Criar interfaces de API Retrofit `RailsApi` e `NewsApi`**
+- [x] **Step 3: Criar testes unitários com MockWebServer (`RailsRepositoryTest` e `NewsRepositoryTest`)**
+- [x] **Step 4: Implementar repositórios e módulo Hilt**
+- [x] **Step 5: Executar testes de unidade e verificar sucesso**
 
 ---
 
@@ -39,10 +39,10 @@
 - Test: `native-android/app/src/test/java/com/busaisp/android/ui/rails/RailsViewModelTest.kt`
 - Test: `native-android/app/src/test/java/com/busaisp/android/ui/news/NewsViewModelTest.kt`
 
-- [ ] **Step 1: Escrever testes unitários de `RailsViewModelTest` e `NewsViewModelTest`**
-- [ ] **Step 2: Implementar `RailsViewModel` com estados `Loading`, `Success` e `Error` e função `refresh()`**
-- [ ] **Step 3: Implementar `NewsViewModel` com filtro de categorias e leitor de notícias**
-- [ ] **Step 4: Executar testes e validar**
+- [x] **Step 1: Escrever testes unitários de `RailsViewModelTest` e `NewsViewModelTest`**
+- [x] **Step 2: Implementar `RailsViewModel` com estados `Loading`, `Success` e `Error` e função `refresh()`**
+- [x] **Step 3: Implementar `NewsViewModel` com filtro de categorias e leitor de notícias**
+- [x] **Step 4: Executar testes e validar**
 
 ---
 
@@ -53,9 +53,9 @@
 - Create: `native-android/app/src/main/java/com/busaisp/android/ui/news/NewsScreen.kt`
 - Create: `native-android/app/src/main/java/com/busaisp/android/ui/settings/SettingsScreen.kt`
 
-- [ ] **Step 1: Criar `RailsScreen` com cabeçalho de resumo, cores das linhas de metrô/CPTM e alertas**
-- [ ] **Step 2: Criar `NewsScreen` com chips de categorias, cards com badges e modal de leitura**
-- [ ] **Step 3: Criar `SettingsScreen` com dados sobre o app, versão e links de fontes oficiais**
+- [x] **Step 1: Criar `RailsScreen` com cabeçalho de resumo, cores das linhas de metrô/CPTM e alertas**
+- [x] **Step 2: Criar `NewsScreen` com chips de categorias, cards com badges e modal de leitura**
+- [x] **Step 3: Criar `SettingsScreen` com dados sobre o app, versão e links de fontes oficiais**
 
 ---
 
@@ -64,9 +64,9 @@
 **Files:**
 - Modify: `native-android/app/src/main/java/com/busaisp/android/ui/navigation/BusaiNavHost.kt`
 
-- [ ] **Step 1: Adicionar rotas `RAILS`, `NEWS` e `SETTINGS`**
-- [ ] **Step 2: Atualizar `BOTTOM_TABS` para 5 abas (Mapa, Rotas, Trilhos, Favoritos, Avisos)**
-- [ ] **Step 3: Conectar os novos destinos no `NavHost`**
+- [x] **Step 1: Adicionar rotas `RAILS`, `NEWS` e `SETTINGS`**
+- [x] **Step 2: Atualizar `BOTTOM_TABS` para 5 abas (Mapa, Rotas, Trilhos, Favoritos, Avisos)**
+- [x] **Step 3: Conectar os novos destinos no `NavHost`**
 
 ---
 
@@ -77,6 +77,6 @@
 - Create: `native-android/app/src/androidTest/java/com/busaisp/android/ui/news/NewsScreenTest.kt`
 - Modify: `HANDOFF.md`
 
-- [ ] **Step 1: Escrever testes instrumentados de UI para Trilhos e Notícias**
-- [ ] **Step 2: Rodar compilação e todos os testes unitários (`.\gradlew.bat clean assembleDebug testDebugUnitTest assembleDebugAndroidTest`)**
-- [ ] **Step 3: Atualizar `HANDOFF.md`, commitar, subir branch e abrir PR #5**
+- [x] **Step 1: Escrever testes instrumentados de UI para Trilhos e Notícias**
+- [x] **Step 2: Rodar compilação e todos os testes unitários (`.\gradlew.bat clean assembleDebug testDebugUnitTest assembleDebugAndroidTest`)**
+- [x] **Step 3: Atualizar `HANDOFF.md`, commitar, subir branch e abrir PR #5**
