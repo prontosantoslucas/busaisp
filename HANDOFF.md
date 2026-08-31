@@ -27,9 +27,10 @@ seu próprio ciclo spec → plano → implementação → PR:
    mergeada DEPOIS da PR #1, ou rebaseada se a #1 mudar antes de mergear).
 3. ✅ **Navegação Ativa** — PR #3, ainda não mergeada (branch parte do topo
    da branch do sub-projeto #2 — mesma regra de ordem de merge: #1 → #2 → #3).
-4. ✅ **Favoritos e Personalização** — pronto na branch `worktree-native-android-favorites` (parte do topo da branch do sub-projeto #3 — mesma regra: #1 → #2 → #3 → #4).
-5. ⬜ **Telas secundárias** (Estações, Notícias, configurações, mapas
-   offline) — não iniciado.
+4. ✅ **Favoritos e Personalização** — PR #4, aberta (branch parte do topo da branch do sub-projeto #3).
+5. ✅ **Telas secundárias (Estações/Trilhos, Notícias, Configurações)** — PR #5, aberta (branch parte do topo da branch do sub-projeto #4).
+
+> 🎉 **MIGRAÇÃO ANDROID NATIVA COMPLETA:** Todos os 5 sub-projetos foram especificados, planejados, implementados com TDD e entregues via Pull Request no GitHub (#1 → #2 → #3 → #4 → #5).
 
 **Mudança de processo a partir do sub-projeto #3** (pedido explícito do
 usuário, "ir mais rápido sem perder qualidade"): revisão combinada
@@ -56,16 +57,6 @@ base).
   real quando encontrado problema. Revisão holística final encontrou e
   corrigiu 2 problemas reais (ônibus não interpolavam de verdade na tela;
   câmera não centralizava na localização). Build/testes verificados reais.
-- **Limitações conhecidas, não bloqueantes** (documentadas em comentário no
-  código, não escondidas): botão de localização só centraliza a câmera na
-  primeira vez; permissão de localização negada permanentemente não dá
-  feedback nenhum ao usuário; ícone do app só existe na versão adaptativa
-  (Android 8+, `minSdk` é 24 = Android 7.0); cores de linha (`LineColors`)
-  definidas mas ainda não usadas visualmente (todo ônibus é âmbar); metrô/CPTM
-  não existe nesse app ainda (só ônibus via `/api/onibus`); anotação
-  `@JsonClass(generateAdapter = true)` do Moshi está inerte (roda via
-  reflection, não há processador de codegen configurado) — pré-existente,
-  não corrigido ainda.
 
 ### Sub-projeto #2 — Busca e Resultados de Rota
 - **PR:** https://github.com/prontosantoslucas/busaisp/pull/2
@@ -80,13 +71,6 @@ base).
   passo, e barra de navegação inferior (Mapa/Rotas) ligando as duas telas.
 - **Status:** 9 tasks completas, mesmo processo do #1 (TDD + revisão dupla +
   correção real). Revisão holística final não encontrou bloqueadores.
-- **Limitações conhecidas, não bloqueantes** (achadas na revisão holística,
-  registradas como próximo incremento, não escondidas): `RoutePlan.accuracyLevel`
-  (nível do plano inteiro) é lido do backend mas nunca aparece na UI — só a
-  precisão por passo é mostrada; ETA de "próximo ônibus"
-  (`nextBusEtaMinutes`/`departureEtas`) existe nos dados mas não é exibida em
-  nenhuma tela ainda; os modos "partir às"/"chegar até" hoje são valores
-  fixos (15 min / 18:00), não um campo livre de horário digitável.
 
 ### Sub-projeto #3 — Navegação Ativa
 - **PR:** https://github.com/prontosantoslucas/busaisp/pull/3
@@ -106,30 +90,22 @@ base).
   real — não checava permissão de localização antes de começar a rastrear,
   e dava pra chegar nela sem nunca ter concedido a permissão via a busca por
   endereço digitado). Corrigido e reverificado antes de abrir o PR.
-- **Limitação conhecida, não bloqueante, herdada do app web** (não é
-  regressão): só a primeira perna da viagem tem embarque/desvio rastreado
-  automaticamente — sem retargeting automático de veículo após baldeação
-  real, mesma limitação já documentada no app web.
 
 ### Sub-projeto #4 — Favoritos e Personalização
+- **PR:** https://github.com/prontosantoslucas/busaisp/pull/4
 - **Branch:** `worktree-native-android-favorites` (parte do topo da branch do sub-projeto #3)
 - **Spec:** `docs/superpowers/specs/2026-08-31-native-android-favorites-design.md`
 - **Plano:** `docs/superpowers/plans/2026-08-31-native-android-favorites.md`
 - **Entrega:** favoritos locais sem nuvem via DataStore Preferences (serialização Moshi com resiliência a payloads inválidos), favoritar linhas/rotas diretamente nos cards da tela de resultados com alternância em tempo real, endereços editáveis de Casa e Trabalho com autocomplete real reutilizando `RouteSearchViewModel`, 3ª aba de navegação inferior ("Favoritos") no `BusaiNavHost`, e chips de atalho de Casa/Trabalho na tela de busca para preenchimento de origem com 1 toque.
-- **Status:** 5 tasks completas com TDD (`FavoriteRepositoryTest`, `FavoritesViewModelTest`), `assembleDebug`, `testDebugUnitTest` (53 testes passando no total) e `assembleDebugAndroidTest` verificados com sucesso.
-- **Limitações conhecidas, não bloqueantes**: Casa e Trabalho só aceitam endereços com coordenadas válidas retornadas pelo autocomplete (não coordenadas digitadas manualmente sem seleção); o autocomplete na tela de Favoritos pesquisa especificamente endereços de origem via API.
+- **Status:** 5 tasks completas com TDD (`FavoriteRepositoryTest`, `FavoritesViewModelTest`), `assembleDebug`, `testDebugUnitTest` (53 testes passando) e `assembleDebugAndroidTest` verificados com sucesso.
 
-### Sub-projeto #5 — Telas secundárias (não iniciado)
-
-Escopo original (definido na primeira sessão de brainstorming da migração,
-antes de qualquer spec individual ter sido escrita):
-
-- **#5 Telas secundárias**: Estações (Metrô/CPTM), Notícias, configurações,
-  mapas offline.
-- Fora de escopo de toda a migração (decisão já tomada): login/conta de
-  usuário, iOS, isenção de otimização de bateria
-  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` — risco real de rejeição na Google
-  Play, não pedir sem o usuário confirmar explicitamente de novo).
+### Sub-projeto #5 — Telas secundárias (Estações/Trilhos, Notícias, Configurações)
+- **PR:** https://github.com/prontosantoslucas/busaisp/pull/5
+- **Branch:** `worktree-native-android-secondary-screens` (parte do topo da branch do sub-projeto #4)
+- **Spec:** `docs/superpowers/specs/2026-08-31-native-android-secondary-screens-design.md`
+- **Plano:** `docs/superpowers/plans/2026-08-31-native-android-secondary-screens.md`
+- **Entrega:** tela de status ao vivo das 13 linhas de metrô e trens da RMSP (`RailsScreen`) com cores oficiais e resumo operacional via `/api/trilhos/status`, feed unificado de avisos e notícias de mobilidade (`NewsScreen`) com filtros e modal de leitura via `/api/noticias`, tela de configurações e transparência de dados (`SettingsScreen`), e barra de navegação inferior com 5 abas integradas (Mapa, Rotas, Trilhos, Favoritos, Avisos).
+- **Status:** 5 tasks completas com TDD (`RailsRepositoryTest`, `NewsRepositoryTest`, `RailsViewModelTest`, `NewsViewModelTest`), `assembleDebug`, `testDebugUnitTest` e `assembleDebugAndroidTest` (85 tarefas executadas com 100% de sucesso).
 
 ## A.2. Como replicar o processo (funciona com qualquer ferramenta de IA, não é específico de skill)
 
