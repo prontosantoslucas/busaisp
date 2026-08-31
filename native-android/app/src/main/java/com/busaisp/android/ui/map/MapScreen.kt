@@ -126,11 +126,11 @@ fun MapScreen(
             }
         }
 
-        // Controles flutuantes na lateral direita inferior
+        // Controles flutuantes na lateral direita inferior (acima da barra de informações)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(24.dp),
+                .padding(bottom = 90.dp, end = 16.dp),
             horizontalAlignment = Alignment.End
         ) {
             // Botão Radar de Calor de Congestionamento

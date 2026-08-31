@@ -103,9 +103,15 @@ private fun FavoriteRow(favorite: Favorite, onRemove: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
-        Text(text = favorite.title, modifier = Modifier.fillMaxWidth())
+        Text(
+            text = favorite.title,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
         IconButton(onClick = onRemove) {
             Icon(Icons.Filled.Close, contentDescription = "Remover ${favorite.title} dos favoritos")
         }

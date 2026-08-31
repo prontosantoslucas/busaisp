@@ -118,6 +118,9 @@ private fun RailLineCard(line: RailLine) {
         Color(full.toLong(16))
     }.getOrDefault(MaterialTheme.colorScheme.primary)
 
+    val isLightColor = (0.299 * parsedColor.red + 0.587 * parsedColor.green + 0.114 * parsedColor.blue) > 0.65
+    val numberTextColor = if (isLightColor) Color.Black else Color.White
+
     val isNormal = line.status == RailStatusType.NORMAL
 
     Column(
@@ -141,7 +144,7 @@ private fun RailLineCard(line: RailLine) {
                 ) {
                     Text(
                         text = line.number,
-                        color = Color.White,
+                        color = numberTextColor,
                         style = MaterialTheme.typography.titleMedium
                     )
                 }

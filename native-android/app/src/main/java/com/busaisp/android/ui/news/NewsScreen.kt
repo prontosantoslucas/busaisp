@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -121,7 +122,11 @@ fun NewsScreen(
             onDismissRequest = viewModel::closeNewsDetail,
             title = { Text(item.title) },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Text(
                         text = "${item.source} · ${item.timestamp}",
                         style = MaterialTheme.typography.labelMedium,
