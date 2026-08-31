@@ -1,8 +1,225 @@
 # HANDOFF — BusaÍ SP (estado atual e o que falta)
 
-Documento de passagem de contexto. Escrito em 2026-08-21.
+Documento de passagem de contexto. Última atualização em 2026-08-31 pela
+Claude — escrito para que qualquer ferramenta de IA (Gemini, outra sessão
+Claude, etc.) ou um humano consiga continuar exatamente de onde parou, mesmo
+sem acesso ao histórico de conversa que gerou este estado.
 
 ---
+
+# PARTE A — Migração para Android Nativo (trabalho em andamento, prioridade atual)
+
+## A.0. O que é isto e por que existe
+
+O app web (Next.js/React, `src/`) é o produto em produção — continua no ar
+normalmente e não foi tocado por este trabalho. Depois de comparar esse app
+diretamente contra Uber/Waze/99/InDrive, o usuário decidiu migrar para um
+**app Android nativo** (Kotlin + Jetpack Compose) construído do zero,
+reaproveitando 100% do backend existente (`https://busaisp.vercel.app/api/*`)
+sem reescrever nenhuma lógica de roteamento/GTFS. iOS fica para depois.
+
+A migração foi decomposta em **5 sub-projetos independentes**, cada um com
+seu próprio ciclo spec → plano → implementação → PR:
+
+1. ✅ **Fundação + Mapa ao Vivo** — PR #1, ainda não mergeada.
+2. ✅ **Busca e Resultados de Rota** — PR #2, ainda não mergeada (branch
+   parte do topo da branch do sub-projeto #1, então PR #2 só deve ser
+   mergeada DEPOIS da PR #1, ou rebaseada se a #1 mudar antes de mergear).
+3. ⬜ **Navegação Ativa** — não iniciado.
+4. ⬜ **Favoritos e Personalização** — não iniciado.
+5. ⬜ **Telas secundárias** (Estações, Notícias, configurações, mapas
+   offline) — não iniciado.
+
+**Repositório GitHub:** `prontosantoslucas/busaisp`. Branch principal real de
+desenvolvimento é `master` (não `main` — o `main` do GitHub está quase vazio,
+é um branch órfão antigo; toda PR desta migração deve ter `master` como
+base).
+
+## A.1. Estado exato de cada sub-projeto
+
+### Sub-projeto #1 — Fundação + Mapa ao Vivo
+- **PR:** https://github.com/prontosantoslucas/busaisp/pull/1
+- **Branch:** `worktree-native-android-foundation` (já enviada pro GitHub)
+- **Spec:** `docs/superpowers/specs/2026-08-31-native-android-foundation-live-map-design.md`
+- **Plano:** `docs/superpowers/plans/2026-08-31-native-android-foundation-live-map.md`
+- **Entrega:** projeto Android novo (Kotlin/Compose), tema visual próprio
+  (cores oficiais das linhas de Metrô/CPTM, tipografia IBM Plex), tela de
+  Mapa ao Vivo com ônibus reais da SPTrans se movendo (interpolação real
+  entre pings de GPS) e localização real do usuário com câmera centralizando.
+- **Status:** 12 tasks completas, cada uma com TDD + revisão dupla + correção
+  real quando encontrado problema. Revisão holística final encontrou e
+  corrigiu 2 problemas reais (ônibus não interpolavam de verdade na tela;
+  câmera não centralizava na localização). Build/testes verificados reais.
+- **Limitações conhecidas, não bloqueantes** (documentadas em comentário no
+  código, não escondidas): botão de localização só centraliza a câmera na
+  primeira vez; permissão de localização negada permanentemente não dá
+  feedback nenhum ao usuário; ícone do app só existe na versão adaptativa
+  (Android 8+, `minSdk` é 24 = Android 7.0); cores de linha (`LineColors`)
+  definidas mas ainda não usadas visualmente (todo ônibus é âmbar); metrô/CPTM
+  não existe nesse app ainda (só ônibus via `/api/onibus`); anotação
+  `@JsonClass(generateAdapter = true)` do Moshi está inerte (roda via
+  reflection, não há processador de codegen configurado) — pré-existente,
+  não corrigido ainda.
+
+### Sub-projeto #2 — Busca e Resultados de Rota
+- **PR:** https://github.com/prontosantoslucas/busaisp/pull/2
+- **Branch:** `worktree-native-android-route-search` (já enviada pro GitHub;
+  parte do topo da branch do sub-projeto #1)
+- **Spec:** `docs/superpowers/specs/2026-08-31-native-android-route-search-design.md`
+- **Plano:** `docs/superpowers/plans/2026-08-31-native-android-route-search.md`
+- **Entrega:** busca de rota real via `/api/rotas` (origem/destino com
+  autocomplete, 3 modos de horário: agora/partir às/chegar até), resultados
+  com múltiplas opções incluindo Metrô/CPTM (marcado honestamente como
+  horário programado, nunca GPS ao vivo), detalhe de itinerário passo a
+  passo, e barra de navegação inferior (Mapa/Rotas) ligando as duas telas.
+- **Status:** 9 tasks completas, mesmo processo do #1 (TDD + revisão dupla +
+  correção real). Revisão holística final não encontrou bloqueadores.
+- **Limitações conhecidas, não bloqueantes** (achadas na revisão holística,
+  registradas como próximo incremento, não escondidas): `RoutePlan.accuracyLevel`
+  (nível do plano inteiro) é lido do backend mas nunca aparece na UI — só a
+  precisão por passo é mostrada; ETA de "próximo ônibus"
+  (`nextBusEtaMinutes`/`departureEtas`) existe nos dados mas não é exibida em
+  nenhuma tela ainda; os modos "partir às"/"chegar até" hoje são valores
+  fixos (15 min / 18:00), não um campo livre de horário digitável.
+
+### Sub-projetos #3, #4, #5 — não iniciados
+
+Escopo original (definido na primeira sessão de brainstorming da migração,
+antes de qualquer spec individual ter sido escrita):
+
+- **#3 Navegação Ativa**: percurso em andamento, detecção de embarque/desvio
+  de rota comparando GPS real contra o shape da linha, avisos de voz por
+  baldeação. **Inclui explicitamente**: rodar em segundo plano via
+  **Foreground Service com notificação persistente real** (mesmo padrão
+  Uber/99/Waze) — decisão já tomada e registrada no spec do sub-projeto #1.
+  **NÃO inclui**: pedir isenção de otimização de bateria
+  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) — decisão explícita do usuário,
+  registrada no spec do sub-projeto #1 seção "Requisito registrado para o
+  sub-projeto #3": essa permissão é fortemente auditada pela Google Play e
+  tem risco real de rejeição/remoção do app se usada sem justificativa forte;
+  o Foreground Service já resolve o problema de tracking confiável sem esse
+  risco. **Não pedir isso sem o usuário confirmar explicitamente.**
+- **#4 Favoritos e Personalização**: favoritar linha/rota, endereços de
+  casa/trabalho.
+- **#5 Telas secundárias**: Estações (Metrô/CPTM), Notícias, configurações,
+  mapas offline.
+- Fora de escopo de toda a migração (decisão já tomada): login/conta de
+  usuário, iOS.
+
+## A.2. Como replicar o processo (funciona com qualquer ferramenta de IA, não é específico de skill)
+
+Cada sub-projeto seguiu este ciclo — os arquivos de spec/plano dos
+sub-projetos #1 e #2 (linkados acima) são exemplos completos e reais de como
+fazer isso pros sub-projetos #3/#4/#5:
+
+1. **Escrever um spec de design** em `docs/superpowers/specs/AAAA-MM-DD-<nome>-design.md`
+   — escopo, decisões de arquitetura, direção visual, o que entra e o que
+   fica de fora explicitamente. Fundamentar em dados REAIS do backend (ler
+   `src/lib/routing.ts`, `src/app/api/*/route.ts`, `src/types/sptrans.ts` —
+   nunca inventar nome de campo ou formato de resposta).
+2. **Escrever um plano de implementação** em `docs/superpowers/plans/AAAA-MM-DD-<nome>.md`
+   — tarefas pequenas, cada uma com código completo (não pseudo-código),
+   seguindo TDD onde fizer sentido (teste primeiro, ver falhar pelo motivo
+   certo, implementar, ver passar). Nunca deixar "TBD" ou placeholder.
+3. **Trabalhar numa branch/worktree isolada** por sub-projeto, criada a
+   partir da branch do sub-projeto anterior (não da `main` vazia do GitHub —
+   ver pegadinha na seção A.3).
+4. **Implementar cada tarefa** (ou lote de tarefas relacionadas — tarefas de
+   UI que só compilam juntas devem ser implementadas juntas, não uma de cada
+   vez) com testes reais passando.
+5. **Revisar cada tarefa de forma independente e cética** — não confiar no
+   relato de quem implementou; reler o código de verdade, rodar o build/teste
+   de novo do zero. Checar (a) se bate com a spec (nada a mais, nada a menos)
+   e (b) qualidade do código (bugs reais, não só estilo). Quando achar
+   problema real, corrigir e revisar de novo antes de seguir. **Isso pegou
+   bug real em quase toda tarefa dos sub-projetos #1 e #2** (condição de
+   corrida, exceção não tratada que derrubava o app, botão decorativo que não
+   fazia nada, GPS travando pra sempre, sobreposição de layout) — não pular
+   essa etapa achando que é burocracia, ela paga a própria conta.
+6. **Depois de todas as tarefas prontas, fazer uma revisão holística** —
+   reler o diff inteiro do sub-projeto de uma vez, traçar o fluxo real do
+   usuário do início ao fim, e conferir se as peças que foram construídas e
+   testadas isoladamente foram REALMENTE conectadas entre si (esse tipo de
+   lacuna só aparece olhando o sistema inteiro — foi assim que se achou que a
+   interpolação de ônibus nunca era chamada pela UI no sub-projeto #1).
+7. **Enviar a branch pro GitHub e abrir um Pull Request** contra `master`,
+   descrevendo o que foi entregue e o que ficou como limitação conhecida —
+   nunca esconder limitação, documentar.
+
+**Princípio inegociável em todo esse processo, não importa quão rápido se
+vá**: nunca fabricar dado. Toda informação exibida ao usuário tem que vir de
+uma fonte real (a API do backend, o GPS de verdade, etc.) ou ser marcada
+honestamente como indisponível/estimada. Isso vale mais que velocidade.
+
+## A.3. Pegadinhas técnicas reais (já resolvidas uma vez, não precisa redescobrir)
+
+- **Não existe `gradle` (CLI) instalado no ambiente sandbox** — o wrapper do
+  Gradle (`gradlew`/`gradlew.bat`/`gradle-wrapper.jar`/`.properties`) do
+  projeto `native-android/` foi copiado do wrapper já funcional do projeto
+  Capacitor antigo (`android/`, que já existia no repo antes da migração
+  nativa). Ele mesmo baixa a distribuição real do Gradle na primeira
+  execução — só precisa de acesso à internet, não de `gradle` pré-instalado.
+- **Versões de dependência tiveram que ser ajustadas na prática**: o plano
+  original do sub-projeto #1 previa AGP 9.1.1/Hilt 2.57.2/KSP com versão
+  acoplada ao Kotlin — nenhuma dessas resolveu de verdade. As versões que
+  FUNCIONAM neste ambiente, confirmadas por build real, estão em
+  `native-android/gradle/libs.versions.toml`: AGP 8.13.2, Kotlin 2.3.20,
+  Hilt 2.58, KSP 2.3.11, Gradle wrapper 8.14.3, Compose BOM 2026.04.01,
+  Retrofit 3.0.0, Moshi 1.15.1, MapLibre Android SDK 11.8.0. Se subir alguma
+  dessas versões no futuro, reconfirmar que builda de verdade antes de
+  seguir — não assumir que uma versão mais nova "deveria" funcionar.
+- **Não existe emulador/dispositivo Android neste ambiente sandbox** (sem
+  `adb`, sem AVD). Os testes de UI instrumentados (`androidTest/`) foram
+  escritos e confirmadamente COMPILAM contra as APIs reais, mas nunca foram
+  executados de verdade — isso é documentado explicitamente em cada commit
+  que os adiciona, nunca alegado como "passou". Se a ferramenta que continuar
+  esse trabalho tiver acesso a um emulador/dispositivo real, rodá-los é uma
+  verificação real ainda pendente.
+- **APK gerado com sucesso e confirmado on disco** durante o sub-projeto #1
+  (antes de virar PR): `android/app/build/outputs/apk/debug/app-debug.apk`
+  (esse é o caminho do wrapper Capacitor ANTIGO, dentro do worktree da época
+  — cada worktree novo vai gerar o seu próprio em
+  `native-android/app/build/outputs/apk/debug/app-debug.apk` depois de rodar
+  `assembleDebug`). Ninguém ainda instalou esse APK num aparelho físico e
+  confirmou visualmente — é o passo de verificação humana que falta.
+- **Ferramentas de worktree do Claude Code**: se estiver usando o Claude
+  Code e seu `EnterWorktree`, o padrão é ramificar a partir de
+  `origin/<branch-padrão-do-repo>` — que neste repo é `main`, quase vazio.
+  **Sempre conferir** com `git log --oneline -3` logo após criar um worktree
+  novo; se aparecer só "Initial commit", o worktree ramificou do lugar
+  errado — corrigir com `git reset --hard <branch-real-com-o-trabalho>`
+  (ex.: `git reset --hard worktree-native-android-route-search`) antes de
+  começar a trabalhar. Isso não deve ser um problema pra ferramentas que
+  usam `git worktree add`/`git checkout` diretamente com o branch certo.
+- **Nomes de campo da API são propositalmente "crípticos"** (`cl`, `lt`,
+  `py`, `px`, etc.) — espelham a API real da SPTrans Olho Vivo
+  (`src/types/sptrans.ts`), não são erro de digitação nem código ruim.
+
+## A.4. Como continuar a partir daqui
+
+1. Ler o spec e o plano do sub-projeto #1 e #2 (linkados acima) como
+   referência de formato e nível de detalhe esperado.
+2. Criar uma branch nova a partir de `worktree-native-android-route-search`
+   (ou, se essa PR já tiver sido mergeada em `master` quando você ler isto,
+   a partir de `master`) para o sub-projeto #3.
+3. Escrever o spec do sub-projeto #3 (Navegação Ativa) — respeitando a
+   decisão já tomada sobre Foreground Service SIM / isenção de bateria NÃO
+   (seção A.1 acima).
+4. Seguir o mesmo ciclo da seção A.2.
+5. Ao final de cada sub-projeto: enviar a branch pro GitHub e abrir PR contra
+   `master`, atualizando este documento com o novo estado (para quem vier
+   depois, seja IA ou humano).
+
+---
+
+# PARTE B — App Web (produto em produção, contexto histórico)
+
+Tudo abaixo é sobre o app **web** (Next.js/React, `src/`), que é uma base de
+código separada e ainda ativa — continua em produção na Vercel
+independentemente do trabalho de migração nativa acima. Este conteúdo foi
+escrito em 2026-08-21, antes da decisão de migração nativa, e pode estar
+desatualizado em relação ao estado mais recente do app web (verificar
+`git log` antes de agir sobre qualquer item "não iniciado" aqui).
 
 ## 1. O que já está PRONTO e em produção
 
