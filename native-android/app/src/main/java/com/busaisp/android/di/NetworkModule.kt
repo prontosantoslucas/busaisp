@@ -51,4 +51,9 @@ object NetworkModule {
     @Singleton
     fun provideNewsApi(retrofit: Retrofit): com.busaisp.android.data.network.NewsApi =
         retrofit.create(com.busaisp.android.data.network.NewsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTrafficApi(retrofit: Retrofit): com.busaisp.android.data.network.TrafficApi =
+        retrofit.create(com.busaisp.android.data.network.TrafficApi::class.java)
 }

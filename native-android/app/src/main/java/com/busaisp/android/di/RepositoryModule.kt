@@ -35,4 +35,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindNewsRepository(impl: com.busaisp.android.data.repository.NetworkNewsRepository): com.busaisp.android.data.repository.NewsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTrafficRepository(impl: com.busaisp.android.data.repository.NetworkTrafficRepository): com.busaisp.android.data.repository.TrafficRepository
 }

@@ -8,6 +8,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
@@ -16,15 +17,17 @@ fun FloatingPillButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Icon(
         imageVector = icon,
         contentDescription = contentDescription,
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface, CircleShape)
+            .background(containerColor, CircleShape)
             .clickable(onClick = onClick)
             .padding(14.dp),
-        tint = MaterialTheme.colorScheme.onSurface
+        tint = contentColor
     )
 }

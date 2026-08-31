@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.domain.interpolatePosition
+import com.busaisp.android.domain.model.TrafficHeatmapData
+import com.busaisp.android.domain.model.TrafficHotspotStatus
 import com.busaisp.android.domain.model.Vehicle
 import com.busaisp.android.ui.theme.AppColors
 import kotlinx.coroutines.delay
@@ -24,6 +26,7 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression.get
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -35,15 +38,13 @@ import org.maplibre.geojson.Point
 fun LiveBusMap(
     vehicles: List<Vehicle>,
     userLocation: LocationClient.Position?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    heatmapData: TrafficHeatmapData? = null,
+    isHeatmapVisible: Boolean = false
 ) {
     val context = LocalContext.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
 
-    // Garante que a câmera só é recentralizada automaticamente na primeira posição
-    // real de GPS recebida (transição null -> não-null), não a cada atualização —
-    // senão o mapa "briga" com o usuário toda vez que ele tenta panorâmicar/explorar
-    // depois de já ter sido centralizado uma vez.
     var hasCenteredOnUser by remember { mutableStateOf(false) }
 
     val mapView = remember {
@@ -60,6 +61,27 @@ fun LiveBusMap(
                 .zoom(SAO_PAULO_INITIAL_ZOOM)
                 .build()
             map.setStyle(Style.Builder().fromUri(OPEN_FREE_MAP_LIBERTY_STYLE_URL)) { style ->
+                // Camada do Mapa de Calor (Halos e Núcleos de Congestionamento)
+                style.addSource(GeoJsonSource(HEATMAP_SOURCE_ID, FeatureCollection.fromFeatures(emptyList())))
+                style.addLayer(
+                    CircleLayer(HEATMAP_OUTER_LAYER_ID, HEATMAP_SOURCE_ID).withProperties(
+                        PropertyFactory.circleRadius(32f),
+                        PropertyFactory.circleColor(get("outerColor")),
+                        PropertyFactory.circleOpacity(0.40f),
+                        PropertyFactory.circleBlur(0.75f)
+                    )
+                )
+                style.addLayer(
+                    CircleLayer(HEATMAP_INNER_LAYER_ID, HEATMAP_SOURCE_ID).withProperties(
+                        PropertyFactory.circleRadius(14f),
+                        PropertyFactory.circleColor(get("innerColor")),
+                        PropertyFactory.circleOpacity(0.85f),
+                        PropertyFactory.circleStrokeWidth(2f),
+                        PropertyFactory.circleStrokeColor(AppColors.SurfaceLight.toArgb())
+                    )
+                )
+
+                // Camada dos Ônibus da SPTrans
                 style.addSource(GeoJsonSource(BUS_SOURCE_ID, FeatureCollection.fromFeatures(emptyList())))
                 style.addLayer(
                     CircleLayer(BUS_LAYER_ID, BUS_SOURCE_ID).withProperties(
@@ -69,6 +91,8 @@ fun LiveBusMap(
                         PropertyFactory.circleStrokeColor(AppColors.BackgroundDark.toArgb())
                     )
                 )
+
+                // Camada de Localização do Usuário
                 style.addSource(GeoJsonSource(USER_SOURCE_ID, FeatureCollection.fromFeatures(emptyList())))
                 style.addLayer(
                     CircleLayer(USER_LAYER_ID, USER_SOURCE_ID).withProperties(
@@ -88,12 +112,6 @@ fun LiveBusMap(
         }
     }
 
-    // Recalcula a posição interpolada (ver domain/GeoInterpolation.kt) em um ciclo
-    // curto para que os ônibus se movam continuamente no mapa entre pings reais de
-    // GPS, em vez de "teleportar" a cada 25s quando um novo resultado de polling
-    // chega. Relançado sempre que `vehicles` muda (novo poll), o que naturalmente
-    // reinicia a interpolação a partir dos dados mais recentes em vez de continuar
-    // extrapolando de uma base cada vez mais velha.
     LaunchedEffect(mapLibreMap, vehicles) {
         if (vehicles.isEmpty()) {
             updateBusSource(mapLibreMap, vehicles, System.currentTimeMillis())
@@ -110,15 +128,11 @@ fun LiveBusMap(
         onDispose { }
     }
 
-    // "Localização atual": centraliza a câmera assim que a primeira posição real de
-    // GPS chega (null -> não-null). Não faz "follow me" contínuo — ver `hasCenteredOnUser`.
-    //
-    // TODO (limitação conhecida, análoga ao TODO de permissão permanentemente negada em
-    // MapScreen): como MapViewModel.onLocationPermissionGranted() é idempotente, tocar o
-    // botão de novo depois que o usuário já centralizou e panorâmicou para outro lugar não
-    // necessariamente produz uma nova posição distinguível aqui, então não recentraliza.
-    // Fazer "recentralizar a cada toque" exigiria propagar um evento explícito de
-    // recentralização do botão até o mapa — fica para uma tarefa futura.
+    DisposableEffect(mapLibreMap, isHeatmapVisible, heatmapData) {
+        updateHeatmapSource(mapLibreMap, isHeatmapVisible, heatmapData)
+        onDispose { }
+    }
+
     LaunchedEffect(mapLibreMap, userLocation) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val location = userLocation ?: return@LaunchedEffect
@@ -131,6 +145,34 @@ fun LiveBusMap(
     }
 
     AndroidView(factory = { mapView }, modifier = modifier.fillMaxSize())
+}
+
+private fun updateHeatmapSource(map: MapLibreMap?, isVisible: Boolean, data: TrafficHeatmapData?) {
+    val style = map?.style ?: return
+    val source = style.getSourceAs<GeoJsonSource>(HEATMAP_SOURCE_ID) ?: return
+    if (!isVisible || data == null) {
+        source.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
+        return
+    }
+
+    val features = data.hotspots.map { hotspot ->
+        val (outerHex, innerHex) = when (hotspot.status) {
+            TrafficHotspotStatus.CRITICO -> "#991B1B" to "#DC2626"
+            TrafficHotspotStatus.INTENSO -> "#C2410C" to "#EA580C"
+            TrafficHotspotStatus.MODERADO -> "#D97706" to "#F59E0B"
+            TrafficHotspotStatus.FLUINDO -> "#047857" to "#10B981"
+        }
+        val outerColor = android.graphics.Color.parseColor(outerHex)
+        val innerColor = android.graphics.Color.parseColor(innerHex)
+
+        Feature.fromGeometry(Point.fromLngLat(hotspot.lng, hotspot.lat)).apply {
+            addStringProperty("outerColor", String.format("#%06X", 0xFFFFFF and outerColor))
+            addStringProperty("innerColor", String.format("#%06X", 0xFFFFFF and innerColor))
+            addStringProperty("name", hotspot.name)
+            addNumberProperty("delay", hotspot.delayMinutes)
+        }
+    }
+    source.setGeoJson(FeatureCollection.fromFeatures(features))
 }
 
 private fun updateBusSource(map: MapLibreMap?, vehicles: List<Vehicle>, nowEpochMs: Long) {

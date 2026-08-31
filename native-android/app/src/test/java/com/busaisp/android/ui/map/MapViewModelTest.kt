@@ -3,7 +3,11 @@ package com.busaisp.android.ui.map
 import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.LineSearchRepository
+import com.busaisp.android.data.repository.TrafficRepository
+import com.busaisp.android.data.repository.TrafficResult
 import com.busaisp.android.domain.model.Linha
+import com.busaisp.android.domain.model.TrafficHeatmapData
+import com.busaisp.android.domain.model.TrafficHotspotStatus
 import com.busaisp.android.domain.model.Vehicle
 import com.busaisp.android.domain.model.VehiclesResult
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -38,13 +43,18 @@ class MapViewModelTest {
         override suspend fun searchLinhas(query: String): List<Linha> = emptyList()
     }
 
-    // Fake mínimo de LocationClient para os testes de MapViewModel que não envolvem
-    // localização — nunca emite nada, então onLocationPermissionGranted() pode ser
-    // chamado (ou não) sem afetar o resultado desses testes.
     private class FakeLocationClient(
         private val positions: Flow<LocationClient.Position> = emptyFlow()
     ) : LocationClient {
         override fun observeLocation(): Flow<LocationClient.Position> = positions
+    }
+
+    private class FakeTrafficRepository(
+        var result: TrafficResult = TrafficResult.Success(
+            TrafficHeatmapData(emptyList(), TrafficHotspotStatus.FLUINDO, 0, "17:00")
+        )
+    ) : TrafficRepository {
+        override suspend fun getTrafficHeatmap(lat: Double, lng: Double): TrafficResult = result
     }
 
     @Before
@@ -57,7 +67,7 @@ class MapViewModelTest {
     fun `ao selecionar uma linha o estado passa a ter os veiculos reais`() = runTest {
         val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
         val busRepository = FakeBusRepository(VehiclesResult.Success(listOf(vehicle), 0L))
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -70,7 +80,7 @@ class MapViewModelTest {
     @Test
     fun `falha de rede resulta em estado de erro honesto`() = runTest {
         val busRepository = FakeBusRepository(VehiclesResult.Failure("Falha de conexão"))
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -80,14 +90,6 @@ class MapViewModelTest {
         assertEquals("Falha de conexão", (state as MapUiState.Error).message)
     }
 
-    // Auto-iniciado (fora do texto literal da tarefa): onLineSelected relança
-    // observeVehicles().collect{} dentro de viewModelScope.launch a cada chamada.
-    // Se o usuário trocar de linha antes do primeiro polling "morrer" sozinho,
-    // ficam duas coletas concorrentes escrevendo em _uiState — a mais lenta pode
-    // sobrescrever o estado com dados da linha ANTIGA depois que a nova já foi
-    // selecionada. Este teste prova a corrida: a linha A demora mais para
-    // responder que a linha B; a linha B é selecionada logo depois de A, e o
-    // estado final deve refletir B, nunca A.
     private class SlowThenFastBusRepository(
         private val slowLinhaCodigo: Int,
         private val slowVehicle: Vehicle,
@@ -120,7 +122,7 @@ class MapViewModelTest {
             fastVehicle = vehicleB,
             fastDelayMs = 100L
         )
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())
 
         viewModel.onLineSelected(linhaA)
         dispatcher.scheduler.advanceTimeBy(50L)
@@ -134,9 +136,6 @@ class MapViewModelTest {
         assertEquals("B", withVehicles.vehicles.first().prefix)
     }
 
-    // Repositório fake que emite Success e, em seguida (após um pequeno delay virtual,
-    // só para simular um novo ciclo de polling), Failure — usado para exercitar a lógica
-    // de isStale/expiração de MapViewModel.onLineSelected, que antes não tinha cobertura.
     private class SuccessThenFailureBusRepository(
         private val successResult: VehiclesResult.Success,
         private val failureMessage: String = "Falha de conexão"
@@ -148,21 +147,16 @@ class MapViewModelTest {
         }
     }
 
-    // Espelha STALE_GRACE_MS de MapViewModel (é `private`, então não dá para importar
-    // a constante diretamente — mantenha os dois valores em sincronia se um mudar).
     private val staleGraceMs = 90_000L
 
     @Test
     fun `falha logo apos um sucesso recente mantem os veiculos visiveis marcados como desatualizados`() = runTest {
-        // A checagem de isStale em MapViewModel usa System.currentTimeMillis() (relógio
-        // real), não o tempo virtual do TestDispatcher — por isso o timestamp "recente"
-        // é ancorado no relógio real de agora, e não em tempo virtual da coroutine.
         val recentFetchedAt = System.currentTimeMillis()
         val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
         val busRepository = SuccessThenFailureBusRepository(
             VehiclesResult.Success(listOf(vehicle), recentFetchedAt)
         )
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -178,16 +172,13 @@ class MapViewModelTest {
 
     @Test
     fun `falha apos um sucesso ja expirado vira estado de erro em vez de manter dados obsoletos`() = runTest {
-        // Timestamp bem além da janela de tolerância (ancorado no relógio real, mesmo
-        // motivo do teste acima) — a checagem deve tratar isso como dado velho demais
-        // para continuar mostrando no mapa, e cair para Error.
         val expiredFetchedAt = System.currentTimeMillis() - staleGraceMs - 5_000L
         val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
         val busRepository = SuccessThenFailureBusRepository(
             VehiclesResult.Success(listOf(vehicle), expiredFetchedAt),
             failureMessage = "Falha de conexão"
         )
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient())
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())
 
         viewModel.onLineSelected(linha)
         dispatcher.scheduler.advanceUntilIdle()
@@ -197,10 +188,6 @@ class MapViewModelTest {
         assertEquals("Falha de conexão", (state as MapUiState.Error).message)
     }
 
-    // Fake que nunca completa (simula o fluxo real e "infinito" de atualizações de GPS),
-    // e conta quantas vezes observeLocation() foi de fato coletado — usada para provar
-    // que onLocationPermissionGranted() é idempotente (não abre uma segunda subscrição
-    // concorrente se já houver uma ativa).
     private class CountingLocationClient(private val position: LocationClient.Position) : LocationClient {
         var subscriptionCount = 0
             private set
@@ -216,7 +203,7 @@ class MapViewModelTest {
     fun `onLocationPermissionGranted popula userLocation com a posicao real do GPS`() = runTest {
         val position = LocationClient.Position(-23.5, -46.6)
         val busRepository = FakeBusRepository(VehiclesResult.Success(emptyList(), 0L))
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(flowOf(position)))
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(flowOf(position)), FakeTrafficRepository())
 
         assertNull(viewModel.userLocation.value)
 
@@ -230,7 +217,7 @@ class MapViewModelTest {
     fun `chamar onLocationPermissionGranted duas vezes nao abre uma segunda subscricao de localizacao`() = runTest {
         val locationClient = CountingLocationClient(LocationClient.Position(-23.5, -46.6))
         val busRepository = FakeBusRepository(VehiclesResult.Success(emptyList(), 0L))
-        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), locationClient)
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), locationClient, FakeTrafficRepository())
 
         viewModel.onLocationPermissionGranted()
         dispatcher.scheduler.advanceUntilIdle()
@@ -238,5 +225,24 @@ class MapViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(1, locationClient.subscriptionCount)
+    }
+
+    @Test
+    fun `toggleTrafficHeatmap ativa e desativa o radar e carrega dados reais`() = runTest {
+        val busRepository = FakeBusRepository(VehiclesResult.Success(emptyList(), 0L))
+        val trafficRepository = FakeTrafficRepository()
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), trafficRepository)
+
+        assertFalse(viewModel.isHeatmapVisible.value)
+        assertNull(viewModel.heatmapData.value)
+
+        viewModel.toggleTrafficHeatmap()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.isHeatmapVisible.value)
+        assertTrue(viewModel.heatmapData.value != null)
+
+        viewModel.toggleTrafficHeatmap()
+        assertFalse(viewModel.isHeatmapVisible.value)
     }
 }

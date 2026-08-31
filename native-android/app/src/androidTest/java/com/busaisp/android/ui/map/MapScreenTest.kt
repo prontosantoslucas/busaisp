@@ -9,7 +9,11 @@ import androidx.test.rule.GrantPermissionRule
 import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.LineSearchRepository
+import com.busaisp.android.data.repository.TrafficRepository
+import com.busaisp.android.data.repository.TrafficResult
 import com.busaisp.android.domain.model.Linha
+import com.busaisp.android.domain.model.TrafficHeatmapData
+import com.busaisp.android.domain.model.TrafficHotspotStatus
 import com.busaisp.android.domain.model.VehiclesResult
 import com.busaisp.android.ui.theme.BusaiSPTheme
 import kotlinx.coroutines.flow.Flow
@@ -17,18 +21,11 @@ import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Rule
 import org.junit.Test
 
-// Mesmo espírito do LiveMap.test.tsx da versão web: monta a tela real (não um
-// mock testando a si mesmo) e interage de verdade com os controles. Isso
-// pegaria, por exemplo, o mesmo tipo de bug real que o LiveMap.test.tsx foi
-// escrito para pegar na versão web (handler quebrado, tela que não renderiza).
 class MapScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
-    // Concede a permissão de localização de antemão para exercitar o caminho
-    // real de "permissão já concedida" do botão "Localização atual", em vez
-    // de precisar simular o diálogo de permissão do sistema.
     @get:Rule
     val permissionRule: GrantPermissionRule =
         GrantPermissionRule.grant(android.Manifest.permission.ACCESS_FINE_LOCATION)
@@ -48,9 +45,21 @@ class MapScreenTest {
         override fun observeLocation(): Flow<LocationClient.Position> = emptyFlow()
     }
 
+    private class FakeTrafficRepository : TrafficRepository {
+        override suspend fun getTrafficHeatmap(lat: Double, lng: Double): TrafficResult =
+            TrafficResult.Success(
+                TrafficHeatmapData(
+                    hotspots = emptyList(),
+                    cityStatus = TrafficHotspotStatus.FLUINDO,
+                    totalCongestionKm = 12,
+                    lastUpdated = "17:30"
+                )
+            )
+    }
+
     private fun buildViewModel(
         lineSearchRepository: LineSearchRepository = FakeLineSearchRepository()
-    ) = MapViewModel(FakeBusRepository(), lineSearchRepository, FakeLocationClient())
+    ) = MapViewModel(FakeBusRepository(), lineSearchRepository, FakeLocationClient(), FakeTrafficRepository())
 
     @Test
     fun rendersWithoutThrowing() {
@@ -59,7 +68,6 @@ class MapScreenTest {
                 MapScreen(viewModel = buildViewModel())
             }
         }
-        // Se chegou até aqui sem lançar exceção, a tela montou de verdade.
     }
 
     @Test
@@ -97,9 +105,18 @@ class MapScreenTest {
 
         composeRule.onNodeWithContentDescription("Localização atual").performClick()
         composeRule.waitForIdle()
-        // Não lançar é o resultado esperado aqui — a permissão já foi concedida
-        // pela GrantPermissionRule, então isto exercita o caminho real de
-        // "permissão já concedida → chama onLocationPermissionGranted()" sem
-        // precisar simular o diálogo de permissão do sistema.
+    }
+
+    @Test
+    fun trafficRadarButtonClickTogglesStateWithoutThrowing() {
+        composeRule.setContent {
+            BusaiSPTheme {
+                MapScreen(viewModel = buildViewModel())
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Exibir radar de trânsito").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Ocultar radar de trânsito").assertExists()
     }
 }

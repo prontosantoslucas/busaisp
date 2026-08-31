@@ -8,6 +8,9 @@ const val BUS_SOURCE_ID = "bus-vehicles-source"
 const val BUS_LAYER_ID = "bus-vehicles-layer"
 const val USER_SOURCE_ID = "user-location-source"
 const val USER_LAYER_ID = "user-location-layer"
+const val HEATMAP_SOURCE_ID = "traffic-heatmap-source"
+const val HEATMAP_OUTER_LAYER_ID = "traffic-heatmap-outer-layer"
+const val HEATMAP_INNER_LAYER_ID = "traffic-heatmap-inner-layer"
 
 // Centro aproximado de São Paulo, usado como câmera inicial antes de qualquer GPS/linha.
 const val SAO_PAULO_INITIAL_LAT = -23.5505

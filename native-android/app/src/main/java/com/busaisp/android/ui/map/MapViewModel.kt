@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.LineSearchRepository
+import com.busaisp.android.data.repository.TrafficRepository
+import com.busaisp.android.data.repository.TrafficResult
 import com.busaisp.android.domain.model.Linha
+import com.busaisp.android.domain.model.TrafficHeatmapData
 import com.busaisp.android.domain.model.VehiclesResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -24,7 +27,8 @@ private const val STALE_GRACE_MS = 90_000L
 class MapViewModel @Inject constructor(
     private val busRepository: BusRepository,
     private val lineSearchRepository: LineSearchRepository,
-    private val locationClient: LocationClient
+    private val locationClient: LocationClient,
+    private val trafficRepository: TrafficRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MapUiState>(MapUiState.Idle)
@@ -36,19 +40,41 @@ class MapViewModel @Inject constructor(
     private val _userLocation = MutableStateFlow<LocationClient.Position?>(null)
     val userLocation: StateFlow<LocationClient.Position?> = _userLocation.asStateFlow()
 
-    // A permissão de localização é checada/solicitada na UI (MapScreen); uma vez concedida,
-    // a UI chama isto para começar a observar o GPS real. Idempotente: se já houver uma
-    // coleta ativa, uma segunda chamada (ex.: usuário toca o botão de novo, ou recomposição
-    // reexecuta a checagem de permissão) não abre uma segunda subscrição concorrente.
-    private var locationJob: Job? = null
+    private val _isHeatmapVisible = MutableStateFlow(false)
+    val isHeatmapVisible: StateFlow<Boolean> = _isHeatmapVisible.asStateFlow()
 
-    // Melhoria auto-iniciada (fora do texto literal da tarefa): guarda o job do
-    // polling em andamento para poder cancelá-lo ao trocar de linha. Sem isso,
-    // selecionar uma linha nova antes do polling anterior "morrer" sozinho deixa
-    // duas coletas concorrentes escrevendo em _uiState, e a mais lenta pode
-    // sobrescrever o estado com dados da linha ANTIGA depois que a nova já foi
-    // selecionada (ver teste "trocar de linha antes do polling anterior terminar...").
+    private val _heatmapData = MutableStateFlow<TrafficHeatmapData?>(null)
+    val heatmapData: StateFlow<TrafficHeatmapData?> = _heatmapData.asStateFlow()
+
+    private val _isLoadingHeatmap = MutableStateFlow(false)
+    val isLoadingHeatmap: StateFlow<Boolean> = _isLoadingHeatmap.asStateFlow()
+
+    private var locationJob: Job? = null
     private var vehiclePollingJob: Job? = null
+    private var heatmapJob: Job? = null
+
+    fun toggleTrafficHeatmap() {
+        val next = !_isHeatmapVisible.value
+        _isHeatmapVisible.value = next
+        if (next && _heatmapData.value == null) {
+            refreshTrafficHeatmap()
+        }
+    }
+
+    fun refreshTrafficHeatmap() {
+        heatmapJob?.cancel()
+        heatmapJob = viewModelScope.launch {
+            _isLoadingHeatmap.value = true
+            val loc = _userLocation.value
+            val lat = loc?.lat ?: -23.55
+            val lng = loc?.lng ?: -46.63
+            when (val result = trafficRepository.getTrafficHeatmap(lat, lng)) {
+                is TrafficResult.Success -> _heatmapData.value = result.data
+                is TrafficResult.Failure -> { /* Mantém dado anterior se houver */ }
+            }
+            _isLoadingHeatmap.value = false
+        }
+    }
 
     fun onLineSelected(linha: Linha) {
         vehiclePollingJob?.cancel()
