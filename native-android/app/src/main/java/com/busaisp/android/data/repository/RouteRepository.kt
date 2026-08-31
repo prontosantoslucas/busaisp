@@ -15,6 +15,7 @@ import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 sealed interface RouteTimeMode {
     data object Now : RouteTimeMode
@@ -85,6 +86,10 @@ class RouteRepositoryImpl @Inject constructor(
         }
     }
 
+    // Falhas de qualquer tipo (rede, HTTP, payload malformado, ou
+    // success:false do backend) viram lista vazia — mesmo tradeoff aceito em
+    // LineSearchRepository.searchLinhas: o chamador não distingue "sem
+    // resultados" de "busca falhou" hoje.
     override suspend fun searchAddresses(query: String): List<RouteLocation> {
         return try {
             val response = api.getAddressSuggestions(query = query)
@@ -109,14 +114,14 @@ private fun RouteLocationDto.toDomain() = RouteLocation(name, addressDetails, la
 private fun RouteStepDto.toDomain() = RouteStep(
     type = parseRouteStepType(type),
     instruction = instruction,
-    durationMinutes = durationMinutes.toInt(),
+    durationMinutes = durationMinutes.roundToInt(),
     distanceMeters = distanceMeters.toInt(),
     busLine = busLine,
     busDestination = busDestination,
     boardStopName = boardStopName,
     alightStopName = alightStopName,
     stopCount = stopCount,
-    nextBusEtaMinutes = nextBusEtaMinutes?.toInt(),
+    nextBusEtaMinutes = nextBusEtaMinutes?.roundToInt(),
     accuracyLevel = parseRouteAccuracy(accuracyLevel)
 )
 
@@ -124,7 +129,7 @@ private fun RoutePlanDto.toDomain() = RoutePlan(
     id = id,
     origin = origin.toDomain(),
     destination = destination.toDomain(),
-    totalDurationMinutes = totalDurationMinutes.toInt(),
+    totalDurationMinutes = totalDurationMinutes.roundToInt(),
     transferCount = transferCount,
     departureHour = departureHour,
     arrivalHour = arrivalHour,
