@@ -27,7 +27,7 @@ seu próprio ciclo spec → plano → implementação → PR:
    mergeada DEPOIS da PR #1, ou rebaseada se a #1 mudar antes de mergear).
 3. ✅ **Navegação Ativa** — PR #3, ainda não mergeada (branch parte do topo
    da branch do sub-projeto #2 — mesma regra de ordem de merge: #1 → #2 → #3).
-4. ⬜ **Favoritos e Personalização** — não iniciado.
+4. ✅ **Favoritos e Personalização** — pronto na branch `worktree-native-android-favorites` (parte do topo da branch do sub-projeto #3 — mesma regra: #1 → #2 → #3 → #4).
 5. ⬜ **Telas secundárias** (Estações, Notícias, configurações, mapas
    offline) — não iniciado.
 
@@ -111,13 +111,19 @@ base).
   automaticamente — sem retargeting automático de veículo após baldeação
   real, mesma limitação já documentada no app web.
 
-### Sub-projetos #4, #5 — não iniciados
+### Sub-projeto #4 — Favoritos e Personalização
+- **Branch:** `worktree-native-android-favorites` (parte do topo da branch do sub-projeto #3)
+- **Spec:** `docs/superpowers/specs/2026-08-31-native-android-favorites-design.md`
+- **Plano:** `docs/superpowers/plans/2026-08-31-native-android-favorites.md`
+- **Entrega:** favoritos locais sem nuvem via DataStore Preferences (serialização Moshi com resiliência a payloads inválidos), favoritar linhas/rotas diretamente nos cards da tela de resultados com alternância em tempo real, endereços editáveis de Casa e Trabalho com autocomplete real reutilizando `RouteSearchViewModel`, 3ª aba de navegação inferior ("Favoritos") no `BusaiNavHost`, e chips de atalho de Casa/Trabalho na tela de busca para preenchimento de origem com 1 toque.
+- **Status:** 5 tasks completas com TDD (`FavoriteRepositoryTest`, `FavoritesViewModelTest`), `assembleDebug`, `testDebugUnitTest` (53 testes passando no total) e `assembleDebugAndroidTest` verificados com sucesso.
+- **Limitações conhecidas, não bloqueantes**: Casa e Trabalho só aceitam endereços com coordenadas válidas retornadas pelo autocomplete (não coordenadas digitadas manualmente sem seleção); o autocomplete na tela de Favoritos pesquisa especificamente endereços de origem via API.
+
+### Sub-projeto #5 — Telas secundárias (não iniciado)
 
 Escopo original (definido na primeira sessão de brainstorming da migração,
 antes de qualquer spec individual ter sido escrita):
 
-- **#4 Favoritos e Personalização**: favoritar linha/rota, endereços de
-  casa/trabalho.
 - **#5 Telas secundárias**: Estações (Metrô/CPTM), Notícias, configurações,
   mapas offline.
 - Fora de escopo de toda a migração (decisão já tomada): login/conta de
