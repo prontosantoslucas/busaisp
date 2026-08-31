@@ -25,10 +25,16 @@ seu próprio ciclo spec → plano → implementação → PR:
 2. ✅ **Busca e Resultados de Rota** — PR #2, ainda não mergeada (branch
    parte do topo da branch do sub-projeto #1, então PR #2 só deve ser
    mergeada DEPOIS da PR #1, ou rebaseada se a #1 mudar antes de mergear).
-3. ⬜ **Navegação Ativa** — não iniciado.
+3. ✅ **Navegação Ativa** — PR #3, ainda não mergeada (branch parte do topo
+   da branch do sub-projeto #2 — mesma regra de ordem de merge: #1 → #2 → #3).
 4. ⬜ **Favoritos e Personalização** — não iniciado.
 5. ⬜ **Telas secundárias** (Estações, Notícias, configurações, mapas
    offline) — não iniciado.
+
+**Mudança de processo a partir do sub-projeto #3** (pedido explícito do
+usuário, "ir mais rápido sem perder qualidade"): revisão combinada
+(conformidade + qualidade numa passada só, em vez de dois revisores
+separados) e tasks acopladas em lote — ver seção A.2 atualizada.
 
 **Repositório GitHub:** `prontosantoslucas/busaisp`. Branch principal real de
 desenvolvimento é `master` (não `main` — o `main` do GitHub está quase vazio,
@@ -82,29 +88,42 @@ base).
   nenhuma tela ainda; os modos "partir às"/"chegar até" hoje são valores
   fixos (15 min / 18:00), não um campo livre de horário digitável.
 
-### Sub-projetos #3, #4, #5 — não iniciados
+### Sub-projeto #3 — Navegação Ativa
+- **PR:** https://github.com/prontosantoslucas/busaisp/pull/3
+- **Branch:** `worktree-native-android-active-navigation` (já enviada pro
+  GitHub; parte do topo da branch do sub-projeto #2)
+- **Spec:** `docs/superpowers/specs/2026-08-31-native-android-active-navigation-design.md`
+- **Plano:** `docs/superpowers/plans/2026-08-31-native-android-active-navigation.md`
+- **Entrega:** detecção real de embarque (GPS a <45m de um veículo real da
+  linha) e desvio de rota (GPS a >250m do traçado real planejado), avisos de
+  voz reais via TextToSpeech (mesmas mensagens/debounce de 30s do app web),
+  Foreground Service com notificação persistente real (`POST_NOTIFICATIONS`
+  solicitada em runtime pra Android 13+), tela de percurso ativo acessível
+  pelo botão "Iniciar percurso" na tela de detalhe de rota.
+- **Status:** 5 tasks completas (processo mais rápido: revisor combinado,
+  tasks em lote). Revisão holística final encontrou e corrigiu 1 problema
+  **crítico** (a tela de navegação ativa podia crashar com `SecurityException`
+  real — não checava permissão de localização antes de começar a rastrear,
+  e dava pra chegar nela sem nunca ter concedido a permissão via a busca por
+  endereço digitado). Corrigido e reverificado antes de abrir o PR.
+- **Limitação conhecida, não bloqueante, herdada do app web** (não é
+  regressão): só a primeira perna da viagem tem embarque/desvio rastreado
+  automaticamente — sem retargeting automático de veículo após baldeação
+  real, mesma limitação já documentada no app web.
+
+### Sub-projetos #4, #5 — não iniciados
 
 Escopo original (definido na primeira sessão de brainstorming da migração,
 antes de qualquer spec individual ter sido escrita):
 
-- **#3 Navegação Ativa**: percurso em andamento, detecção de embarque/desvio
-  de rota comparando GPS real contra o shape da linha, avisos de voz por
-  baldeação. **Inclui explicitamente**: rodar em segundo plano via
-  **Foreground Service com notificação persistente real** (mesmo padrão
-  Uber/99/Waze) — decisão já tomada e registrada no spec do sub-projeto #1.
-  **NÃO inclui**: pedir isenção de otimização de bateria
-  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) — decisão explícita do usuário,
-  registrada no spec do sub-projeto #1 seção "Requisito registrado para o
-  sub-projeto #3": essa permissão é fortemente auditada pela Google Play e
-  tem risco real de rejeição/remoção do app se usada sem justificativa forte;
-  o Foreground Service já resolve o problema de tracking confiável sem esse
-  risco. **Não pedir isso sem o usuário confirmar explicitamente.**
 - **#4 Favoritos e Personalização**: favoritar linha/rota, endereços de
   casa/trabalho.
 - **#5 Telas secundárias**: Estações (Metrô/CPTM), Notícias, configurações,
   mapas offline.
 - Fora de escopo de toda a migração (decisão já tomada): login/conta de
-  usuário, iOS.
+  usuário, iOS, isenção de otimização de bateria
+  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` — risco real de rejeição na Google
+  Play, não pedir sem o usuário confirmar explicitamente de novo).
 
 ## A.2. Como replicar o processo (funciona com qualquer ferramenta de IA, não é específico de skill)
 
@@ -153,6 +172,15 @@ honestamente como indisponível/estimada. Isso vale mais que velocidade.
 
 ## A.3. Pegadinhas técnicas reais (já resolvidas uma vez, não precisa redescobrir)
 
+- **Lock de arquivo transitório do Windows durante build** — a partir do
+  sub-projeto #3, passou a acontecer com frequência real `java.io.IOException:
+  Unable to delete directory` em subpastas de `app/build/` durante
+  `assembleDebug`/`testDebugUnitTest` (provavelmente um indexador/antivírus
+  de fundo segurando handle de arquivo). Sintoma, não bug de código. Resolve
+  de forma confiável: parar o daemon do Gradle (`gradlew.bat --stop`),
+  apagar manualmente a subpasta travada (ou, se persistir, a pasta
+  `app/build` inteira) e rodar de novo. Não tratar isso como falha real de
+  build sem antes tentar essa limpeza.
 - **Não existe `gradle` (CLI) instalado no ambiente sandbox** — o wrapper do
   Gradle (`gradlew`/`gradlew.bat`/`gradle-wrapper.jar`/`.properties`) do
   projeto `native-android/` foi copiado do wrapper já funcional do projeto
