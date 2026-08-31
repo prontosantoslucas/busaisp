@@ -3,6 +3,7 @@ package com.busaisp.android.service
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.TextToSpeech.QUEUE_ADD
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,7 +36,7 @@ class SpeechDebouncer {
 
 @Singleton
 class VoiceService @Inject constructor(
-    context: Context
+    @ApplicationContext context: Context
 ) {
     private val debouncer = SpeechDebouncer()
     private var isMuted = false
