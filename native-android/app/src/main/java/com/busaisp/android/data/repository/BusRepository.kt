@@ -5,6 +5,8 @@ import com.busaisp.android.data.remote.dto.VeiculoDto
 import com.busaisp.android.domain.model.Linha
 import com.busaisp.android.domain.model.Vehicle
 import com.busaisp.android.domain.model.VehiclesResult
+import com.squareup.moshi.JsonDataException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -45,10 +47,19 @@ class BusRepositoryImpl @Inject constructor(
             } else {
                 VehiclesResult.Failure(response.error ?: "Falha ao carregar posições dos ônibus")
             }
+        } catch (e: CancellationException) {
+            // Nunca engolir cancelamento: deixa a coroutine/flow encerrar normalmente.
+            throw e
         } catch (e: IOException) {
             VehiclesResult.Failure(e.message ?: "Falha de conexão")
         } catch (e: HttpException) {
             VehiclesResult.Failure("Erro do servidor: ${e.code()}")
+        } catch (e: JsonDataException) {
+            // Resposta 200 com payload em formato inesperado (campo obrigatório ausente/nulo).
+            VehiclesResult.Failure(e.message ?: "Resposta inesperada do servidor")
+        } catch (e: Exception) {
+            // Rede de segurança: qualquer outra falha vira Failure em vez de derrubar o polling.
+            VehiclesResult.Failure(e.message ?: "Erro inesperado ao carregar posições dos ônibus")
         }
     }
 }

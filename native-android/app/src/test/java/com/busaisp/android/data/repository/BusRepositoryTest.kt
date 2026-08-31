@@ -76,10 +76,47 @@ class BusRepositoryTest {
     }
 
     @Test
-    fun `observeVehicles emite Failure quando a resposta indica falha`() = runTest {
+    fun `observeVehicles emite Failure quando o servidor responde com erro HTTP`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(500).setBody(
                 """{"success": false, "error": "Erro interno ao processar requisição SPTrans"}"""
+            )
+        )
+
+        val result = repository.observeVehicles(linha).first()
+
+        assertTrue(result is VehiclesResult.Failure)
+    }
+
+    @Test
+    fun `observeVehicles emite Failure quando a resposta HTTP 200 indica falha de negocio`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"success": false, "error": "Falha ao processar requisição SPTrans"}"""
+            )
+        )
+
+        val result = repository.observeVehicles(linha).first()
+
+        assertTrue(result is VehiclesResult.Failure)
+    }
+
+    @Test
+    fun `observeVehicles emite Failure em vez de crashar quando o payload vem malformado`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                  "success": true,
+                  "data": {
+                    "hr": "14:32",
+                    "vs": [
+                      {"a":true,"ta":"2026-08-31T14:32:00Z","py":-23.5123,"px":-46.6234}
+                    ]
+                  },
+                  "isMock": false
+                }
+                """.trimIndent()
             )
         )
 
