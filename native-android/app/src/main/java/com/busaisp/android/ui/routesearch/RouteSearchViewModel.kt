@@ -14,7 +14,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+
+// GPS pode nunca emitir (sem sinal, indoors, permissão revogada em segundo
+// plano) — sem isso, .first() suspenderia para sempre e o botão "usar minha
+// localização" pareceria simplesmente não fazer nada.
+internal const val LOCATE_ORIGIN_TIMEOUT_MS = 15_000L
 
 @HiltViewModel
 class RouteSearchViewModel @Inject constructor(
@@ -83,10 +89,22 @@ class RouteSearchViewModel @Inject constructor(
         _destinationSuggestions.value = emptyList()
     }
 
+    private var locateOriginJob: Job? = null
+
     fun useCurrentLocationAsOrigin() {
-        viewModelScope.launch {
-            val position = locationClient.observeLocation().first()
-            onOriginSelected(RouteLocation("Minha Localização", "Localização atual pelo GPS", position.lat, position.lng))
+        if (locateOriginJob?.isActive == true) return
+        locateOriginJob = viewModelScope.launch {
+            val position = withTimeoutOrNull(LOCATE_ORIGIN_TIMEOUT_MS) {
+                locationClient.observeLocation().first()
+            }
+            // TODO: se position for null (sem sinal de GPS dentro do timeout),
+            // o campo de origem simplesmente não muda — não há hoje um canal de
+            // feedback pro usuário saber que a tentativa falhou. Uma tarefa
+            // futura de UI deve expor isso (ex: um estado de erro dedicado à
+            // localização, separado do RouteSearchUiState usado pra rota).
+            if (position != null) {
+                onOriginSelected(RouteLocation("Minha Localização", "Localização atual pelo GPS", position.lat, position.lng))
+            }
         }
     }
 

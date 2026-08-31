@@ -200,4 +200,35 @@ class RouteSearchViewModelTest {
 
         assertEquals(freshResults, viewModel.destinationSuggestions.value)
     }
+
+    // Ao contrário de FakeLocationClient (emptyFlow(), que COMPLETA de
+    // imediato sem emitir — não representa "sem sinal de GPS" de verdade), a
+    // implementação real via callbackFlow (FusedLocationClient) só completa
+    // quando cancelada; se o callback de localização nunca disparar, a flow
+    // fica suspensa para sempre. awaitCancellation() reproduz esse
+    // comportamento real de forma fiel.
+    private class HangingLocationClient : LocationClient {
+        override fun observeLocation(): kotlinx.coroutines.flow.Flow<LocationClient.Position> =
+            kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
+    }
+
+    @Test
+    fun `useCurrentLocationAsOrigin nao trava para sempre quando o GPS nunca emite`() = runTest {
+        val viewModel = RouteSearchViewModel(
+            FakeRouteRepository(RouteRepositoryResult.Failure("não usado neste teste")),
+            HangingLocationClient()
+        )
+
+        viewModel.useCurrentLocationAsOrigin()
+        dispatcher.scheduler.advanceTimeBy(LOCATE_ORIGIN_TIMEOUT_MS + 1_000L)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        // A coroutine terminou (não travou) e, sem posição real, a origem
+        // continua sem seleção — calculateRoute() ainda deve no-op.
+        viewModel.onDestinationSelected(fakePlan.destination)
+        viewModel.calculateRoute()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is RouteSearchUiState.Idle)
+    }
 }
