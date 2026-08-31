@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.domain.model.Vehicle
 import com.busaisp.android.ui.theme.AppColors
 import org.maplibre.android.MapLibre
@@ -26,12 +27,10 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 
-data class LocationClientPosition(val lat: Double, val lng: Double)
-
 @Composable
 fun LiveBusMap(
     vehicles: List<Vehicle>,
-    userLocation: LocationClientPosition?,
+    userLocation: LocationClient.Position?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -66,7 +65,7 @@ fun LiveBusMap(
                         PropertyFactory.circleRadius(9f),
                         PropertyFactory.circleColor(AppColors.UserLocationBlue.toArgb()),
                         PropertyFactory.circleStrokeWidth(3f),
-                        PropertyFactory.circleStrokeColor(0xFFFFFFFF.toInt())
+                        PropertyFactory.circleStrokeColor(AppColors.SurfaceLight.toArgb())
                     )
                 )
                 mapLibreMap = map
@@ -103,7 +102,7 @@ private fun updateBusSource(map: MapLibreMap?, vehicles: List<Vehicle>) {
     source.setGeoJson(FeatureCollection.fromFeatures(features))
 }
 
-private fun updateUserSource(map: MapLibreMap?, position: LocationClientPosition?) {
+private fun updateUserSource(map: MapLibreMap?, position: LocationClient.Position?) {
     val style = map?.style ?: return
     val source = style.getSourceAs<GeoJsonSource>(USER_SOURCE_ID) ?: return
     source.setGeoJson(
