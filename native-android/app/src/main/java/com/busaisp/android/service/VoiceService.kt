@@ -34,10 +34,19 @@ class SpeechDebouncer {
     }
 }
 
+// Extraída pra permitir fakes em teste JVM puro: VoiceService de verdade
+// cria um android.speech.tts.TextToSpeech real no seu init {}, que não
+// roda fora do Android (sem Robolectric neste projeto).
+interface VoiceAnnouncer {
+    fun announceBoarding(lineDisplay: String, destination: String, vehicleWord: String = "ônibus")
+    fun announceTransfer(instructions: String)
+    fun announceOffRoute()
+}
+
 @Singleton
 class VoiceService @Inject constructor(
     @ApplicationContext context: Context
-) {
+) : VoiceAnnouncer {
     private val debouncer = SpeechDebouncer()
     private var isMuted = false
     private var tts: TextToSpeech? = null
@@ -60,15 +69,15 @@ class VoiceService @Inject constructor(
         tts?.speak(message, QUEUE_ADD, null, message.hashCode().toString())
     }
 
-    fun announceBoarding(lineDisplay: String, destination: String, vehicleWord: String = "ônibus") {
+    override fun announceBoarding(lineDisplay: String, destination: String, vehicleWord: String) {
         speak(boardingMessage(lineDisplay, destination, vehicleWord))
     }
 
-    fun announceTransfer(instructions: String) {
+    override fun announceTransfer(instructions: String) {
         speak(transferMessage(instructions))
     }
 
-    fun announceOffRoute() {
+    override fun announceOffRoute() {
         speak(offRouteMessage())
     }
 
