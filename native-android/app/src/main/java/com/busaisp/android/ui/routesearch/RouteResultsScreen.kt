@@ -18,15 +18,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.busaisp.android.ui.routesearch.components.RoutePlanCard
+import com.busaisp.android.domain.model.Favorite
+import com.busaisp.android.domain.model.FavoriteType
 import com.busaisp.android.domain.model.RoutePlan
+import com.busaisp.android.ui.favorites.FavoritesViewModel
 
 @Composable
 fun RouteResultsScreen(
     viewModel: RouteSearchViewModel = hiltViewModel(),
+    favoritesViewModel: FavoritesViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onPlanSelected: (planId: String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val favorites by favoritesViewModel.favorites.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
         IconButton(onClick = onBack) {
@@ -41,7 +46,24 @@ fun RouteResultsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(allPlans, key = { it.id }) { plan ->
-                        RoutePlanCard(plan = plan, onClick = { onPlanSelected(plan.id) })
+                        val isFavorited = favorites.any {
+                            it.type == FavoriteType.LINHA && it.refCode == plan.recommendedLine.codigo.toString()
+                        }
+                        RoutePlanCard(
+                            plan = plan,
+                            onClick = { onPlanSelected(plan.id) },
+                            isFavorited = isFavorited,
+                            onToggleFavorite = {
+                                favoritesViewModel.toggleFavorite(
+                                    Favorite(
+                                        type = FavoriteType.LINHA,
+                                        refCode = plan.recommendedLine.codigo.toString(),
+                                        title = "${plan.recommendedLine.letreiro} ${plan.destination.name}",
+                                        label = "Rota"
+                                    )
+                                )
+                            }
+                        )
                     }
                 }
             }
