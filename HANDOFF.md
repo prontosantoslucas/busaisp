@@ -99,13 +99,13 @@ base).
 - **Entrega:** favoritos locais sem nuvem via DataStore Preferences (serialização Moshi com resiliência a payloads inválidos), favoritar linhas/rotas diretamente nos cards da tela de resultados com alternância em tempo real, endereços editáveis de Casa e Trabalho com autocomplete real reutilizando `RouteSearchViewModel`, 3ª aba de navegação inferior ("Favoritos") no `BusaiNavHost`, e chips de atalho de Casa/Trabalho na tela de busca para preenchimento de origem com 1 toque.
 - **Status:** 5 tasks completas com TDD (`FavoriteRepositoryTest`, `FavoritesViewModelTest`), `assembleDebug`, `testDebugUnitTest` (53 testes passando) e `assembleDebugAndroidTest` verificados com sucesso.
 
-### Sub-projeto #5 — Telas secundárias (Estações/Trilhos, Notícias, Configurações)
+### Sub-projeto #5 — Telas secundárias (Estações/Trilhos, Notícias, Configurações) + Radar de Calor de Trânsito
 - **PR:** https://github.com/prontosantoslucas/busaisp/pull/5
 - **Branch:** `worktree-native-android-secondary-screens` (parte do topo da branch do sub-projeto #4)
 - **Spec:** `docs/superpowers/specs/2026-08-31-native-android-secondary-screens-design.md`
 - **Plano:** `docs/superpowers/plans/2026-08-31-native-android-secondary-screens.md`
-- **Entrega:** tela de status ao vivo das 13 linhas de metrô e trens da RMSP (`RailsScreen`) com cores oficiais e resumo operacional via `/api/trilhos/status`, feed unificado de avisos e notícias de mobilidade (`NewsScreen`) com filtros e modal de leitura via `/api/noticias`, tela de configurações e transparência de dados (`SettingsScreen`), e barra de navegação inferior com 5 abas integradas (Mapa, Rotas, Trilhos, Favoritos, Avisos).
-- **Status:** 5 tasks completas com TDD (`RailsRepositoryTest`, `NewsRepositoryTest`, `RailsViewModelTest`, `NewsViewModelTest`), `assembleDebug`, `testDebugUnitTest` e `assembleDebugAndroidTest` (85 tarefas executadas com 100% de sucesso).
+- **Entrega:** tela de status ao vivo das 13 linhas de metrô e trens da RMSP (`RailsScreen`) via `/api/trilhos/status`, feed unificado de avisos e notícias de mobilidade (`NewsScreen`) via `/api/noticias`, tela de configurações e transparência de dados (`SettingsScreen`), barra de navegação com 5 abas integradas (Mapa, Rotas, Trilhos, Favoritos, Avisos), e **Radar de Calor de Trânsito e Incidentes em Tempo Real** no mapa ao vivo (`MapScreen`/`LiveBusMap`) via `/api/transito/incidentes` com botão de fogo (🔥), cálculo de hotspots e halos de congestionamento sobre corredores da RMSP.
+- **Status:** 100% completo com TDD (`TrafficRepositoryTest`, `RailsRepositoryTest`, `NewsRepositoryTest`, `MapViewModelTest`, `RailsViewModelTest`, `NewsViewModelTest`), `assembleDebug`, `testDebugUnitTest` e `assembleDebugAndroidTest` verificados com sucesso.
 
 ## A.2. Como replicar o processo (funciona com qualquer ferramenta de IA, não é específico de skill)
 
