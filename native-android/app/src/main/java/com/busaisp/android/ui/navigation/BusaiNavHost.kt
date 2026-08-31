@@ -2,7 +2,9 @@ package com.busaisp.android.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DirectionsTransit
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -26,15 +28,21 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.busaisp.android.ui.favorites.FavoritesScreen
 import com.busaisp.android.ui.map.MapScreen
+import com.busaisp.android.ui.news.NewsScreen
+import com.busaisp.android.ui.rails.RailsScreen
 import com.busaisp.android.ui.routesearch.RouteDetailScreen
 import com.busaisp.android.ui.routesearch.RouteResultsScreen
 import com.busaisp.android.ui.routesearch.RouteSearchScreen
 import com.busaisp.android.ui.routesearch.RouteSearchViewModel
+import com.busaisp.android.ui.settings.SettingsScreen
 
 object BusaiDestinations {
     const val MAP = "map"
     const val ROUTE_SEARCH = "route_search"
+    const val RAILS = "rails"
     const val FAVORITES = "favorites"
+    const val NEWS = "news"
+    const val SETTINGS = "settings"
     const val ROUTE_RESULTS = "route_results"
     const val ROUTE_DETAIL = "route_detail/{planId}"
     fun routeDetail(planId: String) = "route_detail/$planId"
@@ -47,7 +55,17 @@ private data class BottomTab(val route: String, val label: String, val icon: and
 private val BOTTOM_TABS = listOf(
     BottomTab(BusaiDestinations.MAP, "Mapa", Icons.Filled.Map),
     BottomTab(BusaiDestinations.ROUTE_SEARCH, "Rotas", Icons.Filled.Route),
-    BottomTab(BusaiDestinations.FAVORITES, "Favoritos", Icons.Filled.Star)
+    BottomTab(BusaiDestinations.RAILS, "Trilhos", Icons.Filled.DirectionsTransit),
+    BottomTab(BusaiDestinations.FAVORITES, "Favoritos", Icons.Filled.Star),
+    BottomTab(BusaiDestinations.NEWS, "Avisos", Icons.Filled.Newspaper)
+)
+
+private val TOP_LEVEL_ROUTES = setOf(
+    BusaiDestinations.MAP,
+    BusaiDestinations.ROUTE_SEARCH,
+    BusaiDestinations.RAILS,
+    BusaiDestinations.FAVORITES,
+    BusaiDestinations.NEWS
 )
 
 @Composable
@@ -58,9 +76,7 @@ fun BusaiNavHost() {
 
     Scaffold(
         bottomBar = {
-            // A barra só faz sentido nas telas de topo (Mapa/Rotas/Favoritos) — a tela de
-            // resultados fica "dentro" da aba Rotas, sem a barra por cima.
-            if (currentRoute == BusaiDestinations.MAP || currentRoute == BusaiDestinations.ROUTE_SEARCH || currentRoute == BusaiDestinations.FAVORITES) {
+            if (currentRoute in TOP_LEVEL_ROUTES) {
                 NavigationBar {
                     BOTTOM_TABS.forEach { tab ->
                         NavigationBarItem(
@@ -93,8 +109,17 @@ fun BusaiNavHost() {
                     onRouteCalculated = { navController.navigate(BusaiDestinations.ROUTE_RESULTS) }
                 )
             }
+            composable(BusaiDestinations.RAILS) {
+                RailsScreen()
+            }
             composable(BusaiDestinations.FAVORITES) {
                 FavoritesScreen()
+            }
+            composable(BusaiDestinations.NEWS) {
+                NewsScreen()
+            }
+            composable(BusaiDestinations.SETTINGS) {
+                SettingsScreen()
             }
             composable(BusaiDestinations.ROUTE_RESULTS) {
                 val searchBackStackEntry = remember(it) {
