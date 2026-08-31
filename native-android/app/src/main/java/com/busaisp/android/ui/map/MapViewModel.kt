@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.busaisp.android.data.location.LocationClient
 import com.busaisp.android.data.repository.BusRepository
 import com.busaisp.android.data.repository.LineSearchRepository
-import com.busaisp.android.domain.interpolatePosition
 import com.busaisp.android.domain.model.Linha
-import com.busaisp.android.domain.model.Vehicle
 import com.busaisp.android.domain.model.VehiclesResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -96,28 +94,4 @@ class MapViewModel @Inject constructor(
             _lineSearchResults.value = lineSearchRepository.searchLinhas(query)
         }
     }
-
-    // interpolatePosition() é uma função pura que opera sobre um Vehicle completo,
-    // mas aqui só recebemos os campos soltos que a UI tem à mão. Construir um Vehicle
-    // "descartável" (prefix/accessible não entram no cálculo) só para reaproveitar a
-    // mesma fórmula é um pouco estranho, mas é intencional — não é engano de código,
-    // é o que o plano desta task especifica literalmente.
-    fun interpolatedPosition(
-        vehicleLat: Double,
-        vehicleLng: Double,
-        headingDegrees: Double?,
-        speedKmh: Double?,
-        lastUpdateEpochMs: Long
-    ) = interpolatePosition(
-        Vehicle(
-            prefix = "",
-            lat = vehicleLat,
-            lng = vehicleLng,
-            headingDegrees = headingDegrees,
-            speedKmh = speedKmh,
-            lastUpdateEpochMs = lastUpdateEpochMs,
-            accessible = false
-        ),
-        nowEpochMs = System.currentTimeMillis()
-    )
 }
