@@ -19,7 +19,7 @@
 - Test: `native-android/app/src/test/java/com/busaisp/android/data/favorites/FavoriteRepositoryTest.kt`
 - Modify: `native-android/gradle/libs.versions.toml`, `native-android/app/build.gradle.kts` (adicionar `androidx.datastore:datastore-preferences`)
 
-- [ ] **Step 1: Adicionar a dependência do DataStore**
+- [x] **Step 1: Adicionar a dependência do DataStore**
 
 Em `libs.versions.toml`, seção `[versions]`: `datastore = "1.1.1"` (ou a
 versão estável real mais recente, se essa não resolver — conferir antes de
@@ -27,7 +27,7 @@ seguir, mesmo processo de ajuste real usado no resto deste plano). Seção
 `[libraries]`: `androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }`.
 Em `app/build.gradle.kts`, dependências: `implementation(libs.androidx.datastore.preferences)`.
 
-- [ ] **Step 2: Modelo de domínio**
+- [x] **Step 2: Modelo de domínio**
 
 `domain/model/Favorite.kt`:
 ```kotlin
@@ -48,7 +48,7 @@ const val FAVORITE_HOME_REF_CODE = "home"
 const val FAVORITE_WORK_REF_CODE = "work"
 ```
 
-- [ ] **Step 3: Escrever o teste primeiro (falha esperada)**
+- [x] **Step 3: Escrever o teste primeiro (falha esperada)**
 
 `data/favorites/FavoriteRepositoryTest.kt`:
 ```kotlin
@@ -149,12 +149,12 @@ class FavoriteRepositoryTest {
 (precisa de `import androidx.datastore.preferences.core.edit` no teste do
 payload corrompido)
 
-- [ ] **Step 2: Rodar e confirmar falha**
+- [x] **Step 2: Rodar e confirmar falha**
 
 Run: `.\gradlew.bat testDebugUnitTest --tests "com.busaisp.android.data.favorites.FavoriteRepositoryTest"`
 Expected: FAIL — `DataStoreFavoriteRepository`/`FavoriteRepository` ainda não existem.
 
-- [ ] **Step 4: Implementar**
+- [x] **Step 4: Implementar**
 
 `data/favorites/FavoriteRepository.kt`:
 ```kotlin
@@ -291,12 +291,12 @@ abstract class FavoritesRepositoryModule {
 }
 ```
 
-- [ ] **Step 5: Rodar de novo e confirmar sucesso**
+- [x] **Step 5: Rodar de novo e confirmar sucesso**
 
 Run: `.\gradlew.bat testDebugUnitTest --tests "com.busaisp.android.data.favorites.FavoriteRepositoryTest"`
 Expected: `BUILD SUCCESSFUL`, 5 testes passando.
 
-- [ ] **Step 6: Build completo e commit**
+- [x] **Step 6: Build completo e commit**
 
 Run: `.\gradlew.bat assembleDebug testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`, 45+5=50 testes.
 
@@ -313,7 +313,7 @@ git commit -m "feat(native-android): FavoriteRepository local via DataStore (TDD
 - Create: `native-android/app/src/main/java/com/busaisp/android/ui/favorites/FavoritesViewModel.kt`
 - Test: `native-android/app/src/test/java/com/busaisp/android/ui/favorites/FavoritesViewModelTest.kt`
 
-- [ ] **Step 1: Escrever o teste primeiro**
+- [x] **Step 1: Escrever o teste primeiro**
 
 `ui/favorites/FavoritesViewModelTest.kt`:
 ```kotlin
@@ -395,7 +395,7 @@ class FavoritesViewModelTest {
 }
 ```
 
-- [ ] **Step 2: Rodar e confirmar falha, depois implementar**
+- [x] **Step 2: Rodar e confirmar falha, depois implementar**
 
 `ui/favorites/FavoritesViewModel.kt`:
 ```kotlin
@@ -458,7 +458,7 @@ class FavoritesViewModel @Inject constructor(
 }
 ```
 
-- [ ] **Step 3: Confirmar testes passando e build completo**
+- [x] **Step 3: Confirmar testes passando e build completo**
 
 Run: `.\gradlew.bat assembleDebug testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`, 50+3=53 testes.
 
@@ -475,7 +475,7 @@ git commit -m "feat(native-android): FavoritesViewModel com Casa/Trabalho reais 
 - Create: `native-android/app/src/main/java/com/busaisp/android/ui/favorites/FavoritesScreen.kt`
 - Modify: `native-android/app/src/main/java/com/busaisp/android/ui/navigation/BusaiNavHost.kt`
 
-- [ ] **Step 1: Tela de Favoritos**
+- [x] **Step 1: Tela de Favoritos**
 
 `ui/favorites/FavoritesScreen.kt`:
 ```kotlin
@@ -602,7 +602,7 @@ resetado (`emptyList()`) pelo próprio `onOriginChanged` na próxima vez que a
 tela de busca for aberta com uma query diferente. Isso evita duplicar a
 lógica de autocomplete de endereço só pra esta tela.
 
-- [ ] **Step 2: Adicionar a 3ª aba e o destino**
+- [x] **Step 2: Adicionar a 3ª aba e o destino**
 
 Em `BusaiNavHost.kt`: adicionar `FAVORITES = "favorites"` a
 `BusaiDestinations`; adicionar `BottomTab(BusaiDestinations.FAVORITES, "Favoritos", Icons.Filled.Star)`
@@ -610,7 +610,7 @@ a `BOTTOM_TABS`; adicionar `composable(BusaiDestinations.FAVORITES) { FavoritesS
 incluir `BusaiDestinations.FAVORITES` na condição que decide mostrar a barra
 inferior (hoje só `MAP`/`ROUTE_SEARCH` — adicionar `FAVORITES` à lista).
 
-- [ ] **Step 3: Build completo e commit**
+- [x] **Step 3: Build completo e commit**
 
 Run: `.\gradlew.bat assembleDebug testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
 
@@ -628,14 +628,14 @@ git commit -m "feat(native-android): tela de Favoritos com Casa/Trabalho editave
 - Modify: `native-android/app/src/main/java/com/busaisp/android/ui/routesearch/RouteResultsScreen.kt`
 - Modify: `native-android/app/src/main/java/com/busaisp/android/ui/routesearch/RouteSearchScreen.kt`
 
-- [ ] **Step 1: `RoutePlanCard` ganha estrela real de favoritar**
+- [x] **Step 1: `RoutePlanCard` ganha estrela real de favoritar**
 
 Adicionar parâmetros `isFavorited: Boolean` e `onToggleFavorite: () -> Unit`
 a `RoutePlanCard`, e um `IconButton` (ícone de estrela preenchida/vazia
 conforme `isFavorited`) posicionado no canto do card, chamando
 `onToggleFavorite` ao tocar.
 
-- [ ] **Step 2: `RouteResultsScreen` calcula o estado real de favorito por card**
+- [x] **Step 2: `RouteResultsScreen` calcula o estado real de favorito por card**
 
 Adicionar `favoritesViewModel: FavoritesViewModel = hiltViewModel()`
 (escopo padrão da tela — não precisa ser compartilhado com `RouteSearchViewModel`,
@@ -645,7 +645,7 @@ calcular `isFavorited = favorites.any { it.type == FavoriteType.LINHA && it.refC
 e `onToggleFavorite = { favoritesViewModel.toggleFavorite(Favorite(FavoriteType.LINHA, plan.recommendedLine.codigo.toString(), "${plan.recommendedLine.letreiro} ${plan.destination.name}", "Rota")) }`
 — mesma lógica real do app web (`page.tsx:405-414`), só traduzida.
 
-- [ ] **Step 3: Atalhos de Casa/Trabalho na tela de busca**
+- [x] **Step 3: Atalhos de Casa/Trabalho na tela de busca**
 
 Em `RouteSearchScreen.kt`, adicionar `favoritesViewModel: FavoritesViewModel = hiltViewModel()`,
 coletar `homeAddress`/`workAddress`, e mostrar 2 `FilterChip`s (só se o
@@ -654,7 +654,7 @@ respectivo endereço existir) acima do campo de origem — tocar num chip chama
 diretamente (preenchendo o campo de origem com o endereço real salvo, sem
 precisar digitar).
 
-- [ ] **Step 4: Build completo e commit**
+- [x] **Step 4: Build completo e commit**
 
 Run: `.\gradlew.bat assembleDebug testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
 
@@ -670,7 +670,7 @@ git commit -m "feat(native-android): favoritar rota real na lista de resultados 
 **Files:**
 - Test: `native-android/app/src/androidTest/java/com/busaisp/android/ui/favorites/FavoritesScreenTest.kt`
 
-- [ ] **Step 1: Escrever testes reais de UI (mesmo padrão dos sub-projetos anteriores — fakes via parâmetro, sem Hilt-testing)**
+- [x] **Step 1: Escrever testes reais de UI (mesmo padrão dos sub-projetos anteriores — fakes via parâmetro, sem Hilt-testing)**
 
 Cobrir: tela renderiza sem lançar exceção; definir Casa via busca real
 salva e reflete no slot; remover uma rota favorita da lista funciona.
@@ -678,18 +678,18 @@ Seguir exatamente o padrão de `RouteSearchScreenTest.kt` (fakes de
 `FavoriteRepository`/`RouteRepository`/`LocationClient`, `viewModel =`
 como override explícito).
 
-- [ ] **Step 2: Tentar `connectedDebugAndroidTest` e documentar honestamente o resultado esperado de "sem dispositivo"**
+- [x] **Step 2: Tentar `connectedDebugAndroidTest` e documentar honestamente o resultado esperado de "sem dispositivo"**
 
 Mesma disciplina de todas as tasks de teste de UI deste projeto.
 
-- [ ] **Step 3: Commit dos testes**
+- [x] **Step 3: Commit dos testes**
 
 ```bash
 git add native-android/app/src/androidTest/java/com/busaisp/android/ui/favorites/
 git commit -m "test(native-android): testes de UI reais da tela de Favoritos"
 ```
 
-- [ ] **Step 4: Revisão holística** — reler o diff inteiro do sub-projeto,
+- [x] **Step 4: Revisão holística** — reler o diff inteiro do sub-projeto,
 traçar o fluxo real (favoritar uma rota → aparece na aba Favoritos →
 definir Casa/Trabalho → atalho aparece na busca → usar atalho preenche
 origem real), rodar `.\gradlew.bat clean assembleDebug testDebugUnitTest`
