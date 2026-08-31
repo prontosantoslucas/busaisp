@@ -1,5 +1,6 @@
 package com.busaisp.android.ui.routesearch
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,30 +26,36 @@ fun RouteDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    IconButton(onClick = onBack) {
-        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
-    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+        }
 
-    val state = uiState
-    if (state !is RouteSearchUiState.Results) {
-        Text("Resultado não disponível", modifier = Modifier.padding(16.dp))
-        return
-    }
+        val state = uiState
+        if (state !is RouteSearchUiState.Results) {
+            Text("Resultado não disponível", modifier = Modifier.padding(16.dp))
+            return
+        }
 
-    // planId chega como String pela navegação (não dá pra passar o RoutePlan
-    // inteiro como argumento) — o plano de verdade é procurado no resultado
-    // já calculado, que vive no RouteSearchViewModel compartilhado.
-    val plan = (listOf(state.result.primaryRoute) + state.result.alternatives)
-        .firstOrNull { it.id == planId }
+        // planId chega como String pela navegação (não dá pra passar o RoutePlan
+        // inteiro como argumento) — o plano de verdade é procurado no resultado
+        // já calculado, que vive no RouteSearchViewModel compartilhado.
+        val plan = (listOf(state.result.primaryRoute) + state.result.alternatives)
+            .firstOrNull { it.id == planId }
 
-    if (plan == null) {
-        Text("Rota não encontrada", modifier = Modifier.padding(16.dp))
-        return
-    }
+        if (plan == null) {
+            Text("Rota não encontrada", modifier = Modifier.padding(16.dp))
+            return
+        }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        items(plan.steps, key = { it.instruction + it.type }) { step ->
-            RouteStepRow(step = step)
+        // Índice incluído na key: dois passos estruturalmente idênticos em
+        // sequência (ex.: duas caminhadas curtas seguidas) produziriam a mesma
+        // "instruction + type" e derrubariam o LazyColumn (key duplicada não é
+        // permitida).
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            items(plan.steps.withIndex().toList(), key = { (index, step) -> "$index-${step.instruction}-${step.type}" }) { (_, step) ->
+                RouteStepRow(step = step)
+            }
         }
     }
 }

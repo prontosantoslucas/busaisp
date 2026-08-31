@@ -39,7 +39,9 @@ fun AddressField(
         }
         if (suggestions.isNotEmpty()) {
             LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                items(suggestions, key = { it.name + it.lat + it.lng }) { suggestion ->
+                // Índice incluído na key: duas sugestões com mesmo nome/lat/lng
+                // (dado plausível vindo do backend) derrubariam o LazyColumn.
+                items(suggestions.withIndex().toList(), key = { (index, s) -> "$index-${s.name}-${s.lat}-${s.lng}" }) { (_, suggestion) ->
                     Text(
                         text = suggestion.name,
                         modifier = Modifier
