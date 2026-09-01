@@ -7,6 +7,15 @@ sem acesso ao histórico de conversa que gerou este estado.
 
 ## 🔔 Leia isto primeiro — resumo da sessão de 2026-09-01
 
+- **Pedido do usuário, ainda NÃO implementado de propósito** ("save isso
+  para implementarmos posteriormente"): sistema de pagamento único via Pix
+  (Mercado Pago), R$ 7,89, 7 dias de trial. Spec completo e aprovado em
+  `docs/superpowers/specs/2026-09-01-native-android-pix-payment-design.md`
+  — leia antes de começar, já tem toda arquitetura decidida (vínculo por
+  device ID anônimo + recuperação por CPF/e-mail, endpoints do backend,
+  webhook do Mercado Pago, etc.). **Pré-requisito pendente do usuário**:
+  pegar o Access Token de produção no painel do Mercado Pago antes de
+  qualquer código ser escrito — não implementar sem isso.
 - **A migração Android nativa (Parte A) foi 100% mesclada na `master` e
   enviada pro GitHub.** As 5 PRs (#1-#5) aparecem como `MERGED` no GitHub —
   o histórico delas já está contido na `master` (commit `b47e2d2`), então
