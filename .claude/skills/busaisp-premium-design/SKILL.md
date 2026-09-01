@@ -4,10 +4,16 @@ description: Use whenever building, redesigning, or polishing any visual/UI surf
 ---
 
 O app Android do BusaÍ SP já tem um sistema de design deliberado, não uma base
-em branco: paleta dark-first (`AppColors`/`LineColors`), fontes IBM Plex, um
-reskin real do mapa (`MapDarkPalette.kt`) e pelo menos uma animação de pulso já
-implementada (`MapScreen.kt`, botão de localização). O maior risco ao "deixar
-mais bonito" não é falta de ideias — é redesenhar por cima do que já existe sem
+em branco: paleta dark-first (`AppColors`/`LineColors`), fontes IBM Plex e um
+reskin real do mapa (`MapDarkPalette.kt`). Mas "já existe sistema" não é o
+mesmo que "já está tudo aplicado" — uma auditoria completa (2026-09-01)
+encontrou zero animação não-linear em código real fora de um único lugar
+(`VehicleDetailSheet.kt`), `AppColors.LiveAmber` vazando pra `colorScheme.primary`
+do app inteiro (diluindo a própria convenção "âmbar = GPS ao vivo" documentada
+no código), e um token de tipografia dedicado (`EtaCounterStyle`) definido e
+nunca usado. Ou seja: o sistema existe, mas está subaplicado — não presuma que
+uma tela específica já segue os próprios padrões do app só porque outra segue.
+O maior risco ao "deixar mais bonito" não é falta de ideias — é redesenhar por cima do que já existe sem
 perceber, produzindo um sistema inconsistente ou revertendo uma decisão que já
 foi tomada de propósito. Isso já aconteceu de verdade neste projeto (no app
 web, mas o padrão vale igual aqui): um agente propôs "adicionar glassmorphism"
@@ -30,10 +36,13 @@ agente (ou você mesmo, na próxima sessão) vai ter que reconciliar.
 - Leia `native-android/app/src/main/java/com/busaisp/android/ui/theme/{Color,Theme,Type}.kt`
   — `AppColors` (paleta dark-first) e `LineColors` (cores oficiais de Metrô/CPTM
   de SP), e confira as fontes IBM Plex já empacotadas em `app/src/main/res/font/`.
-- Se a tela que você vai mexer já foi "reskinada" ou já tem alguma animação
-  (ex.: o reskin dark do MapLibre em `.../ui/map/MapDarkPalette.kt`, ou o pulso
-  no botão de localização em `MapScreen.kt`), trate esse trabalho como fonte de
-  verdade do padrão a seguir, não como algo a redescobrir do zero.
+- Se a tela que você vai mexer já foi "reskinada" ou já tem alguma animação de
+  verdade (ex.: o reskin dark do MapLibre em `.../ui/map/MapDarkPalette.kt`, ou
+  o `spring(dampingRatio = Spring.DampingRatioMediumBouncy)` já aplicado em
+  `VehicleDetailSheet.kt`), trate esse trabalho como fonte de verdade do padrão
+  a seguir, não como algo a redescobrir do zero. Mas não assuma que esse padrão
+  já foi aplicado em outras telas só porque existe em uma — confirme tela por
+  tela (ver `references/design-tokens.md` pra lista do que já foi checado).
 - **Cheque o `git log`/`git show` do arquivo antes de reverter algo que parece
   "básico" ou "sem graça"**. Um visual simples pode ser dívida técnica — ou pode
   ser uma decisão de legibilidade/performance tomada de propósito. Ver
@@ -68,11 +77,14 @@ concretos e verificáveis em Compose, não em adjetivos:
   `dampingRatio` (ex.: `Spring.DampingRatioMediumBouncy`, já usado em
   `VehicleDetailSheet.kt` — reuse esse padrão em vez de inventar outro).
 - **Dado ao vivo respira, não pisca**: posição de ônibus, GPS do usuário,
-  contadores de ETA — interpolação contínua entre atualizações (já existe,
-  `interpolatePosition`), nunca um salto de posição a cada ping. Um pulso de
-  "ao vivo" só deveria animar enquanto o dado que ele representa existe de
-  verdade (ex.: o pulso do botão de localização só roda quando
-  `userLocation != null` — não é decoração, é honestidade visual).
+  contadores de ETA — interpolação contínua entre atualizações. A matemática
+  já existe (`interpolatePosition`), mas a cadência de renderização hoje ainda
+  é 1x/segundo (`BUS_INTERPOLATION_TICK_MS` em `LiveBusMap.kt`), o que ainda lê
+  como pulo, não deslize — se for mexer nisso, o alvo é reduzir esse intervalo
+  ou animar a posição na tela entre ticks. Qualquer pulso de "ao vivo" que vier
+  a ser adicionado só deveria animar enquanto o dado que ele representa existe
+  de verdade (ex.: só rodar quando `userLocation != null`) — não é decoração,
+  é honestidade visual.
 - **Câmera nunca corta**: centralizar/seguir o usuário ou um ônibus é sempre
   `easeCamera`/animação, nunca um corte instantâneo de posição.
 - **Feedback de toque imediato**: todo elemento tocável reage em <100ms (scale
@@ -85,12 +97,18 @@ concretos e verificáveis em Compose, não em adjetivos:
   GPS).
 - **Hierarquia tipográfica com contraste real**: números que importam (ETA,
   distância, contagem de estações) em peso/tamanho claramente maior que o
-  texto de apoio ao redor — não tudo em `bodyMedium` disputando atenção.
-- **Um único acento por intenção, usado com disciplina**: âmbar já significa
-  "GPS ao vivo" neste app (`AppColors.LiveAmber`) — não reusar âmbar pra
-  "atenção genérica" nem introduzir um segundo tom de âmbar pra outra coisa. A
-  força de um acento vem de ele significar sempre a mesma coisa em todas as
-  telas.
+  texto de apoio ao redor — não tudo em `bodyMedium` disputando atenção. O app
+  já tem `EtaCounterStyle` (IBM Plex Mono) definido em `Type.kt` exatamente pra
+  isso, mas nenhuma tela usa ainda — prefira adotar esse token a inventar outro
+  estilo do zero.
+- **Um único acento por intenção, usado com disciplina**: âmbar deveria
+  significar só "GPS ao vivo" neste app (`AppColors.LiveAmber`) — mas hoje
+  `Theme.kt` liga `LiveAmber` direto em `colorScheme.primary`, então ele pinta
+  botão/foco de campo/etc. em telas sem GPS nenhum (Notícias, Configurações,
+  Navegação Ativa). Ao mexer numa tela nova, não herde `colorScheme.primary`
+  cegamente achando que é uma cor neutra — confira se ali é de fato dado ao
+  vivo antes de deixar âmbar aparecer. Corrigir esse vazamento na raiz
+  (`Theme.kt`) é uma correção estrutural válida, não um "nice to have".
 - **Performance é parte do design, não um afterthought**: evite recomposição
   em cascata em loops de atualização (posição de ônibus, polling) usando
   `remember`/`derivedStateOf`; anime propriedades de `graphicsLayer`

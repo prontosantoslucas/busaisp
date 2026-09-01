@@ -20,14 +20,36 @@ nativo (`native-android/`). O app web (`src/`) tem seu próprio sistema
   seguir, não a começar do zero.
 - **Animação de interpolação de posição real**: `interpolatePosition` (domain
   layer) — usado por `LiveBusMap.kt` para mover ônibus continuamente entre
-  pings de GPS, não em saltos.
-- **Pulso de "ao vivo" já implementado**: `MapScreen.kt`, botão de
-  localização atual — anima só enquanto `userLocation != null`, usando
-  easing não-linear (não `LinearEasing`). Precedente pra qualquer outro
-  indicador "ao vivo" que for adicionado.
-- **Spring com bounce já usado**: `VehicleDetailSheet.kt` —
-  `spring(dampingRatio = Spring.DampingRatioMediumBouncy)`. Reuse esse padrão
-  em vez de inventar outra curva pra gestos/expansão de painel.
+  pings de GPS (a matemática é contínua). **Ressalva real (auditoria de
+  2026-09-01)**: a fonte do MapLibre só é atualizada 1x/segundo
+  (`BUS_INTERPOLATION_TICK_MS`), então o resultado na tela ainda é um "pulo"
+  perceptível, não um deslizar fluido — a matemática está certa, a cadência de
+  renderização é que precisa melhorar.
+- **Spring com bounce já usado, de verdade**: `VehicleDetailSheet.kt` —
+  `animateContentSize(spring(dampingRatio = Spring.DampingRatioMediumBouncy))`,
+  aplicado de verdade na expansão/colapso do painel (confirmado, não
+  decorativo). É o único exemplo real de easing não-linear em todo o app hoje
+  — reuse esse padrão em vez de inventar outra curva.
+- ⚠️ **Não existe pulso de "ao vivo" implementado em lugar nenhum do app real
+  ainda** (correção de uma versão anterior desta doc, que citava
+  erroneamente um pulso no botão de localização de `MapScreen.kt` como já
+  pronto — isso só existe num worktree de teste descartável usado pra avaliar
+  esta skill, `.claude/skills/busaisp-premium-design-workspace/`, nunca foi
+  mesclado no app real). `FloatingPillButton.kt` hoje é estático, só ripple
+  padrão do Material. Isso é uma lacuna real a implementar, não um precedente
+  a seguir.
+- ⚠️ **`AppColors.LiveAmber` está diluído**: `Theme.kt` usa `LiveAmber` como
+  `colorScheme.primary` do app inteiro, então ele pinta botões, foco de
+  campo de texto, etc. em várias telas sem relação nenhuma com GPS ao vivo
+  (confirmado em `ActiveNavigationScreen.kt`, `NewsScreen.kt`,
+  `SettingsScreen.kt`). A convenção "âmbar = GPS ao vivo" documentada no
+  comentário de `MapDarkPalette.kt` só se sustenta de fato na camada do mapa
+  — em qualquer nova tela, não assuma que `colorScheme.primary` é seguro pra
+  usar como se fosse neutro.
+- `EtaCounterStyle` (IBM Plex Mono, em `Type.kt`) existe, documentado
+  explicitamente pra números de ETA/contadores/código de linha — mas não é
+  usado em nenhuma tela ainda (nem `VehicleDetailSheet`, nem os cards de rota).
+  É um token órfão à espera de ser adotado, não algo já resolvido.
 
 ## Antes de assumir que algo "básico" é falta de polish
 
