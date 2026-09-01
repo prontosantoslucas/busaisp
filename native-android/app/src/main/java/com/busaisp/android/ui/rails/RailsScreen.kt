@@ -14,7 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -89,16 +93,39 @@ private fun RailsContent(data: RailsData) {
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
                     .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text("Resumo das Linhas", style = MaterialTheme.typography.titleMedium)
-                    Text("Atualizado às ${data.summary.lastChecked} · ${data.summary.source}", style = MaterialTheme.typography.bodySmall)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(AppColors.OnRouteEmerald, CircleShape)
+                        )
+                        Text(
+                            text = " Atualizado às ${data.summary.lastChecked} · ${data.summary.source}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                        )
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${data.summary.normal} normais", color = AppColors.OnRouteEmerald, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "${data.summary.normal} normais",
+                        color = AppColors.OnRouteEmerald,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                     if (data.summary.withIssues > 0) {
-                        Text(" · ${data.summary.withIssues} com lentidão", color = AppColors.OffRouteRed, style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            " · ${data.summary.withIssues} atenção",
+                            color = AppColors.LiveAmber,
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
             }
@@ -120,6 +147,15 @@ private fun RailLineCard(line: RailLine) {
 
     val isLightColor = (0.299 * parsedColor.red + 0.587 * parsedColor.green + 0.114 * parsedColor.blue) > 0.65
     val numberTextColor = if (isLightColor) Color.Black else Color.White
+
+    val (statusColor, statusIcon) = when (line.status) {
+        RailStatusType.NORMAL -> AppColors.OnRouteEmerald to Icons.Filled.CheckCircle
+        RailStatusType.VELOCIDADE_REDUZIDA -> AppColors.LiveAmber to Icons.Filled.AccessTime
+        RailStatusType.OPERACAO_PARCIAL -> Color(0xFFEA580C) to Icons.Filled.Warning
+        RailStatusType.PARALISADA -> AppColors.OffRouteRed to Icons.Filled.Block
+        RailStatusType.ENCERRADA -> AppColors.NoDataGray to Icons.Filled.Nightlight
+        RailStatusType.DESCONHECIDO -> AppColors.NoDataGray to Icons.Filled.HelpOutline
+    }
 
     val isNormal = line.status == RailStatusType.NORMAL
 
@@ -156,14 +192,14 @@ private fun RailLineCard(line: RailLine) {
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = if (isNormal) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                    imageVector = statusIcon,
                     contentDescription = line.statusText,
-                    tint = if (isNormal) AppColors.OnRouteEmerald else AppColors.OffRouteRed,
+                    tint = statusColor,
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
                     text = line.statusText,
-                    color = if (isNormal) AppColors.OnRouteEmerald else AppColors.OffRouteRed,
+                    color = statusColor,
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(start = 6.dp)
                 )
@@ -174,6 +210,7 @@ private fun RailLineCard(line: RailLine) {
             Text(
                 text = line.description,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                 modifier = Modifier.padding(top = 8.dp)
             )
         }

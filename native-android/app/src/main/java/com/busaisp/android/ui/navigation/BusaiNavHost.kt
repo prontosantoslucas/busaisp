@@ -1,5 +1,10 @@
 package com.busaisp.android.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsTransit
@@ -99,7 +104,11 @@ fun BusaiNavHost() {
         NavHost(
             navController = navController,
             startDestination = BusaiDestinations.MAP,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = { fadeIn(animationSpec = tween(220)) + slideInHorizontally(animationSpec = tween(220)) { it / 8 } },
+            exitTransition = { fadeOut(animationSpec = tween(180)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(220)) + slideInHorizontally(animationSpec = tween(220)) { -it / 8 } },
+            popExitTransition = { fadeOut(animationSpec = tween(180)) }
         ) {
             composable(BusaiDestinations.MAP) {
                 MapScreen()
