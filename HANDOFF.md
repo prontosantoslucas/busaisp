@@ -14,11 +14,24 @@ sem acesso ao histórico de conversa que gerou este estado.
 - **Prioridade atual do usuário: o app Android nativo (o APK), não o app
   web.** Se não houver instrução explícita em contrário, trabalhe em
   `native-android/`.
-- **Achado crítico corrigido nesta sessão:** o mapa ao vivo do Android usava
-  o estilo padrão claro/genérico do OpenFreeMap ("Liberty") em vez de um
-  visual dark-first — corrigido em `native-android/.../ui/map/MapDarkPalette.kt`
-  (commit `2287d4d`). Se você é uma ferramenta nova chegando aqui, **não
-  reverta isso** achando que é "só o estilo padrão do mapa".
+- **Redesign visual concluído nesta sessão: azul claro + branco, tema único
+  (não alterna mais com o sistema).** Spec completo em
+  `docs/superpowers/specs/2026-09-01-native-android-visual-redesign-design.md`.
+  Histórico pra quem chegar depois: uma primeira tentativa de reskin
+  **dark-first** só no mapa (`2287d4d`) foi revertida (`2e101c0`) porque
+  destoava do resto do app, que era Material default sem identidade forte —
+  isso levou a uma decisão de design pra aplicação inteira, não mais reskins
+  isolados por tela. **Não reintroduza o tema escuro/alternância com o
+  sistema sem confirmar com o usuário primeiro** — foi removido de propósito.
+  `Theme.kt` hoje é um único `lightColorScheme` com `primary =
+  AppColors.UserLocationBlue`. O mapa usa só um toque leve de cor
+  (`ui/map/MapLightPalette.kt`) — água/parques com wash translúcido do azul/
+  verde já existentes, resto com a aparência nativa do provedor "Liberty".
+- **Busca de linha de Metrô/CPTM no mapa agora funciona de forma honesta**:
+  não há posição de trem em tempo real pra mostrar (só ônibus tem GPS via
+  SPTrans), então a busca reconhece o nome/código da linha
+  (`ui/map/RailLineMatcher.kt`) e oferece navegar pra Trilhos (status real)
+  em vez de devolver resultados de ônibus confusos.
 - **A Parte B abaixo (app web) tem seções marcadas como "PRÓXIMA TAREFA" ou
   "NÃO INICIADO" que na verdade JÁ FORAM IMPLEMENTADAS há semanas** (Fase 2 —
   baldeação, destinos populares reais, remoção do modo demo) — isso foi
@@ -32,18 +45,25 @@ sem acesso ao histórico de conversa que gerou este estado.
   Code devem ler esse arquivo como documentação normal antes de mexer em
   qualquer UI do app Android; os princípios nele valem independente da
   ferramenta.
-- **Auditoria completa de UX/UI de todas as 9 telas do app Android** foi
-  feita nesta sessão e está na nova seção **"PARTE C" abaixo**, com achados
-  concretos arquivo-por-arquivo prontos pra virar tarefas — comece por ali
-  se a próxima tarefa for "deixar o app mais bonito"/"nível Uber".
-- **Trabalho em andamento não commitado do usuário**, não mexer sem
-  perguntar: `src/app/page.tsx`, `src/components/Map/LiveMap.tsx`,
-  `src/components/Navigation/TransitHeader.tsx`, `src/lib/railRouting.ts`,
-  `src/lib/routing.ts`, `src/lib/stationsData.ts`, `src/lib/trilhos.ts`,
-  `src/app/api/rotas/route.ts`, mais os arquivos novos `src/lib/railLinesGeometry.ts`
-  e `src/lib/railRouting.test.ts`. Parece ser implementação de um plano de
-  roteamento multimodal de trilhos (Metrô/CPTM) — **é trabalho do usuário em
-  progresso, confirme com ele antes de alterar ou commitar esses arquivos.**
+- **A auditoria de UX/UI das 9 telas (PARTE C abaixo) já foi majoritariamente
+  endereçada** — parte pelo usuário diretamente (commits `26cb4b1`,
+  `debbc7b`, `2faf548`: skeleton loading, tiers de status em Trilhos,
+  transições no NavHost, fitBounds de linha no mapa, tipografia
+  `EtaCounterStyle`) e parte nesta sessão (paleta, busca de metrô, feedback
+  de toque no `FloatingPillButton`). A seção PARTE C foi mantida como
+  registro histórico do que foi encontrado — **confira o código real antes
+  de assumir que um item específico ainda está pendente**, várias coisas lá
+  já foram corrigidas por um caminho diferente do que a seção sugere.
+- Branches de worktree de uma tentativa anterior de recuperar/terminar esses
+  fixes (`worktree-agent-*`, 3 branches) ficaram **obsoletas e não foram
+  mescladas** — o usuário já tinha implementado equivalente ou melhor por
+  conta própria enquanto essas rodavam em paralelo. Podem ser descartadas,
+  não representam trabalho perdido.
+- O trabalho do usuário no app web que antes estava não commitado (roteamento
+  multimodal de trilhos com baldeação, traçado vetorial, geocoding
+  resiliente) **já foi commitado por ele mesmo** (`26cb4b1`) — não é mais
+  "em progresso pendente", já está na `master`. `git log -- src/lib/railRouting.ts`
+  se precisar entender a evolução.
 - **Branches obsoletas, aguardando decisão do usuário pra limpar**:
   `worktree-transfer-routing` (tem mudanças não commitadas — uma abordagem
   alternativa pra baldeação que acabou sendo implementada de outro jeito,
