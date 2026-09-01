@@ -1,5 +1,9 @@
 package com.busaisp.android.ui.routesearch
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.busaisp.android.domain.model.RouteLocation
@@ -43,6 +49,35 @@ fun RouteSearchScreen(
 
     var originQuery by remember { mutableStateOf("") }
     var destinationQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            originQuery = "Minha Localização"
+            viewModel.useCurrentLocationAsOrigin()
+        }
+    }
+
+    // Preenche a origem com a localização atual assim que a tela abre — antes
+    // exigia um toque manual em "Usar minha localização atual", diferente do
+    // que apps de mobilidade (Uber/Waze) fazem por padrão. Só dispara uma vez
+    // (LaunchedEffect(Unit)) e só se a origem ainda estiver vazia — não
+    // sobrescreve Casa/Trabalho ou algo já digitado, nem repete ao voltar de
+    // Resultados pra esta tela.
+    LaunchedEffect(Unit) {
+        if (originQuery.isNotBlank()) return@LaunchedEffect
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            originQuery = "Minha Localização"
+            viewModel.useCurrentLocationAsOrigin()
+        } else {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
 
     // O RouteSearchViewModel é compartilhado (escopado à rota ROUTE_SEARCH) e
     // sobrevive à navegação — ao voltar de RouteResultsScreen/RouteDetailScreen,

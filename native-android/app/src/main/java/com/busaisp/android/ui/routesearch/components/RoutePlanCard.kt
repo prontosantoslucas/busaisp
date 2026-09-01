@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.busaisp.android.domain.model.RoutePlan
+import com.busaisp.android.ui.routesearch.formatDurationMinutes
 import com.busaisp.android.ui.theme.AppColors
 import com.busaisp.android.ui.theme.EtaCounterStyle
 import com.busaisp.android.ui.theme.LineColors
@@ -52,7 +53,7 @@ fun RoutePlanCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${plan.totalDurationMinutes} min",
+                    text = formatDurationMinutes(plan.totalDurationMinutes),
                     style = EtaCounterStyle,
                     color = MaterialTheme.colorScheme.onSurface
                 )
