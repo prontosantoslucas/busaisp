@@ -1,0 +1,26 @@
+{
+  "skill_name": "busaisp-premium-design",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "route-card-web-uber-polish",
+      "prompt": "Melhora a UX do card de resultado de rota no app web (src/components/Transit/TransitRouteResults.tsx), quero algo no nível do Uber.",
+      "expected_output": "Mudanças reais no componente que reusam os tokens --bus-* já existentes em globals.css (cor, sombra, raio) em vez de introduzir uma paleta nova, adicionam motion com física de mola/easing não-linear (não fade linear genérico), e citam explicitamente o que já existia no design system antes de propor a mudança.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "eval_name": "android-radar-pulse-button",
+      "prompt": "Adiciona uma animação de pulso tipo radar no botão de localização atual do mapa nativo Android (native-android/app/src/main/java/com/busaisp/android/ui/map/MapScreen.kt, o FloatingPillButton de MyLocation).",
+      "expected_output": "Implementação Compose real usando spring()/animação não-linear, cores derivadas de AppColors (não hardcoded novas), e evidência de ter lido o design system Android (Color.kt/MapDarkPalette.kt) antes de implementar.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "eval_name": "transithomehub-premium-redesign",
+      "prompt": "Redesenha a tela inicial (src/components/Transit/TransitHomeHub.tsx) pra parecer mais premium, com glassmorphism e melhores animações, no nível de Uber/Waze.",
+      "expected_output": "Reconhece explicitamente que chips de destino reais, glass/backdrop-blur e algumas animações já existem no componente/design system antes de propor mudanças, evita recriar uma paleta quase-duplicada, e foca esforço em gaps reais de polish em vez de reescrever do zero.",
+      "files": []
+    }
+  ]
+}
