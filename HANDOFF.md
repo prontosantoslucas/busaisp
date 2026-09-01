@@ -1,9 +1,55 @@
 # HANDOFF — BusaÍ SP (estado atual e o que falta)
 
-Documento de passagem de contexto. Última atualização em 2026-08-31 pela
+Documento de passagem de contexto. Última atualização em 2026-09-01 pela
 Claude — escrito para que qualquer ferramenta de IA (Gemini, outra sessão
 Claude, etc.) ou um humano consiga continuar exatamente de onde parou, mesmo
 sem acesso ao histórico de conversa que gerou este estado.
+
+## 🔔 Leia isto primeiro — resumo da sessão de 2026-09-01
+
+- **A migração Android nativa (Parte A) foi 100% mesclada na `master` e
+  enviada pro GitHub.** As 5 PRs (#1-#5) aparecem como `MERGED` no GitHub —
+  o histórico delas já está contido na `master` (commit `b47e2d2`), então
+  não precisam de ação nenhuma, só referência histórica agora.
+- **Prioridade atual do usuário: o app Android nativo (o APK), não o app
+  web.** Se não houver instrução explícita em contrário, trabalhe em
+  `native-android/`.
+- **Achado crítico corrigido nesta sessão:** o mapa ao vivo do Android usava
+  o estilo padrão claro/genérico do OpenFreeMap ("Liberty") em vez de um
+  visual dark-first — corrigido em `native-android/.../ui/map/MapDarkPalette.kt`
+  (commit `2287d4d`). Se você é uma ferramenta nova chegando aqui, **não
+  reverta isso** achando que é "só o estilo padrão do mapa".
+- **A Parte B abaixo (app web) tem seções marcadas como "PRÓXIMA TAREFA" ou
+  "NÃO INICIADO" que na verdade JÁ FORAM IMPLEMENTADAS há semanas** (Fase 2 —
+  baldeação, destinos populares reais, remoção do modo demo) — isso foi
+  verificado contra o código e a API de produção nesta sessão, não é
+  suposição. Cada seção afetada tem uma nota `[ATUALIZADO 2026-09-01]`
+  destacando isso. **Não redescubra ou reimplemente essas features.**
+- **Existe uma skill de projeto** em
+  `.claude/skills/busaisp-premium-design/SKILL.md` com o princípio "audite
+  antes de desenhar, depois eleve ao nível Uber/Waze/99/InDrive" — hoje com
+  escopo só pro Android nativo. Ferramentas sem suporte a skills do Claude
+  Code devem ler esse arquivo como documentação normal antes de mexer em
+  qualquer UI do app Android; os princípios nele valem independente da
+  ferramenta.
+- **Auditoria completa de UX/UI de todas as 9 telas do app Android** foi
+  feita nesta sessão e está na nova seção **"PARTE C" abaixo**, com achados
+  concretos arquivo-por-arquivo prontos pra virar tarefas — comece por ali
+  se a próxima tarefa for "deixar o app mais bonito"/"nível Uber".
+- **Trabalho em andamento não commitado do usuário**, não mexer sem
+  perguntar: `src/app/page.tsx`, `src/components/Map/LiveMap.tsx`,
+  `src/components/Navigation/TransitHeader.tsx`, `src/lib/railRouting.ts`,
+  `src/lib/routing.ts`, `src/lib/stationsData.ts`, `src/lib/trilhos.ts`,
+  `src/app/api/rotas/route.ts`, mais os arquivos novos `src/lib/railLinesGeometry.ts`
+  e `src/lib/railRouting.test.ts`. Parece ser implementação de um plano de
+  roteamento multimodal de trilhos (Metrô/CPTM) — **é trabalho do usuário em
+  progresso, confirme com ele antes de alterar ou commitar esses arquivos.**
+- **Branches obsoletas, aguardando decisão do usuário pra limpar**:
+  `worktree-transfer-routing` (tem mudanças não commitadas — uma abordagem
+  alternativa pra baldeação que acabou sendo implementada de outro jeito,
+  já em produção) e `worktree-popular-destinations` (vazia/obsoleta, a
+  feature real já foi implementada direto na master). Não apagar sem
+  perguntar.
 
 ---
 
@@ -21,16 +67,20 @@ sem reescrever nenhuma lógica de roteamento/GTFS. iOS fica para depois.
 A migração foi decomposta em **5 sub-projetos independentes**, cada um com
 seu próprio ciclo spec → plano → implementação → PR:
 
-1. ✅ **Fundação + Mapa ao Vivo** — PR #1, ainda não mergeada.
-2. ✅ **Busca e Resultados de Rota** — PR #2, ainda não mergeada (branch
-   parte do topo da branch do sub-projeto #1, então PR #2 só deve ser
-   mergeada DEPOIS da PR #1, ou rebaseada se a #1 mudar antes de mergear).
-3. ✅ **Navegação Ativa** — PR #3, ainda não mergeada (branch parte do topo
-   da branch do sub-projeto #2 — mesma regra de ordem de merge: #1 → #2 → #3).
-4. ✅ **Favoritos e Personalização** — PR #4, aberta (branch parte do topo da branch do sub-projeto #3).
-5. ✅ **Telas secundárias (Estações/Trilhos, Notícias, Configurações)** — PR #5, aberta (branch parte do topo da branch do sub-projeto #4).
+1. ✅ **Fundação + Mapa ao Vivo** — PR #1, **MERGED**.
+2. ✅ **Busca e Resultados de Rota** — PR #2, **MERGED**.
+3. ✅ **Navegação Ativa** — PR #3, **MERGED**.
+4. ✅ **Favoritos e Personalização** — PR #4, **MERGED**.
+5. ✅ **Telas secundárias (Estações/Trilhos, Notícias, Configurações)** — PR #5, **MERGED**.
 
-> 🎉 **MIGRAÇÃO ANDROID NATIVA COMPLETA:** Todos os 5 sub-projetos foram especificados, planejados, implementados com TDD e entregues via Pull Request no GitHub (#1 → #2 → #3 → #4 → #5).
+> 🎉 **MIGRAÇÃO ANDROID NATIVA COMPLETA E MESCLADA:** Todos os 5 sub-projetos
+> foram especificados, planejados, implementados com TDD, entregues via Pull
+> Request no GitHub (#1 → #2 → #3 → #4 → #5) **e mesclados na `master`**
+> (commit `b47e2d2`, 2026-09-01) — o GitHub detectou automaticamente que o
+> histórico das 5 PRs já estava contido na `master` e marcou todas como
+> `MERGED`. `master` já foi enviada pro GitHub, incluindo um fix adicional de
+> reskin dark-first do mapa (commit `2287d4d`, ver seção C abaixo). **Não há
+> PR pendente de revisão/merge nesta migração.**
 
 **Mudança de processo a partir do sub-projeto #3** (pedido explícito do
 usuário, "ir mais rápido sem perder qualidade"): revisão combinada
@@ -205,20 +255,17 @@ honestamente como indisponível/estimada. Isso vale mais que velocidade.
   `py`, `px`, etc.) — espelham a API real da SPTrans Olho Vivo
   (`src/types/sptrans.ts`), não são erro de digitação nem código ruim.
 
-## A.4. Como continuar a partir daqui
+## A.4. Como continuar a partir daqui [ATUALIZADO 2026-09-01]
 
-1. Ler o spec e o plano do sub-projeto #1 e #2 (linkados acima) como
-   referência de formato e nível de detalhe esperado.
-2. Criar uma branch nova a partir de `worktree-native-android-route-search`
-   (ou, se essa PR já tiver sido mergeada em `master` quando você ler isto,
-   a partir de `master`) para o sub-projeto #3.
-3. Escrever o spec do sub-projeto #3 (Navegação Ativa) — respeitando a
-   decisão já tomada sobre Foreground Service SIM / isenção de bateria NÃO
-   (seção A.1 acima).
-4. Seguir o mesmo ciclo da seção A.2.
-5. Ao final de cada sub-projeto: enviar a branch pro GitHub e abrir PR contra
-   `master`, atualizando este documento com o novo estado (para quem vier
-   depois, seja IA ou humano).
+Os 5 sub-projetos estão completos e mesclados — não há mais "próximo
+sub-projeto" a implementar seguindo o ciclo spec→plano→PR da seção A.2. A
+prioridade atual do usuário é **polish de UX/UI do app Android já existente**,
+não novas features grandes. Ver **PARTE C** (mais abaixo) para a auditoria
+completa de todas as 9 telas com achados concretos — comece por ali.
+
+Se novas features grandes forem pedidas no futuro, o ciclo da seção A.2 (spec
+→ plano → branch/worktree isolada → implementação com TDD → revisão →
+merge) continua sendo o processo validado a seguir.
 
 ---
 
@@ -285,7 +332,28 @@ public.nome(tipos_antigos);` antes. Já pisamos nesse rastelo uma vez.
 
 ---
 
-## 3. PRÓXIMA TAREFA IMEDIATA: Fase 2 — Baldeação
+## 3. Fase 2 — Baldeação — ✅ JÁ IMPLEMENTADA E EM PRODUÇÃO [ATUALIZADO 2026-09-01]
+
+**Esta seção dizia "próxima tarefa imediata" mas isso está desatualizado —
+verificado nesta sessão que a Fase 2 inteira já está funcionando em
+produção**, implementada num commit direto (`34c916e`, 2026-08-21) que tomou
+um caminho diferente do plano original de 6 tarefas abaixo (mantido só como
+histórico). Confirmado testando `/api/rotas` ao vivo: alternativas reais
+aparecem com `transferCount: 1` e `transferCount: 2`. A função SQL
+`routes_from_stops` já está aplicada no Supabase e funcionando —
+`findRoutesFromStops` em `src/lib/gtfs.ts` já é chamada de verdade por
+`findMultiLegPlans`/`calculateRoute` em `src/lib/routing.ts` (busca em ondas
+por rodadas, exatamente como a Tarefa 4 original descrevia).
+
+**Não reimplemente isso.** A branch `worktree-transfer-routing` (com o plano
+de 6 tarefas original abaixo, guardado só como contexto histórico) ficou
+como uma abordagem alternativa que nunca foi finalizada nem mergeada — ela
+tem mudanças não commitadas ainda. Como a feature real já existe em
+produção por outro caminho, essa branch provavelmente pode ser descartada,
+mas confirme com o usuário antes (ver nota no topo do documento).
+
+<details>
+<summary>Plano original de 6 tarefas (histórico, não seguir mais)</summary>
 
 Branch de trabalho já criada: `worktree-transfer-routing`
 (worktree em `.claude/worktrees/transfer-routing`).
@@ -293,37 +361,21 @@ Branch de trabalho já criada: `worktree-transfer-routing`
 **Spec:** `docs/superpowers/specs/2026-08-21-transfer-routing-design.md`
 **Plano detalhado com todo o código pronto:** `docs/superpowers/plans/2026-08-21-transfer-routing.md`
 
-O plano tem 6 tarefas, cada uma com o código exato para copiar. Estado atual:
+O plano tinha 6 tarefas, cada uma com o código exato para copiar:
 
-### Tarefa 1 — função SQL `routes_from_stops` — ⏸️ BLOQUEADA, esperando ação humana
+- **Tarefa 1:** função SQL `routes_from_stops` — hoje já está aplicada e viva no Supabase.
+- **Tarefa 2:** wrapper `findRoutesFromStops` em `src/lib/gtfs.ts` — hoje já implementado e em uso real.
+- **Tarefa 3:** substituir `buildPlanForLine` (uma perna) por `buildMultiLegPlan` (N pernas) —
+  hoje já existe (campo `transferCount` em `RoutePlan`, confirmado).
+- **Tarefa 4:** busca em ondas (BFS por rodadas) em `calculateRoute` — hoje já existe
+  (`findMultiLegPlans`), com raio de busca de 2.500m confirmado no código.
+- **Tarefa 5:** selo "N baldeações" na interface — confirmar se já está visível na UI (o dado
+  `transferCount` chega até o front, mas não foi confirmado visualmente nesta sessão se o selo
+  aparece formatado; verificação rápida de UI, não reimplementação).
+- **Tarefa 6:** verificação manual no navegador — ainda vale fazer como sanity check, mesmo com
+  tudo implementado.
 
-- ✅ O SQL já está escrito no fim de `supabase/gtfs_functions.sql` (linhas ~88-141), na
-  branch `worktree-transfer-routing`.
-- ✅ O teste `scripts/gtfs/routes-from-stops.smoke.test.ts` já está escrito e falhando
-  (estado TDD "vermelho" correto — a função não existe no banco ainda).
-- ❌ **AÇÃO NECESSÁRIA:** um humano precisa colar esse bloco SQL no SQL Editor do Supabase
-  e executar. É aditivo (não altera as funções que já estão lá), seguro de rodar.
-- Depois de aplicar: `npm test -- routes-from-stops.smoke` deve dar 2 passed, e então commitar.
-
-### Tarefa 2 — wrapper `findRoutesFromStops` em `src/lib/gtfs.ts` — ✅ JÁ IMPLEMENTADO
-
-Foi feito adiantado. O código já está no fim de `src/lib/gtfs.ts` (interface `ReachableRoute` +
-função `findRoutesFromStops`). **Falta:** os dois testes descritos na Tarefa 2 do plano
-(adicionar em `src/lib/gtfs.test.ts`) e o commit.
-
-### Tarefas 3, 4, 5, 6 — ⬜ NÃO INICIADAS
-
-Todas com código completo especificado no plano. Resumo do que fazem:
-
-- **Tarefa 3:** substituir `buildPlanForLine` (que só monta viagem de 1 perna) por
-  `buildMultiLegPlan` (monta viagem de N pernas; viagem direta é só o caso de 1 perna).
-  Adiciona campo `transferCount` em `RoutePlan`.
-- **Tarefa 4:** o coração da fase — busca em ondas (BFS por rodadas) em `calculateRoute`.
-  Rodada 1 = rotas diretas; rodada 2 = expande a fronteira de paradas alcançáveis e testa
-  conexão direta com o destino (= 1 baldeação); e assim por diante até o limite de segurança.
-  Também muda o raio de busca de paradas de 600m para **2.500m** e a ordenação.
-- **Tarefa 5:** mostrar o selo "N baldeações" na lista de alternativas da interface.
-- **Tarefa 6:** verificação manual no navegador (regressão + caso novo de baldeação).
+</details>
 
 ### Decisões de produto já tomadas pelo usuário (NÃO mudar sem perguntar)
 
@@ -348,38 +400,28 @@ Todas com código completo especificado no plano. Resumo do que fazem:
 
 Em ordem de quando foram pedidos:
 
-### 4.1. Destinos mais procurados (rastreamento real)
+### 4.1. Destinos mais procurados (rastreamento real) — ✅ JÁ IMPLEMENTADO [ATUALIZADO 2026-09-01]
 
-Substituir os atalhos fixos do planejador ("Rua Flor de Maio", "Jd. Fontális", etc.) por
-destinos genuinamente mais buscados, **rastreados de verdade** (o usuário rejeitou a
-alternativa de lista fixa).
+**Verificado nesta sessão: já está pronto**, no mesmo commit `34c916e` que
+entregou a Fase 2. `supabase/search_events.sql` existe e a tabela é
+gravada de verdade em toda chamada de `/api/rotas` (`src/app/api/rotas/route.ts`,
+confirmado o `supabase.from('search_events').insert(...)`). O front consome
+isso — ver `activeDestinationsList`/`popularDestinationsList` em
+`src/components/Transit/TransitHomeHub.tsx`, que busca os destinos reais e
+mostra como chips.
 
-Desenho já aprovado pelo usuário:
+A branch `worktree-popular-destinations` continua vazia/obsoleta (a feature
+real foi implementada direto na master por outro caminho) — provavelmente
+pode ser descartada, confirme com o usuário antes.
 
-- Nova tabela `search_events` no Supabase: nome do destino, lat/lng, timestamp.
-- Gravar em toda chamada de `/api/rotas` — **inclusive quando a busca falha** (falha ainda
-  reflete demanda real da pessoa).
-- Consulta agregando por nome de destino, contando ocorrências, top 5.
-- O `RoutePlanner` busca esses 5 e mostra como atalhos.
-- **Problema do início vazio:** no primeiro dia não há histórico. Manter destinos populares
-  reais de SP (Shopping Ibirapuera, Av. Paulista, Terminal Tietê, Sh. Morumbi) como reserva
-  até haver dados de uso suficientes.
+### 4.2. Tirar o "modo demonstrativo" — ✅ JÁ IMPLEMENTADO [ATUALIZADO 2026-09-01]
 
-Branch já criada mas vazia: `worktree-popular-destinations`.
-
-### 4.2. Tirar o "modo demonstrativo"
-
-O usuário pediu para remover. Contexto técnico: `src/lib/sptrans.ts` ainda cai em dados
-fabricados (`getMockPrevisaoParada`, `getMockVeiculos` de `src/lib/mockData.ts`) quando a
-autenticação na SPTrans falha inteiramente. Há um indicador "Modo Demonstração" no header
-(`isMockMode` em `src/app/page.tsx`, alimentado por `/api/onibus?tipo=status_auth`).
-
-Atenção: na Fase 1 já corrigimos `buscarPrevisaoParada` para **não** mascarar "esta parada
-específica não tem previsão agora" como dado falso — isso agora retorna `null` honestamente.
-Mas as outras quatro funções de `sptrans.ts` (`buscarLinhas`, `buscarParadas`,
-`buscarPosicaoLinha`, `buscarPrevisaoLinha`) ainda retornam mock em caso de falha e todas
-reportam `isMock: false` (mentira). Isso foi levantado numa revisão de código e ficou como
-dívida técnica anotada. Remover o modo demo = limpar isso tudo de forma coerente.
+**Verificado nesta sessão: já está pronto.** `src/lib/sptrans.ts` não importa
+mais `mockData.ts`/`getMockPrevisaoParada`/`getMockVeiculos` em lugar nenhum
+(confirmado por grep — zero ocorrências). O modo demonstrativo foi removido
+de fato, não só escondido. Se `mockData.ts` ainda existir no repo sem
+nenhuma outra referência, é código morto que pode ser removido num
+follow-up de limpeza, mas não é mais um problema funcional.
 
 ### 4.3. Novo layout (precisa de discussão de design antes)
 
@@ -475,3 +517,176 @@ de ambiente estão configuradas no painel da Vercel também, senão o app cai no
 O usuário pediu explicitamente para **ir mais rápido** nas implementações — menos cerimônia de
 processo (spec → plano → subagente → revisão dupla por tarefa), mais implementação direta,
 especialmente quando o plano já tem o código especificado. Vale respeitar isso.
+
+---
+
+# PARTE C — Auditoria de UX/UI do app Android nativo (2026-09-01)
+
+Prioridade atual do usuário. Auditoria completa das 9 telas de
+`native-android/app/src/main/java/com/busaisp/android/ui/`, usando os
+critérios da skill `busaisp-premium-design` (`.claude/skills/busaisp-premium-design/SKILL.md`
+— leia esse arquivo primeiro se for implementar algo daqui, ele explica o
+"porquê" por trás de cada critério). **Isto é auditoria, nada foi
+implementado ainda** — os achados abaixo são a lista de tarefas reais pra
+continuar.
+
+Cada achado foi verificado no código de verdade (não é genérico) e checado
+contra `git log` do arquivo pra confirmar que não é uma decisão deliberada
+recente (só uma commit relevante encontrada, `46864b5`, e ela só mexeu em
+padding/layout — nenhum dos achados abaixo é decisão de propósito, é lacuna
+real).
+
+## C.0. Dois problemas estruturais (valem para o app inteiro, corrigir primeiro)
+
+1. **`AppColors.LiveAmber` vazou pra `colorScheme.primary` do app inteiro**
+   (`ui/theme/Theme.kt`, tanto no esquema dark quanto light). O comentário no
+   próprio `Color.kt`/`MapDarkPalette.kt` documenta a convenção "âmbar = GPS
+   ao vivo", mas como `LiveAmber` virou a cor primária do Material, ela pinta
+   botões, foco de campo de texto etc. em telas sem GPS nenhum — confirmado em
+   `ActiveNavigationScreen.kt` (botões "Encerrar percurso"/status de viagem),
+   `NewsScreen.kt` (badges de notícia), `SettingsScreen.kt` (subtítulos dos
+   cards "Sobre"). **Fix estrutural**: dar ao `colorScheme.primary` um token
+   próprio neutro, e reservar `LiveAmber` só pra elementos de GPS/dado ao vivo
+   de verdade (marcador de ônibus, indicador "ao vivo" na tela do mapa).
+2. **`EtaCounterStyle` (IBM Plex Mono, `ui/theme/Type.kt`) está definido e
+   nunca é usado** em nenhuma tela — nem em `VehicleDetailSheet.kt`, nem nos
+   cards de rota. É um token órfão esperando adoção. Aplicar esse estilo em
+   todo número que importa (ETA, contagem de veículos, duração, distância) em
+   vez de deixar tudo em peso/tamanho de texto padrão do Material resolveria
+   boa parte dos achados de "hierarquia tipográfica fraca" abaixo de uma vez.
+
+## C.1. Mapa (`ui/map/`) e Navegação Ativa (`ui/activenav/`)
+
+**Já está bom, não mexer:**
+- `VehicleDetailSheet.kt` — expansão/colapso do painel já usa
+  `animateContentSize(spring(dampingRatio = Spring.DampingRatioMediumBouncy))`
+  de verdade, não decorativo. É o único exemplo real de easing não-linear em
+  todo o app hoje — use como referência ao implementar os itens abaixo.
+- `interpolatePosition` (domain) — matemática de interpolação de posição do
+  ônibus está correta e é usada de verdade por `LiveBusMap.kt`.
+- `easeCamera` (não `moveCamera`) é usado corretamente nos lugares onde a
+  câmera de fato se move — o problema é que ela se move pouco (ver C.1.4).
+- Tratamento de dado obsoleto em `MapViewModel.kt` (`STALE_GRACE_MS`) é honesto
+  — marca como desatualizado em vez de sumir/travar silenciosamente.
+
+**Gaps reais, em ordem de impacto:**
+
+1. **Botão "minha localização" vira no-op depois do primeiro toque**
+   (`LiveBusMap.kt` + `MapViewModel.kt`). `hasCenteredOnUser` é uma flag
+   `remember` de uso único nunca resetada, e `onLocationPermissionGranted()`
+   retorna cedo se já houver um job ativo — então tocar o botão de novo
+   (o gesto mais básico de "recentralizar em mim" que todo app de mobilidade
+   tem) **não faz nada**. Isso é bug funcional, não só falta de polish.
+   Fix: desacoplar "centralizar câmera" de "iniciar updates de localização" —
+   o botão sempre deveria disparar `easeCamera` com a última posição
+   conhecida, independente do job de location já estar rodando.
+2. **Sem fit de câmera nos veículos ao selecionar uma linha** — hoje a câmera
+   só centraliza no usuário (uma vez, ver #1) ou fica no zoom inicial de SP;
+   ao buscar uma linha, os ônibus aparecem no mapa mas a câmera não se move
+   pra mostrá-los, o usuário tem que caçar manualmente. Fix: calcular bounding
+   box dos veículos retornados em `onLineSelected` e dar `easeCamera`/fit.
+3. **Ônibus "pulam" 1x/segundo em vez de deslizar** (`LiveBusMap.kt`,
+   `BUS_INTERPOLATION_TICK_MS = 1000L`). A matemática de interpolação está
+   certa (ver "já está bom" acima), mas a fonte do MapLibre só atualiza
+   1x/segundo, então o resultado visual ainda é um pulo perceptível, não um
+   deslizar fluido como Uber/Waze. Fix: reduzir o intervalo do tick (ex.:
+   200-250ms) ou animar a posição na tela entre ticks.
+4. **`MapUiState.Loading` nunca é renderizado** (`MapScreen.kt`) —
+   `CircularProgressIndicator` está importado mas nunca usado; ao selecionar
+   uma linha, a tela fica literalmente vazia entre o toque e os dados
+   chegarem. Mais grave que "spinner em vez de skeleton" — não tem UI de
+   loading nenhuma. Fix: pelo menos um skeleton/indicador enquanto
+   `MapUiState.Loading`.
+5. **Nenhum elemento tocável tem feedback além do ripple padrão do Material**
+   — `FloatingPillButton.kt`, resultados de `LineSearchBar.kt`, botões de
+   `ActiveNavigationScreen.kt`. Nenhum scale/elevação no toque. Fix: adicionar
+   `collectIsPressedAsState()` + `animateFloatAsState(spring(...))` pra um
+   scale-down sutil no toque.
+6. **Não existe pulso "ao vivo" em lugar nenhum do app real** — corrigindo uma
+   suposição errada de uma versão anterior desta auditoria/skill: isso só foi
+   implementado num worktree de teste descartável (usado pra avaliar a skill
+   `busaisp-premium-design`), nunca no app de verdade. Se for implementar,
+   usar `spring()`/`FastOutSlowInEasing` (nunca `LinearEasing`) e só animar
+   enquanto o dado que representa existe de verdade (ex.: `userLocation != null`).
+
+## C.2. Busca e Resultados de Rota (`ui/routesearch/`)
+
+**Já está bom, não mexer:**
+- Chaves de `LazyColumn` corretas em todo o fluxo (`RouteResultsScreen.kt`,
+  `RouteDetailScreen.kt`, `AddressField.kt`) — inclusive com comentário no
+  código explicando por que (fix de bug real de colisão de key, commit
+  `89909ad` — não remover essa lógica achando redundante).
+- Labels honestos de "não é GPS ao vivo" pra trechos de trilho/horário
+  programado (`RoutePlanCard.kt`, `RouteStepRow.kt`) — mantém a convenção de
+  nunca fingir dado ao vivo que não existe.
+
+**Gaps reais:**
+
+1. **Não existe nenhuma animação no fluxo inteiro** — grep por
+   `animate|spring|Easing|AnimatedVisibility|Crossfade` no pacote inteiro
+   retorna zero. Cards de resultado aparecem/desaparecem instantâneos, sem
+   entrada escalonada, sem transição ao trocar `TimeModeSelector`.
+2. **`RouteResultsScreen.kt` não tem estado de loading — mostra "Nenhum
+   resultado ainda" enquanto a busca está rodando de verdade.** Isso não é só
+   falta de polish, é um bug real de UX (mensagem enganosa). Fix prioritário:
+   adicionar um branch pra `RouteSearchUiState.Loading` no `when` de
+   renderização, com skeleton rows no formato de `RoutePlanCard`.
+3. **`RoutePlanCard.kt` sem feedback de toque** além do ripple padrão, e sem
+   animação no ícone de favorito ao tocar.
+4. **Números importantes (duração, ETA) não animam ao atualizar** — trocam de
+   valor instantaneamente em vez de `AnimatedContent`/count-up.
+5. **`EtaCounterStyle` não é usado em `RoutePlanCard.kt`** apesar de ter sido
+   feito pra isso (ver C.0.2) — duração/ETA/tarifa/baldeações usam texto
+   padrão do Material sem contraste de peso.
+6. Confirma o vazamento de `LiveAmber` (C.0.1): o ícone de favorito
+   selecionado usa `colorScheme.primary` (= âmbar) sem relação com GPS.
+
+## C.3. Favoritos, Trilhos, Notícias, Configurações e navegação inferior
+
+**Já está bom, não mexer:**
+- Cores oficiais de cada linha de Metrô/CPTM (`LineColors`) são usadas de
+  verdade em `RailsScreen.kt` (`RailLineCard` calcula até luminância pra
+  escolher texto preto/branco com contraste correto) — não é texto genérico.
+- Chaves de `LazyColumn` corretas nas 3 telas (Favoritos, Trilhos, Notícias).
+- Toque em linhas/cards tem ripple padrão (feedback básico existe, só não é
+  "enhanced").
+
+**Gaps reais:**
+
+1. **`RailsScreen.kt` colapsa 6 status possíveis em binário normal/anormal** —
+   `RailStatusType` tem `NORMAL, VELOCIDADE_REDUZIDA, OPERACAO_PARCIAL,
+   PARALISADA, ENCERRADA, DESCONHECIDO`, mas a UI só checa `== NORMAL` e pinta
+   tudo o mais igual (vermelho + ícone de alerta), sem diferenciar
+   "levemente lento" de "linha parada". Fix: um tier de cor/ícone por status.
+   Também não há nenhum indicador visual de "isto é ao vivo" (pulso sutil no
+   "Atualizado às...").
+2. **Spinner genérico em vez de skeleton** em Trilhos e Notícias
+   (`CircularProgressIndicator` idêntico nos dois); **Favoritos não tem
+   estado de loading nenhum** (o StateFlow começa com lista vazia, então uma
+   lista vazia de verdade e "ainda carregando" ficam visualmente idênticos).
+3. **Barra de navegação inferior sem nenhuma animação** — `NavigationBar`/
+   `NavigationBarItem` do Material puro, sem cor de indicador customizada,
+   sem animação de escala no ícone selecionado, e as trocas de tela no
+   `NavHost` são cortes instantâneos (sem `enterTransition`/`exitTransition`
+   no `composable()`).
+4. **Remover um favorito não anima** — o item some da `LazyColumn` sem
+   `Modifier.animateItemPlacement()`, e o ícone de remover não tem nenhum
+   feedback de toque além do ripple.
+5. **Hierarquia tipográfica fraca** em `AddressSlotRow` (Favoritos — o
+   endereço salvo, que é a info importante, tem o mesmo peso do label "Casa"/
+   "Trabalho") e no resumo de Trilhos (contagens de linha mais fracas
+   visualmente que o cabeçalho estático "Resumo das Linhas").
+6. Confirma o vazamento de `LiveAmber` (C.0.1) em Notícias e Configurações.
+
+## C.4. Como priorizar
+
+Sugestão de ordem, mas o usuário pode reordenar:
+
+1. **C.0** (os dois problemas estruturais) — resolver primeiro porque
+   qualquer tela nova daqui pra frente herda esses tokens.
+2. **C.2.2** (bug de UX real — mensagem "sem resultado" durante busca em
+   andamento) e **C.1.1** (botão de localização que vira no-op) — são bugs
+   funcionais disfarçados de falta de polish, não só estética.
+3. O resto de C.1/C.2/C.3 pode ser feito tela por tela, seguindo os padrões
+   de `VehicleDetailSheet.kt` (spring) e a skill `busaisp-premium-design`
+   como referência de qualidade.
