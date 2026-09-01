@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.busaisp.android.BuildConfig
 import com.busaisp.android.ui.theme.ThemeMode
 import com.busaisp.android.ui.theme.ThemeViewModel
 
@@ -41,7 +42,10 @@ fun SettingsScreen(themeViewModel: ThemeViewModel = hiltViewModel()) {
             item {
                 SettingsCard(
                     title = "BusaÍ SP — Mobilidade Urbana Nativa",
-                    subtitle = "Versão 0.1.0 (Android Nativo)",
+                    // Versão real do build (BuildConfig.VERSION_NAME/CODE, de
+                    // app/build.gradle.kts) — não mais um texto fixo que
+                    // ficava desatualizado a cada release.
+                    subtitle = "Versão ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE}) · Android Nativo",
                     description = "Aplicativo de transporte público e mobilidade urbana em São Paulo desenvolvido em Kotlin + Jetpack Compose."
                 )
             }
