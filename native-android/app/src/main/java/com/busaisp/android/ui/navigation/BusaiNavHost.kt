@@ -111,7 +111,15 @@ fun BusaiNavHost() {
             popExitTransition = { fadeOut(animationSpec = tween(180)) }
         ) {
             composable(BusaiDestinations.MAP) {
-                MapScreen()
+                MapScreen(
+                    onNavigateToRails = {
+                        navController.navigate(BusaiDestinations.RAILS) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable(BusaiDestinations.ROUTE_SEARCH) {
                 RouteSearchScreen(

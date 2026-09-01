@@ -27,14 +27,9 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression.get
-import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.CircleLayer
-import org.maplibre.android.style.layers.FillExtrusionLayer
 import org.maplibre.android.style.layers.FillLayer
-import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
-import org.maplibre.android.style.layers.RasterLayer
-import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.geojson.Feature
@@ -69,11 +64,7 @@ fun LiveBusMap(
                 .zoom(SAO_PAULO_INITIAL_ZOOM)
                 .build()
             map.setStyle(Style.Builder().fromUri(OPEN_FREE_MAP_LIBERTY_STYLE_URL)) { style ->
-                // Reskin dark-first (applyDarkMapPalette) foi revertido a pedido do
-                // usuário — o resultado visual ficou "contraste preto" ruim demais.
-                // Mapa volta ao estilo "Liberty" original sem recolorir, até haver uma
-                // decisão de design pra app inteiro (ver MapDarkPalette.kt, mantido
-                // no repo caso vire base pra uma tentativa futura mais cuidadosa).
+                applyMapLightPalette(style)
 
                 // Camada do Mapa de Calor (Halos e Núcleos de Congestionamento)
                 style.addSource(GeoJsonSource(HEATMAP_SOURCE_ID, FeatureCollection.fromFeatures(emptyList())))
@@ -190,31 +181,17 @@ fun LiveBusMap(
     AndroidView(factory = { mapView }, modifier = modifier.fillMaxSize())
 }
 
-// Reskin dark-first do estilo "Liberty" (claro por padrão) — ver MapDarkPalette.kt
-// para a classificação por camada e a justificativa de cada papel semântico.
-private fun applyDarkMapPalette(style: Style) {
+// Toque leve de cor sobre o estilo "Liberty" original — só água e parques
+// (ver MapLightPalette.kt para a justificativa). Qualquer camada sem cor
+// definida (colorForMapLayerRole retorna null) fica com a aparência nativa
+// do provedor, propositalmente.
+private fun applyMapLightPalette(style: Style) {
     style.layers.forEach { layer ->
-        when (val role = classifyMapLayerRole(layer.id)) {
-            MapLayerRole.NONE -> Unit
-            MapLayerRole.RASTER_HIDDEN -> (layer as? RasterLayer)?.setProperties(
-                PropertyFactory.rasterOpacity(0f)
-            )
-            MapLayerRole.BACKGROUND -> (layer as? BackgroundLayer)?.setProperties(
-                PropertyFactory.backgroundColor(colorForMapLayerRole(role)!!.toArgb())
-            )
-            MapLayerRole.LABEL_HIGH, MapLayerRole.LABEL_LOW -> (layer as? SymbolLayer)?.setProperties(
-                PropertyFactory.textColor(colorForMapLayerRole(role)!!.toArgb()),
-                PropertyFactory.textHaloColor(MapPalette.LabelHalo.toArgb())
-            )
-            else -> {
-                val argb = colorForMapLayerRole(role)!!.toArgb()
-                when (layer) {
-                    is FillLayer -> layer.setProperties(PropertyFactory.fillColor(argb))
-                    is LineLayer -> layer.setProperties(PropertyFactory.lineColor(argb))
-                    is FillExtrusionLayer -> layer.setProperties(PropertyFactory.fillExtrusionColor(argb))
-                    else -> Unit
-                }
-            }
+        val role = classifyMapLayerRole(layer.id)
+        val argb = colorForMapLayerRole(role)?.toArgb() ?: return@forEach
+        when (layer) {
+            is FillLayer -> layer.setProperties(PropertyFactory.fillColor(argb))
+            else -> Unit
         }
     }
 }

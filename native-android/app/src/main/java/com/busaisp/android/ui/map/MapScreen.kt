@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,10 +46,12 @@ import com.busaisp.android.ui.theme.AppColors
 
 @Composable
 fun MapScreen(
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: MapViewModel = hiltViewModel(),
+    onNavigateToRails: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchResults by viewModel.lineSearchResults.collectAsStateWithLifecycle()
+    val railMatch by viewModel.railMatch.collectAsStateWithLifecycle()
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     val recenterTrigger by viewModel.recenterTrigger.collectAsStateWithLifecycle()
     val isHeatmapVisible by viewModel.isHeatmapVisible.collectAsStateWithLifecycle()
@@ -93,6 +96,27 @@ fun MapScreen(
                 .align(Alignment.TopCenter)
                 .padding(16.dp)
         )
+
+        // A SPTrans só rastreia ônibus — não existe posição de trem em tempo
+        // real pra mostrar aqui. Em vez de resultado de ônibus confuso ou
+        // busca muda, reconhece e oferece ir pra Trilhos (status real).
+        if (railMatch != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 80.dp)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp))
+                    .clickable(onClick = onNavigateToRails)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Linha $railMatch é trilho — ver status real em Trilhos →",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
 
         // Indicador de Carregamento da Linha
         if (uiState is MapUiState.Loading) {

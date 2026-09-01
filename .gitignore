@@ -35,3 +35,6 @@ next-env.d.ts
 
 # Sessões do companheiro visual de brainstorming (mockups temporários)
 /.superpowers/
+
+# Saídas de avaliação de skill (dados de teste descartáveis, não produto)
+/.claude/skills/*-workspace/

@@ -29,9 +29,9 @@ private val LANDUSE_NEUTRAL_FILL_IDS = setOf(
 
 /**
  * Classifica cada camada do estilo "Liberty" (OpenFreeMap/OSM Liberty) num papel
- * semântico para o reskin dark-first. IDs conferidos contra a versão real do
- * estilo (https://tiles.openfreemap.org/styles/liberty, 111 camadas em 2026-09-01)
- * — não são um esquema genérico, casam exatamente com esse provedor.
+ * semântico. IDs conferidos contra a versão real do estilo
+ * (https://tiles.openfreemap.org/styles/liberty, 111 camadas em 2026-09-01) —
+ * não são um esquema genérico, casam exatamente com esse provedor.
  * Ordem dos testes importa: sufixos/tiers mais específicos são checados antes
  * de fallbacks amplos (ex.: "_casing" antes de "rail"/"minor").
  */
@@ -56,39 +56,20 @@ fun classifyMapLayerRole(layerId: String): MapLayerRole = when {
     else -> MapLayerRole.NONE
 }
 
-// Paleta derivada de AppColors.BackgroundDark — tons sobem em luminância conforme
-// a hierarquia (vias principais mais claras que locais, rótulos importantes mais
-// claros que secundários), mantendo âmbar reservado exclusivamente para dado de
-// GPS ao vivo (ônibus), nunca usado aqui.
+// Redesign 2026-09-01 (azul claro + branco): ao contrário da tentativa anterior
+// (reskin dark-first de toda camada, revertida por destoar do resto do app),
+// este é um toque leve — só água e parques recebem um tom derivado do azul de
+// marca (AppColors.UserLocationBlue) e do verde já existente
+// (AppColors.OnRouteEmerald), como um wash translúcido sobre o estilo "Liberty"
+// original. Vias, prédios, texto e fundo ficam com a aparência nativa do
+// provedor — legibilidade testada, sem inventar uma paleta nova pra eles.
 object MapPalette {
-    val Water = Color(0xFF102233)
-    val Park = Color(0xFF13291D)
-    val LandFill = Color(0xFF14131F)
-    val Building = Color(0xFF1B1926)
-    val RoadCasing = Color(0xFF08070D)
-    val RoadHighway = Color(0xFFE8E6F0)
-    val RoadArterial = Color(0xFFB9B6C9)
-    val RoadMinor = Color(0xFF7A7791)
-    val RoadRail = Color(0xFF5B5870)
-    val Boundary = Color(0xFF3A3750)
-    val LabelHigh = AppColors.BackgroundLight
-    val LabelLow = Color(0xFF9C99AE)
-    val LabelHalo = AppColors.BackgroundDark
+    val Water = AppColors.UserLocationBlue.copy(alpha = 0.18f)
+    val Park = AppColors.OnRouteEmerald.copy(alpha = 0.18f)
 }
 
 fun colorForMapLayerRole(role: MapLayerRole): Color? = when (role) {
-    MapLayerRole.BACKGROUND -> AppColors.BackgroundDark
     MapLayerRole.WATER -> MapPalette.Water
     MapLayerRole.PARK -> MapPalette.Park
-    MapLayerRole.LANDUSE_NEUTRAL -> MapPalette.LandFill
-    MapLayerRole.BUILDING -> MapPalette.Building
-    MapLayerRole.ROAD_CASING -> MapPalette.RoadCasing
-    MapLayerRole.ROAD_HIGHWAY -> MapPalette.RoadHighway
-    MapLayerRole.ROAD_ARTERIAL -> MapPalette.RoadArterial
-    MapLayerRole.ROAD_MINOR -> MapPalette.RoadMinor
-    MapLayerRole.ROAD_RAIL -> MapPalette.RoadRail
-    MapLayerRole.BOUNDARY -> MapPalette.Boundary
-    MapLayerRole.LABEL_HIGH -> MapPalette.LabelHigh
-    MapLayerRole.LABEL_LOW -> MapPalette.LabelLow
-    MapLayerRole.NONE, MapLayerRole.RASTER_HIDDEN -> null
+    else -> null
 }

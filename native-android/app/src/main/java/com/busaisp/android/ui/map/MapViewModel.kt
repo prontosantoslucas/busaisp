@@ -37,6 +37,13 @@ class MapViewModel @Inject constructor(
     private val _lineSearchResults = MutableStateFlow<List<Linha>>(emptyList())
     val lineSearchResults: StateFlow<List<Linha>> = _lineSearchResults.asStateFlow()
 
+    // Nome da linha de trilho reconhecida na busca (ex.: "1-Azul"), ou null.
+    // Não há posição de trem em tempo real pra mostrar no mapa (só a SPTrans
+    // Olho Vivo é rastreada) — em vez de devolver resultados de ônibus
+    // confusos, a busca reconhece e sinaliza pra UI oferecer ir pra Trilhos.
+    private val _railMatch = MutableStateFlow<String?>(null)
+    val railMatch: StateFlow<String?> = _railMatch.asStateFlow()
+
     private val _userLocation = MutableStateFlow<LocationClient.Position?>(null)
     val userLocation: StateFlow<LocationClient.Position?> = _userLocation.asStateFlow()
 
@@ -120,6 +127,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onSearchQueryChanged(query: String) {
+        _railMatch.value = matchRailLine(query)
         if (query.length < 2) {
             _lineSearchResults.value = emptyList()
             return

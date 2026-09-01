@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-class MapDarkPaletteTest {
+class MapLightPaletteTest {
 
     @Test
     fun `background e raster de baixo zoom recebem papeis especiais`() {
@@ -123,17 +123,13 @@ class MapDarkPaletteTest {
     }
 
     @Test
-    fun `todo papel de cor tem uma cor definida, exceto NONE e RASTER_HIDDEN`() {
+    fun `so agua e parque recebem cor no redesign azul claro e branco, o resto fica nativo do provedor`() {
         MapLayerRole.entries.forEach { role ->
             val color = colorForMapLayerRole(role)
-            if (role == MapLayerRole.NONE || role == MapLayerRole.RASTER_HIDDEN) {
-                assertNull("$role nao deveria ter cor (tratamento especial)", color)
+            if (role == MapLayerRole.WATER || role == MapLayerRole.PARK) {
+                assertEquals("cor de $role nao deveria ser totalmente opaca (e um wash translucido)", true, (color?.alpha ?: 1f) < 1f)
             } else {
-                assertEquals(
-                    "cor de $role deve ser totalmente opaca",
-                    255,
-                    color?.alpha?.let { (it * 255).toInt() }
-                )
+                assertNull("$role nao deveria ter cor no toque leve do redesign (fica com a aparencia nativa)", color)
             }
         }
     }
