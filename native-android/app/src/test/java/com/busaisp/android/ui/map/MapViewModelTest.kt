@@ -78,6 +78,25 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `selecionar uma linha limpa sugestao de trilho e resultados da busca anterior, pra nao sobrepor o indicador de carregamento`() = runTest {
+        val vehicle = Vehicle("21045", -23.5, -46.6, 90.0, 24.5, 0L, true)
+        val busRepository = FakeBusRepository(VehiclesResult.Success(listOf(vehicle), 0L))
+        val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())
+
+        // Simula o usuário buscando "metrô" (aciona a sugestão de trilho) antes
+        // de acabar escolhendo uma linha de ônibus de verdade nos resultados.
+        viewModel.onSearchQueryChanged("metrô")
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals("Metrô/CPTM", viewModel.railMatch.value)
+
+        viewModel.onLineSelected(linha)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertNull("sugestao de trilho de uma busca anterior nao deveria sobreviver a selecao de uma linha", viewModel.railMatch.value)
+        assertTrue("resultados da busca anterior nao deveriam sobreviver a selecao de uma linha", viewModel.lineSearchResults.value.isEmpty())
+    }
+
+    @Test
     fun `falha de rede resulta em estado de erro honesto`() = runTest {
         val busRepository = FakeBusRepository(VehiclesResult.Failure("Falha de conexão"))
         val viewModel = MapViewModel(busRepository, FakeLineSearchRepository(), FakeLocationClient(), FakeTrafficRepository())

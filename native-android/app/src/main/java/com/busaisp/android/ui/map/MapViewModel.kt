@@ -84,6 +84,15 @@ class MapViewModel @Inject constructor(
     }
 
     fun onLineSelected(linha: Linha) {
+        // MapScreen atualiza o texto da busca direto (sem passar por
+        // onSearchQueryChanged) ao selecionar um resultado — sem isto, uma
+        // sugestão de trilho de uma busca anterior ("metrô") ficava presa na
+        // tela mesmo depois do usuário escolher uma linha de ônibus de
+        // verdade, sobrepondo o indicador de carregamento. Mesmo motivo pra
+        // limpar a lista de resultados: sem isto, o dropdown antigo da busca
+        // podia continuar visível por cima do mapa depois da seleção.
+        _railMatch.value = null
+        _lineSearchResults.value = emptyList()
         vehiclePollingJob?.cancel()
         _uiState.value = MapUiState.Loading
         vehiclePollingJob = viewModelScope.launch {
