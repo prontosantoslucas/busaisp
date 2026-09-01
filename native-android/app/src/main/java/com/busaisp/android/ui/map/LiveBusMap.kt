@@ -27,9 +27,14 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression.get
+import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.FillExtrusionLayer
 import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.RasterLayer
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.geojson.Feature
@@ -43,7 +48,8 @@ fun LiveBusMap(
     modifier: Modifier = Modifier,
     heatmapData: TrafficHeatmapData? = null,
     isHeatmapVisible: Boolean = false,
-    recenterTrigger: Int = 0
+    recenterTrigger: Int = 0,
+    darkTheme: Boolean = false
 ) {
     val context = LocalContext.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
@@ -64,7 +70,8 @@ fun LiveBusMap(
                 .zoom(SAO_PAULO_INITIAL_ZOOM)
                 .build()
             map.setStyle(Style.Builder().fromUri(OPEN_FREE_MAP_LIBERTY_STYLE_URL)) { style ->
-                applyMapLightPalette(style)
+                // Paleta aplicada pelo LaunchedEffect(mapLibreMap, darkTheme) abaixo,
+                // assim que mapLibreMap deixa de ser null — não precisa duplicar aqui.
 
                 // Camada do Mapa de Calor (Halos e Núcleos de Congestionamento)
                 style.addSource(GeoJsonSource(HEATMAP_SOURCE_ID, FeatureCollection.fromFeatures(emptyList())))
@@ -156,6 +163,14 @@ fun LiveBusMap(
         }
     }
 
+    // Reaplica a paleta sempre que o tema resolvido mudar (troca manual nas
+    // Configurações, ou o tema do sistema mudando com SISTEMA selecionado) —
+    // não só na primeira carga do estilo.
+    LaunchedEffect(mapLibreMap, darkTheme) {
+        val style = mapLibreMap?.style ?: return@LaunchedEffect
+        applyMapPalette(style, darkTheme)
+    }
+
     DisposableEffect(mapLibreMap, userLocation) {
         updateUserSource(mapLibreMap, userLocation)
         onDispose { }
@@ -181,17 +196,34 @@ fun LiveBusMap(
     AndroidView(factory = { mapView }, modifier = modifier.fillMaxSize())
 }
 
-// Toque leve de cor sobre o estilo "Liberty" original — só água e parques
-// (ver MapLightPalette.kt para a justificativa). Qualquer camada sem cor
-// definida (colorForMapLayerRole retorna null) fica com a aparência nativa
-// do provedor, propositalmente.
-private fun applyMapLightPalette(style: Style) {
+// Claro: toque leve, só água/parques (ver MapColorPalette.kt). Escuro: recolore
+// tudo (fundo, vias por hierarquia, prédios, texto). Qualquer camada sem cor
+// definida (colorForMapLayerRole retorna null) fica com a aparência nativa do
+// provedor "Liberty", propositalmente.
+private fun applyMapPalette(style: Style, darkTheme: Boolean) {
     style.layers.forEach { layer ->
         val role = classifyMapLayerRole(layer.id)
-        val argb = colorForMapLayerRole(role)?.toArgb() ?: return@forEach
-        when (layer) {
-            is FillLayer -> layer.setProperties(PropertyFactory.fillColor(argb))
-            else -> Unit
+        if (role == MapLayerRole.RASTER_HIDDEN) {
+            // Só escondida no escuro (evita um retalho colorido do raster de
+            // baixo zoom por baixo das camadas escuras); no claro fica nativa.
+            if (darkTheme) (layer as? RasterLayer)?.setProperties(PropertyFactory.rasterOpacity(0f))
+            return@forEach
+        }
+        val argb = colorForMapLayerRole(role, darkTheme)?.toArgb() ?: return@forEach
+        when (role) {
+            MapLayerRole.BACKGROUND -> (layer as? BackgroundLayer)?.setProperties(
+                PropertyFactory.backgroundColor(argb)
+            )
+            MapLayerRole.LABEL_HIGH, MapLayerRole.LABEL_LOW -> (layer as? SymbolLayer)?.setProperties(
+                PropertyFactory.textColor(argb),
+                PropertyFactory.textHaloColor(darkLabelHalo.toArgb())
+            )
+            else -> when (layer) {
+                is FillLayer -> layer.setProperties(PropertyFactory.fillColor(argb))
+                is LineLayer -> layer.setProperties(PropertyFactory.lineColor(argb))
+                is FillExtrusionLayer -> layer.setProperties(PropertyFactory.fillExtrusionColor(argb))
+                else -> Unit
+            }
         }
     }
 }

@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-class MapLightPaletteTest {
+class MapColorPaletteTest {
 
     @Test
     fun `background e raster de baixo zoom recebem papeis especiais`() {
@@ -123,13 +123,29 @@ class MapLightPaletteTest {
     }
 
     @Test
-    fun `so agua e parque recebem cor no redesign azul claro e branco, o resto fica nativo do provedor`() {
+    fun `modo claro so recolore agua e parque (toque leve), resto fica nativo do provedor`() {
         MapLayerRole.entries.forEach { role ->
-            val color = colorForMapLayerRole(role)
+            val color = colorForMapLayerRole(role, darkTheme = false)
             if (role == MapLayerRole.WATER || role == MapLayerRole.PARK) {
                 assertEquals("cor de $role nao deveria ser totalmente opaca (e um wash translucido)", true, (color?.alpha ?: 1f) < 1f)
             } else {
-                assertNull("$role nao deveria ter cor no toque leve do redesign (fica com a aparencia nativa)", color)
+                assertNull("$role nao deveria ter cor no toque leve do modo claro", color)
+            }
+        }
+    }
+
+    @Test
+    fun `modo escuro recolore todo papel, exceto NONE e RASTER_HIDDEN (tratado a parte)`() {
+        MapLayerRole.entries.forEach { role ->
+            val color = colorForMapLayerRole(role, darkTheme = true)
+            if (role == MapLayerRole.NONE || role == MapLayerRole.RASTER_HIDDEN) {
+                assertNull("$role nao deveria ter cor (tratamento especial)", color)
+            } else {
+                assertEquals(
+                    "cor de $role no modo escuro deve ser totalmente opaca",
+                    255,
+                    color?.alpha?.let { (it * 255).toInt() }
+                )
             }
         }
     }

@@ -43,6 +43,8 @@ import com.busaisp.android.ui.map.components.FloatingPillButton
 import com.busaisp.android.ui.map.components.LineSearchBar
 import com.busaisp.android.ui.map.components.VehicleDetailSheet
 import com.busaisp.android.ui.theme.AppColors
+import com.busaisp.android.ui.theme.ThemeViewModel
+import com.busaisp.android.ui.theme.resolveDarkTheme
 
 @Composable
 fun MapScreen(
@@ -57,6 +59,9 @@ fun MapScreen(
     val isHeatmapVisible by viewModel.isHeatmapVisible.collectAsStateWithLifecycle()
     val heatmapData by viewModel.heatmapData.collectAsStateWithLifecycle()
     val isLoadingHeatmap by viewModel.isLoadingHeatmap.collectAsStateWithLifecycle()
+
+    val themeMode by hiltViewModel<ThemeViewModel>().themeMode.collectAsStateWithLifecycle()
+    val darkTheme = resolveDarkTheme(themeMode)
 
     var query by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -78,6 +83,7 @@ fun MapScreen(
             heatmapData = heatmapData,
             isHeatmapVisible = isHeatmapVisible,
             recenterTrigger = recenterTrigger,
+            darkTheme = darkTheme,
             modifier = Modifier.fillMaxSize()
         )
 

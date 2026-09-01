@@ -56,20 +56,64 @@ fun classifyMapLayerRole(layerId: String): MapLayerRole = when {
     else -> MapLayerRole.NONE
 }
 
-// Redesign 2026-09-01 (azul claro + branco): ao contrário da tentativa anterior
-// (reskin dark-first de toda camada, revertida por destoar do resto do app),
-// este é um toque leve — só água e parques recebem um tom derivado do azul de
-// marca (AppColors.UserLocationBlue) e do verde já existente
-// (AppColors.OnRouteEmerald), como um wash translúcido sobre o estilo "Liberty"
-// original. Vias, prédios, texto e fundo ficam com a aparência nativa do
-// provedor — legibilidade testada, sem inventar uma paleta nova pra eles.
-object MapPalette {
+// Modo claro (padrão, redesign 2026-09-01): toque leve, não um recolorir
+// total — só água e parques recebem um wash translúcido derivado do azul/
+// verde já existentes. Vias, prédios e texto ficam com a aparência nativa do
+// provedor "Liberty", legibilidade já testada.
+private object MapPaletteLight {
     val Water = AppColors.UserLocationBlue.copy(alpha = 0.18f)
     val Park = AppColors.OnRouteEmerald.copy(alpha = 0.18f)
 }
 
-fun colorForMapLayerRole(role: MapLayerRole): Color? = when (role) {
-    MapLayerRole.WATER -> MapPalette.Water
-    MapLayerRole.PARK -> MapPalette.Park
+// Modo escuro: aqui sim um recolorir completo, igual toda a aplicação nesse
+// modo (ver Theme.kt AppDarkColors) — a versão anterior desse reskin foi
+// revertida por destoar de um app que era Material claro no resto; agora que
+// claro/escuro mudam juntos em todas as telas, o mapa escuro completo deixa
+// de ser o problema. Tons sobem em luminância conforme a hierarquia (vias
+// principais mais claras que locais, rótulos importantes mais claros que
+// secundários); âmbar segue reservado só pra GPS ao vivo, nunca usado aqui.
+private object MapPaletteDark {
+    val Background = AppColors.BackgroundDark
+    val Water = Color(0xFF102233)
+    val Park = Color(0xFF13291D)
+    val LandFill = Color(0xFF14131F)
+    val Building = Color(0xFF1B1926)
+    val RoadCasing = Color(0xFF08070D)
+    val RoadHighway = Color(0xFFE8E6F0)
+    val RoadArterial = Color(0xFFB9B6C9)
+    val RoadMinor = Color(0xFF7A7791)
+    val RoadRail = Color(0xFF5B5870)
+    val Boundary = Color(0xFF3A3750)
+    val LabelHigh = AppColors.SurfaceLight
+    val LabelLow = Color(0xFF9C99AE)
+    val LabelHalo = AppColors.BackgroundDark
+}
+
+/** Cor do halo/contorno de texto no modo escuro — null no claro (usa o halo padrão do provedor). */
+val darkLabelHalo: Color get() = MapPaletteDark.LabelHalo
+
+fun colorForMapLayerRole(role: MapLayerRole, darkTheme: Boolean): Color? =
+    if (darkTheme) colorForDarkRole(role) else colorForLightRole(role)
+
+private fun colorForLightRole(role: MapLayerRole): Color? = when (role) {
+    MapLayerRole.WATER -> MapPaletteLight.Water
+    MapLayerRole.PARK -> MapPaletteLight.Park
     else -> null
+}
+
+private fun colorForDarkRole(role: MapLayerRole): Color? = when (role) {
+    MapLayerRole.BACKGROUND -> MapPaletteDark.Background
+    MapLayerRole.WATER -> MapPaletteDark.Water
+    MapLayerRole.PARK -> MapPaletteDark.Park
+    MapLayerRole.LANDUSE_NEUTRAL -> MapPaletteDark.LandFill
+    MapLayerRole.BUILDING -> MapPaletteDark.Building
+    MapLayerRole.ROAD_CASING -> MapPaletteDark.RoadCasing
+    MapLayerRole.ROAD_HIGHWAY -> MapPaletteDark.RoadHighway
+    MapLayerRole.ROAD_ARTERIAL -> MapPaletteDark.RoadArterial
+    MapLayerRole.ROAD_MINOR -> MapPaletteDark.RoadMinor
+    MapLayerRole.ROAD_RAIL -> MapPaletteDark.RoadRail
+    MapLayerRole.BOUNDARY -> MapPaletteDark.Boundary
+    MapLayerRole.LABEL_HIGH -> MapPaletteDark.LabelHigh
+    MapLayerRole.LABEL_LOW -> MapPaletteDark.LabelLow
+    MapLayerRole.NONE, MapLayerRole.RASTER_HIDDEN -> null
 }
