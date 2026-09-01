@@ -50,6 +50,7 @@ fun MapScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchResults by viewModel.lineSearchResults.collectAsStateWithLifecycle()
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
+    val recenterTrigger by viewModel.recenterTrigger.collectAsStateWithLifecycle()
     val isHeatmapVisible by viewModel.isHeatmapVisible.collectAsStateWithLifecycle()
     val heatmapData by viewModel.heatmapData.collectAsStateWithLifecycle()
     val isLoadingHeatmap by viewModel.isLoadingHeatmap.collectAsStateWithLifecycle()
@@ -73,6 +74,7 @@ fun MapScreen(
             userLocation = userLocation,
             heatmapData = heatmapData,
             isHeatmapVisible = isHeatmapVisible,
+            recenterTrigger = recenterTrigger,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -91,6 +93,32 @@ fun MapScreen(
                 .align(Alignment.TopCenter)
                 .padding(16.dp)
         )
+
+        // Indicador de Carregamento da Linha
+        if (uiState is MapUiState.Loading) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 80.dp)
+                    .background(AppColors.SurfaceDark.copy(alpha = 0.94f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp,
+                        color = AppColors.LiveAmber
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Buscando ônibus da linha...",
+                        color = AppColors.SurfaceLight,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
 
         // Banner informativo do Radar de Calor quando ativo
         if (isHeatmapVisible && heatmapData != null) {

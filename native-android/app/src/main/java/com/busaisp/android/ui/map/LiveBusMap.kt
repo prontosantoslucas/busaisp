@@ -36,6 +36,7 @@ import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.RasterLayer
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
@@ -46,7 +47,8 @@ fun LiveBusMap(
     userLocation: LocationClient.Position?,
     modifier: Modifier = Modifier,
     heatmapData: TrafficHeatmapData? = null,
-    isHeatmapVisible: Boolean = false
+    isHeatmapVisible: Boolean = false,
+    recenterTrigger: Int = 0
 ) {
     val context = LocalContext.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
@@ -125,6 +127,34 @@ fun LiveBusMap(
             updateBusSource(mapLibreMap, vehicles, System.currentTimeMillis())
             return@LaunchedEffect
         }
+
+        // Ajuste inteligente de enquadramento da câmera nos veículos da linha
+        val map = mapLibreMap
+        if (map != null && vehicles.isNotEmpty()) {
+            if (vehicles.size == 1) {
+                map.easeCamera(
+                    CameraUpdateFactory.newLatLngZoom(LatLng(vehicles[0].lat, vehicles[0].lng), 14.5),
+                    1000
+                )
+            } else {
+                val boundsBuilder = LatLngBounds.Builder()
+                vehicles.forEach { v ->
+                    boundsBuilder.include(LatLng(v.lat, v.lng))
+                }
+                try {
+                    map.easeCamera(
+                        CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 120),
+                        1200
+                    )
+                } catch (_: Exception) {
+                    map.easeCamera(
+                        CameraUpdateFactory.newLatLngZoom(LatLng(vehicles[0].lat, vehicles[0].lng), 14.5),
+                        1000
+                    )
+                }
+            }
+        }
+
         while (true) {
             updateBusSource(mapLibreMap, vehicles, System.currentTimeMillis())
             delay(BUS_INTERPOLATION_TICK_MS)
@@ -141,10 +171,11 @@ fun LiveBusMap(
         onDispose { }
     }
 
-    LaunchedEffect(mapLibreMap, userLocation) {
+    // Recentralizar na localização do usuário (tanto inicial quanto ao clicar no botão)
+    LaunchedEffect(mapLibreMap, userLocation, recenterTrigger) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val location = userLocation ?: return@LaunchedEffect
-        if (hasCenteredOnUser) return@LaunchedEffect
+        if (recenterTrigger == 0 && hasCenteredOnUser) return@LaunchedEffect
         hasCenteredOnUser = true
         map.easeCamera(
             CameraUpdateFactory.newLatLngZoom(LatLng(location.lat, location.lng), USER_LOCATION_FOCUS_ZOOM),

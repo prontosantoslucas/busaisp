@@ -102,7 +102,15 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    private val _recenterTrigger = MutableStateFlow(0)
+    val recenterTrigger: StateFlow<Int> = _recenterTrigger.asStateFlow()
+
+    fun recenterOnUser() {
+        _recenterTrigger.value += 1
+    }
+
     fun onLocationPermissionGranted() {
+        recenterOnUser()
         if (locationJob?.isActive == true) return
         locationJob = viewModelScope.launch {
             locationClient.observeLocation().collect { position ->

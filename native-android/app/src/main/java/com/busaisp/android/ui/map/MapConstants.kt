@@ -18,9 +18,8 @@ const val SAO_PAULO_INITIAL_LNG = -46.6333
 const val SAO_PAULO_INITIAL_ZOOM = 12.0
 
 // Intervalo de recálculo da posição interpolada dos ônibus entre pings de GPS
-// (ver domain/GeoInterpolation.kt) — curto o bastante para parecer movimento
-// contínuo, longo o bastante para não pesar CPU/bateria à toa.
-const val BUS_INTERPOLATION_TICK_MS = 1_000L
+// (ver domain/GeoInterpolation.kt) — 250ms para deslizamento contínuo estilo Uber/Waze.
+const val BUS_INTERPOLATION_TICK_MS = 250L
 
 // Zoom e duração da animação de câmera ao centralizar na localização do usuário
 // (botão "Localização atual") — mais próximo que o zoom inicial da cidade, para
