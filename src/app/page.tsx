@@ -383,10 +383,10 @@ export default function HomePage() {
 
       if (json.success && json.data) {
         const searchResult: RouteSearchResult = json.data;
-        const alts =
-          searchResult.alternatives && searchResult.alternatives.length > 0
-            ? searchResult.alternatives
-            : [searchResult.primaryRoute];
+        // alternatives nunca inclui primaryRoute (corrigido em routing.ts —
+        // antes a rota mais rápida aparecia duplicada aqui dentro), então a
+        // lista completa é sempre a junção das duas.
+        const alts = [searchResult.primaryRoute, ...(searchResult.alternatives ?? [])];
         setRoutes(alts);
         setSelectedRouteIndex(0);
         setSelectedLine(alts[0].recommendedLine);

@@ -1173,7 +1173,11 @@ export async function calculateRoute(
 
   return {
     primaryRoute: finalPlans[0],
-    alternatives: finalPlans
+    // finalPlans[0] já é primaryRoute — sem o slice(1), a rota mais rápida
+    // aparecia duas vezes na lista final (primaryRoute + alternatives[0] com
+    // o mesmo id), o que no app Android derruba o LazyColumn (chave
+    // duplicada) e no web mostra o mesmo card repetido.
+    alternatives: finalPlans.slice(1)
   };
 }
 

@@ -105,7 +105,9 @@ describe('calculateRoute', () => {
     expect(result.primaryRoute.departureStop.cp).toBe(340015353);
     expect(result.primaryRoute.arrivalStop.cp).toBe(340015350);
     expect(result.primaryRoute.transferCount).toBe(0);
-    expect(result.alternatives).toHaveLength(1);
+    // Só uma linha encontrada no total -> zero alternativas de verdade além da
+    // primária (antes o bug duplicava primaryRoute dentro de alternatives).
+    expect(result.alternatives).toHaveLength(0);
   });
 
   it('calcula rota com baldeação quando não há linha direta', async () => {
@@ -227,9 +229,11 @@ describe('calculateRoute', () => {
 
     const result = await calculateRoute(origin, dest);
 
-    expect(result.alternatives).toHaveLength(2);
+    // 2 linhas encontradas -> primaryRoute (a mais rápida) + 1 alternativa
+    // real (antes o bug incluía a própria primaryRoute de novo em alternatives[0]).
+    expect(result.alternatives).toHaveLength(1);
     expect(result.primaryRoute.arrivalStop.cp).toBe(340015350);
-    expect(result.primaryRoute.totalDurationMinutes).toBeLessThanOrEqual(result.alternatives[1].totalDurationMinutes);
+    expect(result.primaryRoute.totalDurationMinutes).toBeLessThanOrEqual(result.alternatives[0].totalDurationMinutes);
   });
 
   it('mantém as demais alternativas quando a previsão em tempo real falha para uma delas', async () => {
@@ -254,7 +258,8 @@ describe('calculateRoute', () => {
 
     const result = await calculateRoute(origin, dest);
 
-    expect(result.alternatives).toHaveLength(2);
+    expect(result.alternatives).toHaveLength(1);
+    expect(result.primaryRoute.nextBusEtaMinutes).toBe(-1);
     expect(result.alternatives.every(plan => plan.nextBusEtaMinutes === -1)).toBe(true);
   });
 
@@ -383,12 +388,14 @@ describe('calculateRoute', () => {
 
     const result = await calculateRoute(origin, dest);
 
-    // Deve retornar 2 opções distintas (175T e 172N), não 5 cópias de 175T
-    expect(result.alternatives).toHaveLength(2);
-    const lineNames = result.alternatives.map(a => a.recommendedLine.lt);
-    expect(lineNames).toContain('175T');
-    expect(lineNames).toContain('172N');
-    expect(new Set(lineNames).size).toBe(2);
+    // Deve retornar 2 opções distintas (175T e 172N), não 5 cópias de 175T —
+    // uma delas é primaryRoute, a outra a única alternativa real (não checa
+    // qual das duas vira primária, só que as duas aparecem e sem duplicata).
+    expect(result.alternatives).toHaveLength(1);
+    const allLineNames = [result.primaryRoute, ...result.alternatives].map(a => a.recommendedLine.lt);
+    expect(allLineNames).toContain('175T');
+    expect(allLineNames).toContain('172N');
+    expect(new Set(allLineNames).size).toBe(2);
   });
 
   it('prioriza linha no ponto onde o usuário já está em vez de mandar andar desnecessariamente', async () => {
@@ -413,9 +420,10 @@ describe('calculateRoute', () => {
     const result = await calculateRoute(origin, dest);
 
     // Ambas as opções devem estar presentes, mas a linha que sai de onde o usuário está deve ser a primeira
-    expect(result.alternatives).toHaveLength(2);
+    expect(result.alternatives).toHaveLength(1);
     expect(result.primaryRoute.recommendedLine.lt).toBe('1000');
     expect(result.primaryRoute.departureStop.cp).toBe(101);
+    expect(result.alternatives[0].recommendedLine.lt).toBe('2000');
   });
 
   it('considera problemas e incidentes de trânsito no trajeto adicionando atraso na duração e hora de chegada', async () => {
