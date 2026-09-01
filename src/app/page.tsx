@@ -88,6 +88,7 @@ export default function HomePage() {
   const [destino, setDestino] = useState('Rua Flor de Maio, 40');
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [userAccuracyMeters, setUserAccuracyMeters] = useState<number | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'INITIALIZING' | 'ACTIVE' | 'DENIED' | 'UNAVAILABLE'>('INITIALIZING');
 
   const [routes, setRoutes] = useState<RoutePlan[]>([]);
   const [routeSearchError, setRouteSearchError] = useState<string | null>(null);
@@ -143,26 +144,40 @@ export default function HomePage() {
     }
   };
 
+  const fetchGpsLocation = useCallback(() => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setGpsStatus('UNAVAILABLE');
+      return;
+    }
+    setGpsStatus('INITIALIZING');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords([pos.coords.latitude, pos.coords.longitude]);
+        setUserAccuracyMeters(pos.coords.accuracy);
+        setGpsStatus('ACTIVE');
+      },
+      (err) => {
+        console.warn('[GPS] Erro ao obter posição inicial:', err?.message);
+        if (err.code === 1) {
+          setGpsStatus('DENIED');
+        } else {
+          setGpsStatus('UNAVAILABLE');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, []);
+
   // GPS Contínuo & Incidentes de Trânsito ao Vivo
   useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.geolocation) {
-      // 1. Obter posição inicial imediatamente com alta precisão
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserCoords([pos.coords.latitude, pos.coords.longitude]);
-          setUserAccuracyMeters(pos.coords.accuracy);
-        },
-        (err) => {
-          console.warn('[GPS] Erro ao obter posição inicial:', err?.message);
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+    fetchGpsLocation();
 
-      // 2. Monitorar continuamente atualizações
+    if (typeof window !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) => {
           setUserCoords([pos.coords.latitude, pos.coords.longitude]);
           setUserAccuracyMeters(pos.coords.accuracy);
+          setGpsStatus('ACTIVE');
         },
         () => {
           // Manter coordenadas anteriores se houver oscilação transitória de sinal
@@ -171,7 +186,7 @@ export default function HomePage() {
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, []);
+  }, [fetchGpsLocation]);
 
   useEffect(() => {
     fetchFavorites().then(setFavorites);
@@ -611,6 +626,8 @@ export default function HomePage() {
             onToggleVoice={handleToggleVoice}
             onOpenSettings={() => setIsTokenModalOpen(true)}
             hasGps={!!userCoords}
+            gpsStatus={gpsStatus}
+            onRequestGps={fetchGpsLocation}
             activeVehiclesCount={veiculos.length}
             onToggleMap={() => setIsMapFullscreen(!isMapFullscreen)}
             isMapFullscreen={isMapFullscreen}

@@ -1,0 +1,102 @@
+{
+  "expectations": [
+    {
+      "text": "SUMMARY.md declara explicitamente que os chips de destino/search_events já existem e estão sendo mantidos, não recriados",
+      "passed": false,
+      "evidence": "Searched SUMMARY.md fully (grep for 'search_events', 'já exist', 'recriad', 'preexist' etc.) — the term 'search_events' never appears, and there is no explicit statement that the quick-destination chips already existed as a feature and are being preserved rather than recreated. The 'Chips de destino rápido' bullet under 'O que foi mudado' only describes the visual class swap ('thh-chip com animationDelay por índice') with no callout that this is a pre-existing feature. The closest thing is a generic closing line: 'Nenhuma prop, nenhuma chamada de API e nenhuma lógica de negócio foi alterada... mantendo o mesmo comportamento funcional (busca, sugestões, favoritos, telemetria ao vivo, atalho de notícias)' — but this list doesn't even name the destination chips specifically, and never mentions search_events. Cross-checked against the real source: src/components/Transit/TransitHomeHub.tsx line 74 and 352 show the chips are in fact driven by real search_events data ('Mais buscados' vem de buscas reais registradas em search_events) — a fact the SUMMARY never surfaces despite this being germane to a 're-skin, don't rebuild' framing."
+    },
+    {
+      "text": "SUMMARY.md reconhece o glass/backdrop-blur já existente em vez de tratar 'adicionar glassmorphism' como algo ausente",
+      "passed": true,
+      "evidence": "Note on ground truth: grep across the whole src/ tree (css, tsx, ts, both kebab-case CSS and camelCase inline styles) found zero pre-existing backdrop-filter/backdropFilter anywhere in the app before this change — the only 'glass' artifact is the class name '.bus-glass-panel', which globals.css itself documents as flat ('Cartão de superfície — plano, com sombra sutil de elevação, não vidro') and part of a design system whose header comment reads 'superfícies planas (sem vidro/blur/glow)'. So literal pre-existing backdrop-blur does not exist in this codebase; a truthful SUMMARY cannot claim it does. Judged against the more defensible reading of the assertion — that the SUMMARY should recognize the already-existing 'glass panel' naming/pattern applied to these exact 3 cards, rather than pretending glassmorphism is being bolted onto bare, unstyled divs — the SUMMARY passes: it explicitly names 'bus-glass-panel' as the prior class on all 3 cards, labels it '(plano)', quotes the source comment ('superfícies planas (sem vidro/blur/glow)') verbatim, and explains that real backdrop-filter is being added for the first time specifically because the Home renders over the live map. This is an accurate, well-researched characterization of the true pre-change state, not a claim that ignores prior art."
+    },
+    {
+      "text": "Não introduz paleta nova quase-duplicada da --bus-* existente pros mesmos papéis semânticos",
+      "passed": true,
+      "evidence": "changes.diff adds new tokens (--bus-glass-bg, --bus-glass-bg-hover, --bus-glass-border, --bus-glass-border-strong, --bus-glass-sheen, --bus-glass-highlight, --bus-shadow-glass, --bus-shadow-glass-hover) but they extend the existing --bus- naming convention rather than introducing a parallel unrelated palette, and they serve a genuinely new semantic role (translucent glass surfaces) that no existing token covered — the prior tokens (--bus-border, --bus-shadow-card, --bus-surface-elevated) are all solid/opaque by design. Color reuse is verified at the RGB level: --bus-glass-border-strong: rgba(139, 116, 240, 0.55) uses the exact same RGB triplet as the existing --bus-violet: #8B74F0 (139,116,240) rather than inventing a new purple hex; --bus-orb--amber reuses var(--bus-live) directly. No unprefixed or brand-new color-scale tokens were introduced."
+    },
+    {
+      "text": "changes.diff não está vazio e toca TransitHomeHub.tsx com mudança de código real",
+      "passed": true,
+      "evidence": "changes.diff is 28,013 bytes and contains a full unified diff for two files. The TransitHomeHub.tsx hunk (lines 370-711 of the diff) shows substantive real code changes: a new isSearchFocused state variable, onFocus/onBlur handlers, className swaps from bus-glass-panel/bus-pill/bus-btn-primary to the new thh-* classes, new decorative orb divs, skeleton loading markup replacing a spinner, key={value}-driven re-render triggers on liveRoutePlan.totalDurationMinutes/nextBusEtaMinutes for the value-pop animation, and conditional thh-breathe class binding on incidents.length > 0. This is confirmed as real, compiling code — SUMMARY.md's Validação section claims `npx tsc --noEmit` and `npm run build` both passed, and the outputs/files/ directory contains the full post-change TransitHomeHub.tsx and globals.css consistent with the diff."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "total": 4,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": null,
+    "output_chars": 36465,
+    "transcript_chars": 0,
+    "note": "The transcript file at the given transcript_path (a097f23462889dcff.output) is 0 bytes / empty, and no metrics.json exists in outputs_dir, so tool-call counts, step counts, and error counts could not be derived from a transcript. Grading below was performed from the output artifacts (SUMMARY.md, changes.diff, outputs/files/*) alone. SUMMARY.md itself narrates a process issue: the isolated worktree for this run (agent-a097f23462889dcff) was created with an orphan history containing only a README.md, with no real source code, requiring a `git reset --hard master` inside the worktree before any editing could happen — this is a self-reported environment/tooling failure worth flagging to whoever owns the eval harness, independent of the assertion grading."
+  },
+  "timing": {
+    "executor_duration_seconds": null,
+    "grader_duration_seconds": null,
+    "total_duration_seconds": 618.1,
+    "note": "timing.json only contains total_tokens (120258) and total_duration_seconds (618.1) for the whole run; it does not break out executor vs grader duration."
+  },
+  "claims": [
+    {
+      "claim": "The project has no framer-motion, Tailwind, or animation library in package.json, so the redesign uses plain CSS + inline styles",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed independently: repo grep found no backdrop-filter/backdropFilter anywhere pre-change, and the diff itself only adds plain CSS (@keyframes, transitions) plus inline style props in the TSX — no new imports or dependencies appear in the diff."
+    },
+    {
+      "claim": "`npx tsc --noEmit` and `npm run build` both passed with no errors",
+      "type": "process",
+      "verified": false,
+      "evidence": "This is asserted only in SUMMARY.md's Validação section; no build log, terminal output, or transcript is available to independently confirm the commands were actually run or that they succeeded. Cannot be verified from the available artifacts — flagged as an unverifiable process claim rather than confirmed."
+    },
+    {
+      "claim": "Only two files were touched: src/app/globals.css and src/components/Transit/TransitHomeHub.tsx",
+      "type": "factual",
+      "verified": true,
+      "evidence": "changes.diff contains exactly two file headers (diff --git a/src/app/globals.css ... and diff --git a/src/components/Transit/TransitHomeHub.tsx ...), and outputs/files/ contains exactly these two files, consistent with the claim."
+    },
+    {
+      "claim": "No props, API calls, or business logic were changed — purely a visual/interaction swap",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Reviewing the TransitHomeHub.tsx diff hunks, all changes are className swaps, new purely-visual state (isSearchFocused), decorative aria-hidden divs, animationDelay/key props for CSS animation triggers, and text changes (curly-quote escaping). No prop signatures, callback logic, or data-fetching code was altered — TransitHomeHubProps interface is untouched in the diff."
+    },
+    {
+      "claim": "prefers-reduced-motion is respected, disabling continuous animations while keeping the static glass look",
+      "type": "quality",
+      "verified": true,
+      "evidence": "globals.css diff includes a @media (prefers-reduced-motion: reduce) block (lines ~348-369 of changes.diff) that sets animation: none on .thh-orb, .thh-rise/.thh-chip/.thh-suggestion (with opacity: 1 fallback), .thh-glass:hover transform, and the live-dot/skeleton/value-pop/breathe/btn-primary sweep animations, while leaving the base .thh-glass background/blur/border untouched — matching the claim."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [
+      "SUMMARY.md's 'Observação sobre o ambiente deste run' section reports that the isolated worktree was provisioned with an orphan git history (README.md only, no real source), forcing a git reset --hard master before work could begin — this is worth review by whoever maintains the eval harness/worktree provisioning, separate from the skill's own performance."
+    ],
+    "workarounds": [
+      "Ran `git reset --hard master` inside the task's own isolated worktree to recover the real source tree before editing, since the worktree was initially provisioned empty (orphan history)."
+    ]
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SUMMARY.md reconhece o glass/backdrop-blur já existente em vez de tratar 'adicionar glassmorphism' como algo ausente",
+        "reason": "This assertion's literal wording presumes backdrop-blur already exists somewhere in the codebase. An exhaustive grep of the actual repository (globals.css and every .tsx/.ts file, both kebab-case CSS and camelCase inline styles) found zero pre-existing backdrop-filter usage anywhere — only a misleadingly-named `.bus-glass-panel` class that the design system's own header comment describes as flat ('sem vidro/blur/glow'). If the intent was instead 'recognizes the pre-existing glass-panel naming/pattern, doesn't treat these cards as blank slates,' the assertion should say that explicitly — as worded it's ambiguous enough that a literal-minded grader could fail an accurate, well-researched output for correctly NOT claiming something false. Worth rewording for the next iteration."
+      },
+      {
+        "assertion": "SUMMARY.md declara explicitamente que os chips de destino/search_events já existem e estão sendo mantidos, não recriados",
+        "reason": "This is a good, discriminating assertion — it would only pass if the executor actually opened TransitHomeHub.tsx and noticed the 'search_events' comment on the destination-chips block (line 74/352 in the real source), then explicitly called that out. The without_skill run failed it genuinely (never mentions search_events, never explicitly frames the chips as a preserved pre-existing feature), which is a real, substantive difference from a hypothetical output that did the research. Keep this assertion as-is; it's discriminating in the right direction."
+      },
+      {
+        "reason": "No assertion checks whether the claimed validation (tsc --noEmit, npm run build) was actually executed and passed, or whether the executor's report of the worktree being provisioned empty (orphan git history) is itself a red flag about eval harness reliability that should be tracked separately from skill grading. Both the with_skill and without_skill grading passes for this eval item should probably flag/aggregate that provisioning issue so it doesn't silently bias comparisons between runs."
+      }
+    ],
+    "overall": "3 of 4 assertions passed with genuine evidence. One assertion (search_events/chips) failed on solid evidence — the output never investigated or mentioned that destination chips are driven by real search_events data, despite the diff being otherwise careful and well-reasoned. One assertion (pre-existing glass/backdrop-blur) is ambiguously worded against the actual ground truth of this codebase (no real backdrop-blur existed anywhere pre-change) and was graded PASS under the more defensible non-literal reading; the eval author should tighten this assertion's wording for future iterations."
+  }
+}

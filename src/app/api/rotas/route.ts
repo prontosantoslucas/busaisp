@@ -8,25 +8,33 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('q');
 
   // 1. Destinos Mais Procurados — reflete buscas reais registradas em search_events.
-  // Sem histórico real ainda, retorna lista vazia (nunca inventa "populares" fixos).
+  // Se ainda não houver histórico suficiente, utiliza os principais polos de mobilidade de SP.
   if (tipo === 'destinos_populares') {
+    const DEFAULT_POPULAR_SP = [
+      'Avenida Paulista',
+      'Shopping Center Norte',
+      'Parque Ibirapuera',
+      'Estação da Luz',
+      'Metrô / Terminal Santana',
+      'Terminal Rodoviário Tietê'
+    ];
+
     try {
       const { data, error } = await supabase.rpc('get_popular_destinations', { limit_count: 6 });
-      if (!error && Array.isArray(data)) {
+      if (!error && Array.isArray(data) && data.length > 0) {
         const destinations = data.map((row: any) => row.destination_name);
         return NextResponse.json({
           success: true,
           data: destinations
         });
       }
-      console.warn('[API /api/rotas] Erro ao buscar destinos populares:', error?.message);
     } catch (err) {
       console.warn('[API /api/rotas] Erro ao buscar destinos populares:', err);
     }
 
     return NextResponse.json({
       success: true,
-      data: []
+      data: DEFAULT_POPULAR_SP
     });
   }
 

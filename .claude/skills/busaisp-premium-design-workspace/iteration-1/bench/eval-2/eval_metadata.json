@@ -1,0 +1,11 @@
+{
+  "eval_id": 2,
+  "eval_name": "transithomehub-premium-redesign",
+  "prompt": "Redesenha a tela inicial (src/components/Transit/TransitHomeHub.tsx) pra parecer mais premium, com glassmorphism e melhores animações, no nível de Uber/Waze.",
+  "assertions": [
+    { "text": "SUMMARY.md declara explicitamente que os chips de destino/search_events já existem e estão sendo mantidos, não recriados", "type": "manual" },
+    { "text": "SUMMARY.md reconhece o glass/backdrop-blur já existente em vez de tratar 'adicionar glassmorphism' como algo ausente", "type": "manual" },
+    { "text": "Não introduz paleta nova quase-duplicada da --bus-* existente pros mesmos papéis semânticos", "type": "manual" },
+    { "text": "changes.diff não está vazio e toca TransitHomeHub.tsx com mudança de código real", "type": "manual" }
+  ]
+}

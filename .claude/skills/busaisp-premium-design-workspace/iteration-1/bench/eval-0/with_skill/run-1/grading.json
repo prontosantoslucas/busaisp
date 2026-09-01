@@ -1,0 +1,119 @@
+{
+  "expectations": [
+    {
+      "text": "Reusa tokens --bus-* existentes em vez de introduzir hex novos pros papéis (fundo/borda/texto/sombra) que já têm token",
+      "passed": true,
+      "evidence": "changes.diff replaces the hardcoded traffic-delay badge colors (`color: '#EF4444'`, `background: 'rgba(239, 68, 68, 0.15)'`) with `color: 'var(--bus-red)'`, `background: 'var(--bus-red-soft)'`. Both tokens are confirmed to already exist in the real src/app/globals.css (lines 39-40 dark, 90-91 light). The new 'MAIS RÁPIDA' tag uses `var(--bus-violet)`/`var(--bus-violet-soft)` (pre-existing, confirmed at lines 31-33/82-84). The new skeleton loader uses `var(--bus-surface-sunken)` (pre-existing token, lines 23/76). The new `.bus-card.active` box-shadow composites the pre-existing `--bus-shadow-raised` token (lines 57/102) instead of a new shadow value. A grep of all added diff lines (`^\\+.*(rgba\\(|#[0-9A-Fa-f]{3,8})`) returned zero matches — no new hex or rgba color literal was introduced anywhere in the diff."
+    },
+    {
+      "text": "Motion usa easing não-linear (spring/cubic-bezier customizado), não fade/transition linear genérico",
+      "passed": true,
+      "evidence": "The diff adds `.bus-card-cta-arrow`, `.bus-tap-feedback`, and `.bus-card-enter` all using `cubic-bezier(0.16, 1, 0.3, 1)` — the same custom spring-like curve already used by the pre-existing `.animate-slide-up` class (confirmed at globals.css line 427: `animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;`). The only linear animation in the original file (`animation: 'spin 1s linear infinite'` on the loading spinner) was removed entirely and replaced by the skeleton loader. No new `linear` transitions were introduced in the diff."
+    },
+    {
+      "text": "SUMMARY.md nomeia explicitamente pelo menos um token/animação/classe já existente que foi reusado",
+      "passed": true,
+      "evidence": "SUMMARY.md explicitly names multiple reused primitives: '--bus-red / --bus-red-soft', '--bus-shadow-raised', 'the radarPulse keyframe, previously only used for the live bus marker on the map', 'getEtaColorTokens / getEtaTier (src/lib/etaStyle.ts)', 'the same cubic-bezier(0.16, 1, 0.3, 1) spring-like curve already used by .animate-slide-up', and 'the slideUp keyframe already in the file'. All of these were independently confirmed to pre-exist in the real codebase (globals.css and etaStyle.ts) rather than being invented."
+    },
+    {
+      "text": "Não introduz uma cor nova que é quase-duplicata (poucos tons de distância) de um --bus-* já existente pro mesmo papel semântico",
+      "passed": true,
+      "evidence": "Same evidence as assertion 1: a grep over every added (`+`) line in changes.diff for hex codes or rgba() literals returned zero matches. Every color value in the diff is either a `var(--bus-*)` reference or comes through `etaColors.color`/`etaColors.background` (the pre-existing getEtaColorTokens() helper). With no new literal color introduced at all, there is by construction no near-duplicate color for an existing semantic role."
+    },
+    {
+      "text": "changes.diff não está vazio e toca TransitRouteResults.tsx com mudança de código real (não só comentário)",
+      "passed": true,
+      "evidence": "changes.diff is 16,503 bytes and contains a substantial hunk against src/components/Transit/TransitRouteResults.tsx (roughly 100+ changed lines): new import (`getEtaTier`), a new `fastestDurationMinutes` computation, a full skeleton-loading JSX block replacing the old spinner, a restructured header with a 'MAIS RÁPIDA' badge and two-line duration/arrival typography, a restructured ETA/traffic-delay badge area with a pulsing-dot indicator, and new className usage (`bus-card-enter`, `bus-tap-feedback`, `bus-card-cta-arrow`). This is real logic/JSX code, not a comment-only change. The final file in outputs/files/src/components/Transit/TransitRouteResults.tsx was independently confirmed to contain all of these constructs (MAIS RÁPIDA, bus-skeleton, getEtaTier, bus-tap-feedback, bus-card-cta-arrow), and a Node brace-balance check on that file returned depth 0 / min depth 0 (well-formed)."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": "unavailable — transcript file was empty (0 bytes), see note below",
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": null,
+    "output_chars": 23877,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 511.0,
+    "grader_duration_seconds": null,
+    "total_duration_seconds": 511.0
+  },
+  "claims": [
+    {
+      "claim": "No new hex or rgba color literal was introduced anywhere in changes.diff",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep -nE \"^\\+.*(rgba\\(|#[0-9A-Fa-f]{3,8})\" changes.diff returned no matches"
+    },
+    {
+      "claim": "getEtaTier is a real, pre-existing exported function in src/lib/etaStyle.ts, not hallucinated",
+      "type": "factual",
+      "verified": true,
+      "evidence": "src/lib/etaStyle.ts line 9: `export function getEtaTier(etaMinutes: number | null | undefined): EtaTier {`"
+    },
+    {
+      "claim": "`.bus-card` already declared `transform` in its transition property but no rule ever set a `transform` before this change",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Real globals.css line 160 (pre-change): `transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;` with no `.bus-card` rule anywhere setting `transform:` until the diff adds `.bus-card:active { transform: scale(0.985); }`"
+    },
+    {
+      "claim": "`--bus-shadow-raised` was a defined token, unused anywhere in the Transit components before this change",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep -rn \"--bus-shadow-raised\" src shows it used only in globals.css (a leaflet control rule) and src/components/Map/LiveMap.tsx (7 occurrences) — zero occurrences in src/components/Transit/ prior to the diff"
+    },
+    {
+      "claim": "The loading spinner referenced a `spin` keyframe that does not exist anywhere in the codebase",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep -rn \"@keyframes spin\" src returned zero matches"
+    },
+    {
+      "claim": "Skill `busaisp-premium-design` was invoked via the Skill tool before any code was written",
+      "type": "process",
+      "verified": false,
+      "evidence": "Cannot be verified — the transcript file at the given path is empty (0 bytes), so no tool-call sequence is available to confirm this. Taken on faith from SUMMARY.md alone."
+    },
+    {
+      "claim": "Route cards now enter staggered (45ms/item)",
+      "type": "quality",
+      "verified": true,
+      "evidence": "changes.diff: `animationDelay: \\`${Math.min(idx, 6) * 45}ms\\`` applied per route card via the new `.bus-card-enter` class"
+    },
+    {
+      "claim": "Only the two intended files (TransitRouteResults.tsx and globals.css) changed",
+      "type": "process",
+      "verified": true,
+      "evidence": "changes.diff contains exactly two file headers (`diff --git a/src/app/globals.css ...` and `diff --git a/src/components/Transit/TransitRouteResults.tsx ...`), and outputs/files/ contains exactly those two files, consistent with the claim"
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The transcript file supplied for this grading run (a1527159c678202e6.output) was completely empty (0 bytes), as were every other .output file in that tasks/ directory. This meant Step 1 of the grading process (read the transcript fully, verify process claims like 'skill invoked before any code was written', tool-call sequencing, order of audit-then-edit) could not be performed at all — grading here relied entirely on outputs_dir plus independent verification against the live repo. The assertions in this eval happen to be gradable from outputs alone (diff content + SUMMARY.md text), so the pass/fail verdicts above are still trustworthy, but this is worth flagging as an infrastructure gap: if a future eval's assertions depend on transcript-only signals (e.g. 'the skill was invoked before touching any file', 'the agent read globals.css before editing'), an empty transcript would silently make those assertions unverifiable rather than failing loudly."
+      },
+      {
+        "assertion": "SUMMARY.md nomeia explicitamente pelo menos um token/animação/classe já existente que foi reusado",
+        "reason": "This assertion has a low bar — an agent could satisfy it by merely name-dropping an existing token in prose without actually reusing it correctly in code (e.g. mention `--bus-red` in the writeup while still hardcoding a hex value in the diff). It passed here with strong, verified evidence (the named tokens genuinely appear reused correctly in changes.diff), but the assertion itself doesn't cross-check the SUMMARY.md claim against the diff. A stronger version would require that at least one specifically named token/class in SUMMARY.md also appears reused (not just declared) in changes.diff."
+      },
+      {
+        "reason": "No assertion checks that the changed component still respects the file's existing data-guard patterns (e.g. the ETA badge's live-pulse-vs-static-icon branch only firing when `getEtaTier !== 'none'`, so it doesn't visually claim live data that isn't there). This was a genuinely good piece of restraint the agent exercised (per SUMMARY.md and confirmed in the diff) that no assertion rewards or would catch if it were missing — worth considering for a future 'doesn't overclaim data it doesn't have' type of assertion in UI-polish evals, since that's exactly the kind of shortcut a lower-quality agent would take (always showing the pulse for visual flair) and that a token-reuse-only assertion set wouldn't catch."
+      }
+    ],
+    "overall": "All 5 assertions passed with strong, independently-verified evidence (not just surface compliance — I cross-checked every named token/keyframe/function against the actual current repo files, not just trusted SUMMARY.md's prose, and grepped the diff itself for any smuggled-in hex/rgba literals). The assertion set is well-targeted at this skill's specific failure mode (introducing new colors/motion instead of reusing the existing design system) and is genuinely discriminating — a lazy or careless agent would very plausibly have hardcoded a new red/violet shade or used a generic linear fade, and the assertions would have caught that. The main caveat is the missing transcript, which limits confidence in process claims (e.g., whether the skill was actually invoked, whether the audit genuinely preceded the edits) to what SUMMARY.md self-reports."
+  },
+  "eval_critique": "The assertion set is tightly scoped to this skill's core value proposition (design-system discipline: reuse tokens/animations, don't invent near-duplicate colors, use non-linear motion) and each one is discriminating in practice — I verified independently against the real repo (not just trusting the transcript/SUMMARY.md) that every named token, keyframe, and function genuinely pre-existed, and that zero new color literals were introduced anywhere in the diff, which is a meaningfully hard bar to clear by accident. The weakest assertion is the SUMMARY.md-naming one, since it only checks that a name is mentioned in prose, not that the mentioned thing is actually reused correctly in code — it happened to hold up here under independent scrutiny, but a future eval could tighten it to require the named token/class to also appear in changes.diff. The biggest process gap is external to the eval definition: the transcript file was empty, which blocks verification of any process-level expectation (ordering of skill invocation, audit-before-edit, etc.); this eval's assertions didn't happen to need that, but the eval harness losing transcripts silently (0-byte file rather than an error) is worth flagging separately from the assertion quality itself."
+}

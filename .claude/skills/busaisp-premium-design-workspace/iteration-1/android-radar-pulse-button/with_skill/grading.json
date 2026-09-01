@@ -1,0 +1,104 @@
+{
+  "expectations": [
+    {
+      "text": "Animação Compose usa spring()/easing não-linear, não um repeat linear puro",
+      "passed": true,
+      "evidence": "changes.diff (and outputs/files/.../MapScreen.kt) shows: `animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing)` inside `infiniteRepeatable(...)` driving `rememberInfiniteTransition().animateFloat(...)`. FastOutSlowInEasing is Compose's non-linear (ease-in-out style) curve, not LinearEasing, and no bare `repeat`/linear tween is used. SUMMARY.md explicitly states the choice: 'Curva não-linear (FastOutSlowInEasing), nunca LinearEasing'. It does not use spring(), but the assertion allows spring() OR non-linear easing, and this satisfies the non-linear-easing branch while explicitly avoiding a pure linear repeat."
+    },
+    {
+      "text": "Cor do pulso vem de AppColors/LineColors existente, não um Color(0x...) novo hardcoded pro mesmo papel semântico (ex.: âmbar ao vivo)",
+      "passed": true,
+      "evidence": "changes.diff: `.background(AppColors.UserLocationBlue, CircleShape)` — no new Color(0x...) literal was introduced for the pulse. Verified against the live repo (native-android/app/src/main/java/com/busaisp/android/ui/theme/Color.kt:37) that `AppColors.UserLocationBlue = Color(0xFF3B82F6)` already existed prior to this change and is already used for the same semantic role (live user position) in LiveBusMap.kt:108 (`PropertyFactory.circleColor(AppColors.UserLocationBlue.toArgb())`). SUMMARY.md correctly attributes this as pure reuse, not a new hardcoded color."
+    },
+    {
+      "text": "SUMMARY.md nomeia explicitamente um arquivo/token existente consultado (AppColors, MapDarkPalette, etc.)",
+      "passed": true,
+      "evidence": "SUMMARY.md's 'Auditoria feita antes de implementar' section names concrete files/tokens it read: `ui/theme/Color.kt` (AppColors.UserLocationBlue), `src/app/globals.css` (@keyframes markerPulse/radarPulse), `ui/map/MapDarkPalette.kt`, `VehicleDetailSheet.kt` (spring(dampingRatio = Spring.DampingRatioMediumBouncy)), and `LiveBusMap.kt` (userLocation state). I independently verified three of these against the actual repository: AppColors.UserLocationBlue and its LiveBusMap.kt usage exist exactly as described, the markerPulse/radarPulse @keyframes exist in src/app/globals.css (lines 404, 410, 498) with the claimed 1.8s duration, and VehicleDetailSheet.kt:41 does use `spring(dampingRatio = Spring.DampingRatioMediumBouncy)`. These are not vague/generic references — they cite specific files, line-level tokens, and correct values."
+    },
+    {
+      "text": "changes.diff toca MapScreen.kt (ou arquivo diretamente relacionado) com animação real implementada, não placeholder",
+      "passed": true,
+      "evidence": "changes.diff modifies exactly `native-android/app/src/main/java/com/busaisp/android/ui/map/MapScreen.kt` (54 insertions / 14 deletions per SUMMARY.md, matches diff hunk). The change is a complete, functional implementation: new imports for Compose animation APIs (FastOutSlowInEasing, RepeatMode, animateFloat, infiniteRepeatable, rememberInfiniteTransition, tween, graphicsLayer, CircleShape), a `rememberInfiniteTransition` + `animateFloat` driving a `graphicsLayer{ scaleX/scaleY/alpha }` on a `Box` behind the existing `FloatingPillButton`, gated on `userLocation != null`. This is a real, buildable animation, not a TODO/stub/comment-only placeholder."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": null,
+    "output_chars": 23488,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 523.3,
+    "grader_duration_seconds": null,
+    "total_duration_seconds": 523.3
+  },
+  "claims": [
+    {
+      "claim": "AppColors.UserLocationBlue already existed prior to this change and is already used in LiveBusMap.kt for the user position marker",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in the live repo: Color.kt:37 defines `UserLocationBlue = Color(0xFF3B82F6)`; LiveBusMap.kt:108 uses `AppColors.UserLocationBlue.toArgb()` for the position circle layer."
+    },
+    {
+      "claim": "@keyframes markerPulse (1.8s, opacity 0.7→0) already exists in the web app's globals.css and was used as the timing/amplitude precedent",
+      "type": "factual",
+      "verified": true,
+      "evidence": "src/app/globals.css lines 404 (@keyframes radarPulse), 410 (@keyframes markerPulse), 498 (`animation: markerPulse 1.8s infinite;`) confirm the claimed keyframes and 1800ms duration exist and predate this change."
+    },
+    {
+      "claim": "VehicleDetailSheet.kt already uses spring(dampingRatio = Spring.DampingRatioMediumBouncy), establishing a non-linear-motion precedent in the codebase",
+      "type": "factual",
+      "verified": true,
+      "evidence": "VehicleDetailSheet.kt:41: `.animateContentSize(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy))` confirmed present in the repo."
+    },
+    {
+      "claim": "The change compiled successfully (`./gradlew.bat :app:compileDebugKotlin` — BUILD SUCCESSFUL in 2m 13s)",
+      "type": "process",
+      "verified": false,
+      "evidence": "This claim appears only in SUMMARY.md prose; the transcript that would show the actual Bash tool invocation and its output is unavailable (transcript_path file is empty, 0 bytes — see note below), so the build claim could not be independently confirmed from tool-call evidence. The diff itself is small and syntactically plausible (correct import set for the APIs used, matching Compose idioms), which is weak circumstantial support, but the compile claim itself is unverified."
+    },
+    {
+      "claim": "FloatingPillButton.kt (the shared component also used by the 'Radar de Calor' button) was deliberately left unmodified so the other button's behavior/visual is unaffected",
+      "type": "process",
+      "verified": true,
+      "evidence": "changes.diff touches only MapScreen.kt; the pulse ring is implemented as a sibling Box wrapping the existing FloatingPillButton call rather than inside the shared component, consistent with the claim."
+    },
+    {
+      "claim": "The pulse is conditionally rendered only when userLocation != null, reflecting a real live-GPS state rather than being purely decorative",
+      "type": "quality",
+      "verified": true,
+      "evidence": "changes.diff: `if (userLocation != null) { ... }` wraps the entire radar ring Box/animation block before the FloatingPillButton call."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Animação Compose usa spring()/easing não-linear, não um repeat linear puro",
+        "reason": "The assertion's phrasing ('spring()/easing não-linear') is somewhat loose — it does not specify whether a plain non-linear `Easing` curve (as delivered here, FastOutSlowInEasing) is an acceptable substitute for spring()-based physics, or whether spring() specifically was expected for this to feel like a 'radar pulse'. The delivered solution satisfies the letter of the assertion (non-linear, not pure linear repeat) but a stricter reading could argue an infinite radar pulse arguably benefits more from spring's continuous motion than a repeating tween; consider clarifying in the assertion whether tween+non-linear-easing is an acceptable substitute for spring() or whether spring() is preferred/required for the infinite-pulse case specifically."
+      },
+      {
+        "reason": "No assertion checks whether the change actually compiles/builds. SUMMARY.md makes a strong, specific claim ('BUILD SUCCESSFUL in 2m 13s', 17 tasks, listing which pre-existing warnings were unrelated) but the transcript needed to verify this Bash tool call and its output was empty/unavailable in this run, so the claim is currently taken on faith. An assertion (or a requirement that metrics.json/transcript capture the raw build tool output) would make this checkable rather than relying on the executor's self-report."
+      },
+      {
+        "reason": "No assertion checks that the pulse is gated on a real state (vs. being a purely decorative infinite animation regardless of GPS availability). This turned out to be a meaningful design decision the executor made and documented (SUMMARY.md 'O que é genuinamente novo') — worth an explicit assertion so a future run that ships an always-on decorative pulse doesn't pass by accident, since the current assertions don't check for this at all."
+      }
+    ],
+    "overall": "All 4 predefined assertions pass with genuine, verifiable evidence — the executor's SUMMARY.md audit trail cites specific pre-existing files/tokens (AppColors.UserLocationBlue, markerPulse keyframes, VehicleDetailSheet.kt spring usage) that I independently confirmed exist in the repository exactly as described, and changes.diff shows a real, non-trivial, buildable animation rather than a placeholder. The main gap in this grading run is that transcript_path pointed to an empty (0-byte) file, so tool-call-level verification (e.g., of the claimed successful gradle build, or of exactly which files were Read during the audit) was not possible — grading relied on the output artifacts (SUMMARY.md, changes.diff, files/) instead, cross-checked against the live repository where feasible."
+  },
+  "grading_notes": {
+    "transcript_unavailable": "The transcript_path file (C:\\Users\\user\\AppData\\Local\\Temp\\claude\\c--Users-user-Documents-GitHub-busaisp\\373907d3-a65b-458b-b664-a4104c6b10a8\\tasks\\a978f200f0c2ff7c9.output) exists but is 0 bytes (empty) — confirmed via both `ls -la` (size 0) and a direct Read (returned 'the file exists but the contents are empty'). No other .jsonl transcript file was found anywhere under that session directory. Grading was therefore performed primarily from the outputs_dir artifacts (SUMMARY.md, changes.diff, outputs/files/.../MapScreen.kt) and cross-checked against the live repository at C:\\Users\\user\\Documents\\GitHub\\busaisp for factual claims about pre-existing tokens/files. execution_metrics.tool_calls, total_steps, and errors_encountered could not be computed without the transcript and are left null/empty; transcript_chars is 0 to reflect the empty file."
+  }
+}

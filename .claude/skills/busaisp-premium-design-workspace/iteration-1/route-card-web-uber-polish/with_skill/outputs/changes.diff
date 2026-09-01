@@ -1,0 +1,321 @@
+diff --git a/src/app/globals.css b/src/app/globals.css
+index d2d51ab..8c6365e 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -169,7 +169,36 @@ html, body {
+ 
+ .bus-card.active {
+   border-color: var(--bus-violet);
+-  box-shadow: 0 0 0 1px var(--bus-violet);
++  box-shadow: var(--bus-shadow-raised), 0 0 0 1px var(--bus-violet);
++}
++
++/* Feedback de toque imediato — o cartão inteiro é clicável (seleciona a rota),
++   então precisa reagir no toque antes mesmo da seleção completar. Reaproveita
++   a propriedade "transform" já declarada na transition de .bus-card acima,
++   que nunca era usada. */
++.bus-card:active {
++  transform: scale(0.985);
++}
++
++/* Seta "Detalhes" no rodapé do cartão — leve nudge no hover/toque do cartão
++   pra reforçar affordance de navegação, sem introduzir cor nova. */
++.bus-card-cta-arrow {
++  display: flex;
++  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
++}
++.bus-card:hover .bus-card-cta-arrow,
++.bus-card:active .bus-card-cta-arrow {
++  transform: translateX(3px);
++}
++
++/* Feedback de toque para elementos tocáveis dentro do cartão (favoritar,
++   badges de linha que abrem o modal de partidas) — mesma curva "spring-like"
++   já usada em .animate-slide-up, só que aplicada a um toque de ícone/botão. */
++.bus-tap-feedback {
++  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
++}
++.bus-tap-feedback:active {
++  transform: scale(0.88);
+ }
+ 
+ /* Badges de Linha — pílula sólida, como um número de linha em painel real */
+@@ -431,6 +460,30 @@ html, body {
+   animation: fadeIn 0.2s ease forwards;
+ }
+ 
++/* Entrada escalonada de itens de lista (ex.: cartões de rota) — reaproveita o
++   keyframe slideUp já existente, só que com fill-mode "both" para que o item
++   fique invisível durante o animation-delay em vez de piscar visível antes de
++   sua vez. Combine com um animationDelay inline incremental por item. */
++.bus-card-enter {
++  animation: slideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
++}
++
++/* ==========================================================================
++   SKELETON DE CARREGAMENTO — usado quando a forma final do conteúdo já é
++   previsível (ex.: lista de cartões de rota), no lugar de um spinner
++   genérico. Deriva das superfícies já existentes (sunken/elevated), não
++   introduz cor nova.
++   ========================================================================== */
++@keyframes skeletonPulse {
++  0%, 100% { opacity: 0.55; }
++  50% { opacity: 1; }
++}
++
++.bus-skeleton {
++  background: var(--bus-surface-sunken);
++  animation: skeletonPulse 1.4s ease-in-out infinite;
++}
++
+ /* ==========================================================================
+    LEAFLET CUSTOMIZATION
+    ========================================================================== */
+diff --git a/src/components/Transit/TransitRouteResults.tsx b/src/components/Transit/TransitRouteResults.tsx
+index 81aa2e8..117edf0 100644
+--- a/src/components/Transit/TransitRouteResults.tsx
++++ b/src/components/Transit/TransitRouteResults.tsx
+@@ -2,7 +2,7 @@
+ 
+ import React, { useState } from 'react';
+ import { RoutePlan, RouteStep } from '@/lib/routing';
+-import { getEtaColorTokens } from '@/lib/etaStyle';
++import { getEtaColorTokens, getEtaTier } from '@/lib/etaStyle';
+ import TransitDeparturesModal from '@/components/Transit/TransitDeparturesModal';
+ import {
+   ArrowLeft,
+@@ -101,6 +101,13 @@ export default function TransitRouteResults({
+     { id: 'LESS_TRANSFERS', label: 'Menos Trocas', icon: ArrowLeftRight }
+   ];
+ 
++  // Rota mais rápida do conjunto — usado só para destacar a opção recomendada
++  // no topo com a mesma linguagem visual de "acento violeta = escolha
++  // principal" já usada no ícone de embarque e na seta de detalhes do rodapé.
++  const fastestDurationMinutes = routes.length > 0
++    ? Math.min(...routes.map((r) => r.totalDurationMinutes))
++    : null;
++
+   return (
+     <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', paddingBottom: '24px' }}>
+       {/* 1. CABEÇALHO COM ORIGEM E DESTINO */}
+@@ -299,46 +306,100 @@ export default function TransitRouteResults({
+       {/* 3. LISTA DE ROTAS ENCONTRADAS */}
+       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+         {isCalculating ? (
+-          <div className="bus-glass-panel" style={{ padding: '32px', textAlign: 'center' }}>
+-            <div style={{ width: '28px', height: '28px', border: '3px solid var(--bus-violet-soft)', borderTopColor: 'var(--bus-violet)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+-            <span style={{ fontSize: '13px', color: 'var(--bus-text-secondary)' }}>Buscando trajetos ideais com SPTrans e Metrô...</span>
+-          </div>
++          <>
++            <div style={{ fontSize: '11.5px', color: 'var(--bus-text-muted)', padding: '2px 2px 4px' }}>
++              Buscando trajetos ideais com SPTrans e Metrô...
++            </div>
++            {[0, 1, 2].map((i) => (
++              <div
++                key={i}
++                className="bus-card animate-fade-in"
++                style={{
++                  display: 'flex',
++                  flexDirection: 'column',
++                  gap: '12px',
++                  cursor: 'default',
++                  animationDelay: `${i * 90}ms`,
++                  animationFillMode: 'both'
++                }}
++              >
++                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
++                  <div className="bus-skeleton" style={{ width: '92px', height: '26px', borderRadius: 'var(--bus-radius-sm)' }} />
++                  <div className="bus-skeleton" style={{ width: '68px', height: '20px', borderRadius: 'var(--bus-radius-full)', animationDelay: '0.15s' }} />
++                </div>
++                <div style={{ display: 'flex', gap: '6px' }}>
++                  <div className="bus-skeleton" style={{ width: '48px', height: '24px', borderRadius: 'var(--bus-radius-sm)', animationDelay: '0.05s' }} />
++                  <div className="bus-skeleton" style={{ width: '82px', height: '24px', borderRadius: 'var(--bus-radius-sm)', animationDelay: '0.2s' }} />
++                  <div className="bus-skeleton" style={{ width: '48px', height: '24px', borderRadius: 'var(--bus-radius-sm)', animationDelay: '0.1s' }} />
++                </div>
++                <div className="bus-skeleton" style={{ width: '65%', height: '14px', borderRadius: 'var(--bus-radius-sm)', animationDelay: '0.25s' }} />
++              </div>
++            ))}
++          </>
+         ) : filteredRoutes.length > 0 ? (
+           filteredRoutes.map((route, idx) => {
+             const originalIndex = routes.findIndex(r => r.id === route.id);
+             const targetIndex = originalIndex >= 0 ? originalIndex : idx;
+             const isSelected = selectedRouteIndex === targetIndex;
+             const etaColors = getEtaColorTokens(route.nextBusEtaMinutes);
++            const etaTier = getEtaTier(route.nextBusEtaMinutes);
++            const isFastest = filteredRoutes.length > 1 && route.totalDurationMinutes === fastestDurationMinutes;
+ 
+             return (
+               <div
+                 key={route.id || idx}
+                 onClick={() => onSelectRoute(targetIndex)}
+-                className={`bus-card ${isSelected ? 'active' : ''}`}
++                className={`bus-card bus-card-enter ${isSelected ? 'active' : ''}`}
+                 style={{
+                   display: 'flex',
+                   flexDirection: 'column',
+-                  gap: '12px'
++                  gap: '12px',
++                  animationDelay: `${Math.min(idx, 6) * 45}ms`
+                 }}
+               >
+                 {/* Header do Card: Duração, Chegada e Próximo Ônibus */}
+-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+-                    <span className="bus-num" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--bus-text-primary)' }}>
+-                      {route.totalDurationMinutes} min
+-                    </span>
++                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
++                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
++                    {isFastest && (
++                      <span
++                        className="bus-num"
++                        style={{
++                          display: 'inline-flex',
++                          alignItems: 'center',
++                          gap: '4px',
++                          alignSelf: 'flex-start',
++                          fontSize: '10px',
++                          fontWeight: 700,
++                          letterSpacing: '0.3px',
++                          color: 'var(--bus-violet)',
++                          background: 'var(--bus-violet-soft)',
++                          padding: '2px 7px',
++                          borderRadius: 'var(--bus-radius-full)'
++                        }}
++                      >
++                        <Zap size={10} />
++                        MAIS RÁPIDA
++                      </span>
++                    )}
++                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
++                      <span className="bus-num" style={{ fontSize: '28px', fontWeight: 800, color: 'var(--bus-text-primary)', letterSpacing: '-0.5px', lineHeight: 1 }}>
++                        {route.totalDurationMinutes}
++                      </span>
++                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--bus-text-secondary)' }}>min</span>
++                    </div>
+                     <span style={{ fontSize: '12px', color: 'var(--bus-text-secondary)' }}>
+-                      (Chega às {route.arrivalHour})
++                      Chega às <span className="bus-num" style={{ color: 'var(--bus-text-primary)', fontWeight: 600 }}>{route.arrivalHour}</span>
+                     </span>
+                   </div>
+ 
+-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
++                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                     {onToggleRouteFavorite && (
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           onToggleRouteFavorite(route);
+                         }}
++                        className="bus-tap-feedback"
+                         style={{
+                           background: 'none',
+                           border: 'none',
+@@ -353,44 +414,62 @@ export default function TransitRouteResults({
+                         <Star size={16} fill={isRouteFavorited?.(route) ? 'var(--bus-live)' : 'none'} />
+                       </button>
+                     )}
+-                    {route.trafficDelayMinutes > 0 && (
++
++                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
++                      {route.trafficDelayMinutes > 0 && (
++                        <span
++                          className="bus-num"
++                          style={{
++                            fontSize: '11px',
++                            fontWeight: 700,
++                            color: 'var(--bus-red)',
++                            background: 'var(--bus-red-soft)',
++                            borderRadius: 'var(--bus-radius-sm)',
++                            padding: '2px 6px',
++                            display: 'flex',
++                            alignItems: 'center',
++                            gap: '3px'
++                          }}
++                          title={`Atraso estimado de ${route.trafficDelayMinutes} min devido a lentidão/ocorrência na via`}
++                        >
++                          <AlertTriangle size={11} />
++                          +{route.trafficDelayMinutes}m trânsito
++                        </span>
++                      )}
++
+                       <span
+                         className="bus-num"
+                         style={{
+                           fontSize: '11px',
+                           fontWeight: 700,
+-                          color: '#EF4444',
+-                          background: 'rgba(239, 68, 68, 0.15)',
++                          color: etaColors.color,
++                          background: etaColors.background,
+                           borderRadius: 'var(--bus-radius-sm)',
+                           padding: '2px 6px',
+                           display: 'flex',
+                           alignItems: 'center',
+-                          gap: '3px'
++                          gap: '4px'
+                         }}
+-                        title={`Atraso estimado de ${route.trafficDelayMinutes} min devido a lentidão/ocorrência na via`}
+                       >
+-                        <AlertTriangle size={11} />
+-                        +{route.trafficDelayMinutes}m trânsito
++                        {etaTier !== 'none' ? (
++                          <span style={{ position: 'relative', width: '7px', height: '7px', display: 'inline-flex', flexShrink: 0 }}>
++                            <span
++                              style={{
++                                position: 'absolute',
++                                inset: 0,
++                                borderRadius: '50%',
++                                background: etaColors.color,
++                                animation: 'radarPulse 1.6s ease-out infinite'
++                              }}
++                            />
++                            <span style={{ position: 'relative', width: '7px', height: '7px', borderRadius: '50%', background: etaColors.color }} />
++                          </span>
++                        ) : (
++                          <Radio size={10} />
++                        )}
++                        {route.nextBusEtaMinutes < 0 ? 'Sem previsão' : route.nextBusEtaMinutes <= 2 ? 'Agora' : `em ${route.nextBusEtaMinutes}m`}
+                       </span>
+-                    )}
+-
+-                    <span
+-                      className="bus-num"
+-                      style={{
+-                        fontSize: '11px',
+-                        fontWeight: 700,
+-                        color: etaColors.color,
+-                        background: etaColors.background,
+-                        borderRadius: 'var(--bus-radius-sm)',
+-                        padding: '2px 6px',
+-                        display: 'flex',
+-                        alignItems: 'center',
+-                        gap: '3px'
+-                      }}
+-                    >
+-                      <Radio size={10} />
+-                      {route.nextBusEtaMinutes < 0 ? 'Sem previsão' : route.nextBusEtaMinutes <= 2 ? 'Agora' : `em ${route.nextBusEtaMinutes}m`}
+-                    </span>
++                    </div>
+                   </div>
+                 </div>
+ 
+@@ -421,7 +500,7 @@ export default function TransitRouteResults({
+                             e.stopPropagation();
+                             setDeparturesStep(step);
+                           }}
+-                          className="bus-badge"
++                          className="bus-badge bus-tap-feedback"
+                           style={{ border: 'none', cursor: 'pointer' }}
+                           title="Ver próximas partidas desta linha"
+                         >
+@@ -458,7 +537,7 @@ export default function TransitRouteResults({
+                     <MapPin size={13} color="var(--bus-violet)" />
+                     <span>Embarque: <strong style={{ color: 'var(--bus-text-primary)' }}>{route.departureStop.np}</strong></span>
+                   </div>
+-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--bus-violet)', fontWeight: 600 }}>
++                  <div className="bus-card-cta-arrow" style={{ alignItems: 'center', gap: '4px', color: 'var(--bus-violet)', fontWeight: 600 }}>
+                     <span>Detalhes</span>
+                     <ChevronRight size={14} />
+                   </div>

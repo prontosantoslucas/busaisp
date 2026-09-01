@@ -121,54 +121,76 @@ export interface DiscoveredLeg {
 }
 
 const KNOWN_SP_LOCATIONS: Record<string, { lat: number; lng: number; name: string; details: string }> = {
-  'flor de maio': {
-    lat: -23.4326,
-    lng: -46.5783,
-    name: 'Rua Flor de Maio, 40',
-    details: 'Jardim Fontális / Tremembé, São Paulo - SP'
-  },
-  'flor de maior': {
-    lat: -23.4326,
-    lng: -46.5783,
-    name: 'Rua Flor de Maio, 40',
-    details: 'Jardim Fontális / Tremembé, São Paulo - SP'
-  },
-  'fontalis': {
-    lat: -23.4338,
-    lng: -46.5778,
-    name: 'Jardim Fontális',
-    details: 'Zona Norte, Tremembé, São Paulo - SP'
-  },
-  'center norte': {
-    lat: -23.5158,
-    lng: -46.6182,
-    name: 'Shopping Center Norte',
-    details: 'Trav. Casalbuono, 120 - Vila Guilherme, São Paulo - SP'
-  },
-  'shopping center norte': {
-    lat: -23.5158,
-    lng: -46.6182,
-    name: 'Shopping Center Norte',
-    details: 'Trav. Casalbuono, 120 - Vila Guilherme, São Paulo - SP'
-  },
-  'santana': {
-    lat: -23.5020,
-    lng: -46.6260,
-    name: 'Metrô / Terminal Santana',
-    details: 'Rua Leite de Morais - Santana, SP'
-  },
-  'tucuruvi': {
-    lat: -23.4795,
-    lng: -46.6030,
-    name: 'Metrô / Terminal Tucuruvi',
-    details: 'Av. Dr. Antônio Maria Laet - Tucuruvi, SP'
-  },
-  'paulista': {
-    lat: -23.5615,
-    lng: -46.6559,
-    name: 'Avenida Paulista, 1578',
-    details: 'Bela Vista, São Paulo - SP'
-  }
+  // === ZONA NORTE ===
+  'flor de maio': { lat: -23.4326, lng: -46.5783, name: 'Rua Flor de Maio, 40', details: 'Jardim Fontális / Tremembé, São Paulo - SP' },
+  'flor de maior': { lat: -23.4326, lng: -46.5783, name: 'Rua Flor de Maio, 40', details: 'Jardim Fontális / Tremembé, São Paulo - SP' },
+  'fontalis': { lat: -23.4338, lng: -46.5778, name: 'Jardim Fontális', details: 'Zona Norte, Tremembé, São Paulo - SP' },
+  'santana': { lat: -23.5029, lng: -46.6247, name: 'Metrô / Terminal Santana', details: 'Av. Cruzeiro do Sul, 3173 - Santana, SP' },
+  'tucuruvi': { lat: -23.4798, lng: -46.6033, name: 'Metrô / Terminal Tucuruvi', details: 'Av. Dr. Antônio Maria Laet, 100 - Tucuruvi, SP' },
+  'parada inglesa': { lat: -23.4883, lng: -46.6094, name: 'Metrô Parada Inglesa', details: 'Av. Luiz Dumont Villares, 2333 - Zona Norte, SP' },
+  'jardim sao paulo': { lat: -23.4925, lng: -46.6167, name: 'Metrô Jardim São Paulo', details: 'Praça San Petro - Zona Norte, SP' },
+  'center norte': { lat: -23.5158, lng: -46.6182, name: 'Shopping Center Norte', details: 'Trav. Casalbuono, 120 - Vila Guilherme, São Paulo - SP' },
+  'shopping center norte': { lat: -23.5158, lng: -46.6182, name: 'Shopping Center Norte', details: 'Trav. Casalbuono, 120 - Vila Guilherme, São Paulo - SP' },
+  'expo center norte': { lat: -23.5118, lng: -46.6142, name: 'Expo Center Norte', details: 'Rua José Bernardo Pinto, 333 - Vila Guilherme, SP' },
+  'tiete': { lat: -23.5163, lng: -46.6253, name: 'Terminal Rodoviário Tietê', details: 'Av. Cruzeiro do Sul, 1777 - Santana, SP' },
+  'anhembi': { lat: -23.5150, lng: -46.6380, name: 'Sambódromo do Anhembi', details: 'Av. Olavo Fontoura, 1209 - Santana, SP' },
+
+  // === CENTRO & AVENIDA PAULISTA ===
+  'paulista': { lat: -23.5615, lng: -46.6559, name: 'Avenida Paulista, 1578', details: 'Bela Vista / Cerqueira César, São Paulo - SP' },
+  'avenida paulista': { lat: -23.5615, lng: -46.6559, name: 'Avenida Paulista', details: 'Bela Vista / Jardins, São Paulo - SP' },
+  'masp': { lat: -23.5614, lng: -46.6559, name: 'MASP - Museu de Arte de SP', details: 'Av. Paulista, 1578 - Bela Vista, SP' },
+  'se': { lat: -23.5503, lng: -46.6339, name: 'Praça e Metrô da Sé', details: 'Praça da Sé - Centro Histórico, SP' },
+  'metro se': { lat: -23.5503, lng: -46.6339, name: 'Estação Sé (Metrô L1/L3)', details: 'Praça da Sé - Centro, São Paulo - SP' },
+  'luz': { lat: -23.5365, lng: -46.6343, name: 'Estação da Luz', details: 'Praça da Luz, 1 - Bom Retiro / Centro, SP' },
+  'republica': { lat: -23.5435, lng: -46.6428, name: 'Praça e Metrô República', details: 'Praça da República, 299 - Centro, SP' },
+  'liberdade': { lat: -23.5551, lng: -46.6358, name: 'Praça e Metrô Japão-Liberdade', details: 'Praça da Liberdade, 133 - Centro, SP' },
+  'paraiso': { lat: -23.5756, lng: -46.6406, name: 'Metrô Paraíso', details: 'R. Vergueiro, 1456 - Paraíso, SP' },
+  'brigadeiro': { lat: -23.5694, lng: -46.6475, name: 'Metrô Brigadeiro', details: 'Av. Paulista, 447 - Paraíso / Bela Vista, SP' },
+  'consolacao': { lat: -23.5583, lng: -46.6601, name: 'Metrô Consolação / Paulista', details: 'Av. Paulista, 2163 - Consolação, SP' },
+  'terminal bandeira': { lat: -23.5501, lng: -46.6402, name: 'Terminal Bandeira (SPTrans)', details: 'Praça da Bandeira - Centro, SP' },
+  'parque dom pedro': { lat: -23.5467, lng: -46.6298, name: 'Terminal Parque Dom Pedro II', details: 'Av. do Exterior - Centro, SP' },
+  'mercadao': { lat: -23.5418, lng: -46.6295, name: 'Mercado Municipal de SP (Mercadão)', details: 'R. Cantareira, 306 - Centro Histórico, SP' },
+
+  // === ZONA OESTE & SUDOESTE ===
+  'pinheiros': { lat: -23.5663, lng: -46.7028, name: 'Terminal & Metrô Pinheiros', details: 'R. Capri, 145 - Pinheiros, SP' },
+  'faria lima': { lat: -23.5670, lng: -46.6937, name: 'Av. Brigadeiro Faria Lima', details: 'Pinheiros / Itaim Bibi, São Paulo - SP' },
+  'vila madalena': { lat: -23.5463, lng: -46.6908, name: 'Metrô Vila Madalena', details: 'Praça Américo Jacomino, 30 - Zona Oeste, SP' },
+  'beco do batman': { lat: -23.5568, lng: -46.6867, name: 'Beco do Batman', details: 'R. Medeiros de Albuquerque - Vila Madalena, SP' },
+  'butanta': { lat: -23.5718, lng: -46.7082, name: 'Metrô Butantã', details: 'Av. Vital Brasil, 427 - Butantã, SP' },
+  'usp': { lat: -23.5591, lng: -46.7161, name: 'USP - Cidade Universitária', details: 'Av. Prof. Luciano Gualberto - Butantã, SP' },
+  'morumbi': { lat: -23.5866, lng: -46.7237, name: 'Metrô São Paulo-Morumbi', details: 'Av. Dep. Jacob Salvador Zveibil - Morumbi, SP' },
+  'shopping morumbi': { lat: -23.6225, lng: -46.7022, name: 'Shopping Morumbi / Market Place', details: 'Av. Roque Petroni Júnior, 1089 - Vila Gertrudes, SP' },
+  'shopping eldorado': { lat: -23.5744, lng: -46.6975, name: 'Shopping Eldorado', details: 'Av. Rebouças, 3970 - Pinheiros, SP' },
+  'barra funda': { lat: -23.5259, lng: -46.6669, name: 'Terminal Palmeiras-Barra Funda', details: 'R. Bento Teobaldo Ferraz, 119 - Barra Funda, SP' },
+  'allianz parque': { lat: -23.5275, lng: -46.6781, name: 'Allianz Parque', details: 'Av. Francisco Matarazzo, 1705 - Água Branca, SP' },
+  'lapa': { lat: -23.5186, lng: -46.7001, name: 'Terminal Urbano Lapa', details: 'Praça Miguel Dell\'Erba, 50 - Lapa, SP' },
+  'villa lobos': { lat: -23.5489, lng: -46.7322, name: 'Parque Villa-Lobos', details: 'Av. Prof. Fonseca Rodrigues, 2001 - Alto de Pinheiros, SP' },
+
+  // === ZONA SUL ===
+  'ibirapuera': { lat: -23.5874, lng: -46.6576, name: 'Parque Ibirapuera (Portão 3)', details: 'Av. Pedro Álvares Cabral - Moema, SP' },
+  'parque ibirapuera': { lat: -23.5874, lng: -46.6576, name: 'Parque Ibirapuera', details: 'Av. Pedro Álvares Cabral - Vila Mariana, SP' },
+  'shopping ibirapuera': { lat: -23.6101, lng: -46.6685, name: 'Shopping Ibirapuera / Metrô Eucaliptos', details: 'Av. Ibirapuera, 3103 - Moema, SP' },
+  'moema': { lat: -23.6041, lng: -46.6612, name: 'Metrô Moema', details: 'Av. Ibirapuera, 2200 - Moema, SP' },
+  'santa cruz': { lat: -23.5989, lng: -46.6366, name: 'Metrô / Shopping Santa Cruz', details: 'R. Domingos de Morais, 2564 - Vila Mariana, SP' },
+  'ana rosa': { lat: -23.5818, lng: -46.6384, name: 'Terminal & Metrô Ana Rosa', details: 'Largo Dona Ana Rosa, 100 - Vila Mariana, SP' },
+  'jabaquara': { lat: -23.6465, lng: -46.6416, name: 'Terminal Rodoviário Jabaquara', details: 'R. dos Jequitibás, 80 - Jabaquara, SP' },
+  'congonhas': { lat: -23.6268, lng: -46.6554, name: 'Aeroporto de Congonhas (CGH)', details: 'Av. Washington Luís, s/n - Campo Belo, SP' },
+  'aeroporto congonhas': { lat: -23.6268, lng: -46.6554, name: 'Aeroporto de Congonhas (CGH)', details: 'Av. Washington Luís, s/n - Campo Belo, SP' },
+  'berrini': { lat: -23.6067, lng: -46.6958, name: 'Av. Eng. Luís Carlos Berrini', details: 'Brooklin / Itaim Bibi, São Paulo - SP' },
+  'santo amaro': { lat: -23.6548, lng: -46.7198, name: 'Terminal & Metrô Santo Amaro', details: 'Av. Padre José Maria, 400 - Santo Amaro, SP' },
+  'capao redondo': { lat: -23.6596, lng: -46.7694, name: 'Terminal & Metrô Capão Redondo', details: 'Estrada de Itapecerica, 3858 - Capão Redondo, SP' },
+  'grajau': { lat: -23.7381, lng: -46.6931, name: 'Terminal & Estação Grajaú', details: 'R. Giovanni Bononcini - Grajaú, SP' },
+
+  // === ZONA LESTE & GRANDE SP ===
+  'bras': { lat: -23.5478, lng: -46.6165, name: 'Estação Brás (Metrô L3/CPTM)', details: 'Praça Agente Cícero - Brás, SP' },
+  'tatuape': { lat: -23.5404, lng: -46.5768, name: 'Metrô & Shopping Tatuapé', details: 'R. Melo Freire - Tatuapé, SP' },
+  'itaquera': { lat: -23.5422, lng: -46.4710, name: 'Metrô Corinthians-Itaquera / Neo Química Arena', details: 'Av. Projetada, 1900 - Itaquera, SP' },
+  'neo quimica arena': { lat: -23.5452, lng: -46.4742, name: 'Neo Química Arena (Itaquerão)', details: 'Av. Miguel Ignácio Curi, 111 - Itaquera, SP' },
+  'vila prudente': { lat: -23.5857, lng: -46.5822, name: 'Terminal & Metrô Vila Prudente', details: 'Av. Prof. Luiz Ignácio de Anhaia Mello - Zona Leste, SP' },
+  'sao mateus': { lat: -23.6019, lng: -46.4789, name: 'Terminal São Mateus', details: 'Av. Ragueb Chohfi, 100 - São Mateus, SP' },
+  'sao miguel': { lat: -23.4947, lng: -46.4428, name: 'Estação São Miguel Paulista', details: 'R. Salvador de Medeiros - São Miguel, SP' },
+  'aeroporto guarulhos': { lat: -23.4322, lng: -46.4818, name: 'Aeroporto Internacional de Guarulhos (GRU)', details: 'Rodovia Hélio Smidt - Guarulhos, SP' },
+  'gru airport': { lat: -23.4322, lng: -46.4818, name: 'Aeroporto Internacional de Guarulhos (GRU)', details: 'Rodovia Hélio Smidt - Guarulhos, SP' }
 };
 
 export async function searchAddressSuggestions(query: string): Promise<RouteLocation[]> {
@@ -177,8 +199,9 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
   const suggestions: RouteLocation[] = [];
   const seenNames = new Set<string>();
 
+  // 1. Busca imediata no índice local pré-carregado de São Paulo (<1ms)
   for (const [key, loc] of Object.entries(KNOWN_SP_LOCATIONS)) {
-    if (key.includes(norm) || norm.includes(key)) {
+    if (key.includes(norm) || norm.includes(key) || loc.name.toLowerCase().includes(norm)) {
       if (!seenNames.has(loc.name.toLowerCase())) {
         seenNames.add(loc.name.toLowerCase());
         suggestions.push({
@@ -191,14 +214,28 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
     }
   }
 
+  // Se já encontrou 3 ou mais correspondências exatas no índice local, retorna instantâneo
+  if (suggestions.length >= 4) {
+    return suggestions.slice(0, 5);
+  }
+
+  // 2. Consulta remota ao Nominatim (com timeout de 2.5s para não travar o autocomplete)
   try {
     const cleanQuery = norm.replace('maior', 'maio');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
         cleanQuery + ', São Paulo, Brasil'
       )}&limit=5&addressdetails=1`,
-      { headers: { 'User-Agent': 'BusaISP/1.0' } }
+      {
+        headers: { 'User-Agent': 'BusaISP-PublicTransit/1.0' },
+        signal: controller.signal
+      }
     );
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -208,7 +245,12 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
           const subDetails = parts.slice(2, 5).join(', ').trim();
 
           const lowerMain = mainTitle.toLowerCase();
-          if (!seenNames.has(lowerMain) && !suggestions.some(s => Math.abs(s.lat - parseFloat(item.lat)) < 0.001 && Math.abs(s.lng - parseFloat(item.lon)) < 0.001)) {
+          if (
+            !seenNames.has(lowerMain) &&
+            !suggestions.some(
+              (s) => Math.abs(s.lat - parseFloat(item.lat)) < 0.001 && Math.abs(s.lng - parseFloat(item.lon)) < 0.001
+            )
+          ) {
             seenNames.add(lowerMain);
             suggestions.push({
               name: mainTitle,
@@ -221,7 +263,7 @@ export async function searchAddressSuggestions(query: string): Promise<RouteLoca
       }
     }
   } catch (err) {
-    console.warn('[Geocode] Erro ao buscar sugestões:', err);
+    // Timeout ou erro de rede — usa o que já temos no índice local
   }
 
   return suggestions.slice(0, 5);
@@ -234,13 +276,14 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
     return {
       name: 'Minha Localização',
       addressDetails: 'Localização atual (São Paulo)',
-      lat: -23.5158,
-      lng: -46.6182
+      lat: -23.5505,
+      lng: -46.6333
     };
   }
 
+  // Casamento direto no índice local de São Paulo
   for (const [key, loc] of Object.entries(KNOWN_SP_LOCATIONS)) {
-    if (norm.includes(key) || key.includes(norm)) {
+    if (norm.includes(key) || key.includes(norm) || loc.name.toLowerCase().includes(norm)) {
       return {
         name: loc.name,
         addressDetails: loc.details,
@@ -253,12 +296,20 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
   const cleanQuery = norm.replace('maior', 'maio');
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
         cleanQuery + ', São Paulo, Brasil'
       )}&limit=1`,
-      { headers: { 'User-Agent': 'BusaISP/1.0' } }
+      {
+        headers: { 'User-Agent': 'BusaISP-PublicTransit/1.0' },
+        signal: controller.signal
+      }
     );
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -285,11 +336,12 @@ export async function geocodeAddress(query: string): Promise<RouteLocation> {
     };
   }
 
+  // Fallback seguro no centro de São Paulo (Praça da Sé)
   return {
     name: query,
     addressDetails: 'São Paulo - SP',
-    lat: -23.5000,
-    lng: -46.6050
+    lat: -23.5505,
+    lng: -46.6333
   };
 }
 
@@ -1007,10 +1059,19 @@ export async function calculateRoute(
     }
   }
 
-  const [railPlan, trafficData] = await Promise.all([
+  let [railPlan, trafficData] = await Promise.all([
     railPlanPromise,
     trafficIncidentsPromise
   ]);
+
+  // Se ainda não tiver planos de ônibus nem de trilho, tentar busca de trilho com raio ampliado (integração metropolitana)
+  if (plans.length === 0 && !railPlan) {
+    try {
+      railPlan = await findRailRoutePlan(originLoc, destLoc, targetOffsetMinutes);
+    } catch {
+      // Ignora erro de fallback
+    }
+  }
 
   if (railPlan) plans.push(railPlan);
 
@@ -1057,9 +1118,9 @@ export async function calculateRoute(
         plan.arrivalHour = formatSaoPauloTime(arrivalDate);
 
         // Adicionar alerta na instrução do ônibus
-        const busStep = plan.steps.find(s => s.type === 'BUS');
+        const busStep = plan.steps.find((s) => s.type === 'BUS');
         if (busStep) {
-          const incTitles = matchedIncidents.slice(0, 2).map(i => i.title).join(', ');
+          const incTitles = matchedIncidents.slice(0, 2).map((i) => i.title).join(', ');
           busStep.detailedWalkGuide = `${busStep.detailedWalkGuide || ''} · ⚠️ Lentidão/Ocorrência na via (+${totalDelay} min): ${incTitles}`.trim();
         }
       }

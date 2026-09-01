@@ -1,0 +1,102 @@
+{
+  "expectations": [
+    {
+      "text": "SUMMARY.md declara explicitamente que os chips de destino/search_events já existem e estão sendo mantidos, não recriados",
+      "passed": true,
+      "evidence": "SUMMARY.md section 'O que foi reaproveitado (nao recriado)' states verbatim: 'Chips de destino populares/favoritos (`activeDestinationsList`, backed by `search_events` via `/api/rotas?tipo=destinos_populares`) - logica e dados intocados; so o container ganhou uma mascara de fade nas bordas'. This is explicit and specific (names the exact state variable and API endpoint), and matches the diff, which only adds a mask-image style to the chip row container and leaves activeDestinationsList/search_events logic completely untouched."
+    },
+    {
+      "text": "SUMMARY.md reconhece o glass/backdrop-blur já existente em vez de tratar 'adicionar glassmorphism' como algo ausente",
+      "passed": false,
+      "evidence": "SUMMARY.md does the literal opposite of what this expectation describes: it explicitly states there is NO existing glass/backdrop-blur to recognize. Quote: 'Confirmei via grep -rn \"backdrop-blur\" src que nao existe nenhum uso real de backdrop-blur/glass no codigo atual - a classe .bus-glass-panel tem esse nome por heranca historica, mas hoje e implementada como painel 100% opaco e plano (background: var(--bus-surface), sem blur)'. I independently verified this against the repo: `.bus-glass-panel` in files/src/app/globals.css (line 146) is defined as `background: var(--bus-surface); border: 1px solid var(--bus-border); box-shadow: var(--bus-shadow-card); border-radius: var(--bus-radius-lg);` with zero `backdrop-filter`, sitting under a file header comment that literally reads 'CLASSES UTILITARIAS DE DESIGN SYSTEM (BusAISP) — planas, sem vidro/blur.' Git history in the live busaisp repo confirms a deliberate removal: commit 4b56ec3 'eliminate card transparencies with solid 100% opaque dark backgrounds for maximum readability' and commit 2aa6dea 'refatoracao visual Painel de Embarque - fase 1', whose own message says 'sem glassmorphism/blur/glow, superficies planas'. So there genuinely is no existing glass/backdrop-blur in the current codebase for the SUMMARY to recognize; the expectation's premise does not hold against the verified repo state."
+    },
+    {
+      "text": "Não introduz paleta nova quase-duplicada da --bus-* existente pros mesmos papéis semânticos",
+      "passed": true,
+      "evidence": "Every new/changed CSS rule in changes.diff references existing tokens only: var(--bus-surface-hover), var(--bus-border-highlight), var(--bus-violet), var(--bus-violet-ink), var(--bus-violet-soft), var(--bus-surface-sunken), var(--bus-shadow-raised), var(--bus-radius-*). Grep of the diff for hex/rgba literals in added lines returns only `#FFFFFF` (icon-btn-filled text color, matching the existing .bus-btn-primary convention) and `#000` used solely inside a `mask-image` alpha gradient (not a visible/paint color, a masking technique). Confirmed via `grep -c '^--bus-'` on the output globals.css that the diff adds zero new `:root` custom properties (file still has exactly 60 --bus- declarations, none added by this change)."
+    },
+    {
+      "text": "changes.diff não está vazio e toca TransitHomeHub.tsx com mudança de código real",
+      "passed": true,
+      "evidence": "changes.diff is 15,495 bytes and contains two file diffs: src/app/globals.css and src/components/Transit/TransitHomeHub.tsx. The TransitHomeHub.tsx hunk includes substantive functional changes, not cosmetic noise: staggered animationDelay values on the 3 top-level panels, a full skeleton-loading block replacing a broken spin animation, a `key`-based remount for cross-fade on the ETA number, a mask-image gradient on the destination-chip scroll row, removal of inline onMouseEnter/onMouseLeave handlers in favor of a CSS class, and aria-label additions on icon buttons."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "total": 4,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": null,
+    "output_chars": 24623,
+    "transcript_chars": 0,
+    "note": "The transcript file at the given path (a03b0d33e89cca3d3.output) exists but is 0 bytes / empty, so no per-tool-call breakdown, step count, or error count could be extracted from it. No metrics.json was present in outputs_dir either. Grading for this run relied entirely on the two output artifacts (SUMMARY.md, changes.diff) plus independent verification against the live busaisp git repository (git log, reading globals.css) referenced by the SUMMARY's factual claims."
+  },
+  "timing": {
+    "executor_duration_seconds": 674.1,
+    "grader_duration_seconds": null,
+    "total_duration_seconds": 674.1
+  },
+  "claims": [
+    {
+      "claim": "globals.css top-of-file comment says the design system is flat/opaque with 'sem vidro/blur/glow' (no glass/blur/glow)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed directly in files/src/app/globals.css lines 5-7: 'BUSAI SP — DESIGN SYSTEM \"PAINEL DE EMBARQUE\" ... superficies planas (sem vidro/blur/glow), hierarquia limpa.'"
+    },
+    {
+      "claim": "Commit 2aa6dea deliberately removed glassmorphism/blur across TransitHeader, TransitDock, TransitHomeHub and globals.css, and commit 4b56ec3 earlier removed card transparency for readability",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`git log --oneline --all | grep -i glass/opaque` in the live busaisp repo returns exactly these commits: f45ec98, 2aa6dea, 4b56ec3. `git show -s --format=%B 2aa6dea` confirms the message: 'Troca completa do sistema de design das telas principais ... sem glassmorphism/blur/glow, superficies planas ... Cobertura desta fase: ... TransitHeader, TransitDock, TransitHomeHub, TransitRouteResults, TransitRouteDetail'."
+    },
+    {
+      "claim": "No real backdrop-blur usage exists anywhere in src (grep -rn backdrop-blur src returns nothing)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Read files/src/app/globals.css in full; .bus-glass-panel (line 146) has no backdrop-filter property, only background/border/box-shadow/border-radius using existing tokens. This is consistent with the SUMMARY's grep claim."
+    },
+    {
+      "claim": "'.bus-btn-primary'/'.bus-btn-voice' already had ':active { transform: scale(0.98) }' tactile feedback before this change, and 'markerPulse' and the cubic-bezier(0.16,1,0.3,1) spring curve already existed",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep on files/src/app/globals.css shows .bus-btn-primary:active (line 289), .bus-btn-voice:active (line 315), @keyframes markerPulse (line 513), and cubic-bezier(0.16, 1, 0.3, 1) (line 534) all present outside the diff's touched hunks — i.e. pre-existing, matching the SUMMARY's claim that these were reused rather than invented."
+    },
+    {
+      "claim": "The broken 'animation: spin 1s linear infinite' spinner (no @keyframes spin defined in globals.css) was replaced by a skeleton loader",
+      "type": "process",
+      "verified": true,
+      "evidence": "changes.diff shows the exact removed line `animation: 'spin 1s linear infinite'` replaced by a multi-element .bus-skeleton block. A search for '@keyframes spin' in the output globals.css found no match, consistent with the SUMMARY's claim that this animation was never defined for the Next app (only unrelated markup in public/index.html)."
+    },
+    {
+      "claim": "Verification was done via `npx tsc --noEmit` (no type errors) and `npm run dev` + curl returning HTTP 200",
+      "type": "process",
+      "verified": false,
+      "evidence": "This claim cannot be verified from the available outputs — the transcript file is empty (0 bytes) so there is no tool-call log showing these commands were actually run, and no build/test log artifact was saved to outputs_dir. The claim is plausible and consistent with the diff (e.g. tsc-clean patterns), but is unverifiable given what was provided."
+    },
+    {
+      "claim": "Not visually verified in a browser/screenshot; the executor explicitly flags this as not confirmed",
+      "type": "quality",
+      "verified": true,
+      "evidence": "SUMMARY.md explicitly states: 'Nao verificado visualmente: este ambiente nao tem navegador/headless disponivel para capturar screenshot ... nao estou alegando aparencia final sem ter visto.' This is an honest, appropriately-scoped limitation disclosure rather than an overclaim."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SUMMARY.md reconhece o glass/backdrop-blur já existente em vez de tratar 'adicionar glassmorphism' como algo ausente",
+        "reason": "This assertion's premise appears to be factually false for the current state of the busaisp repo. I independently verified (via `git log` on the live repo and reading the output globals.css) that the design system was deliberately refactored away from glassmorphism/blur in commits 4b56ec3 and 2aa6dea, well before this eval ran, and that `.bus-glass-panel` genuinely has no backdrop-filter today. The skill's own bundled reference doc (references/design-tokens.md, per the SUMMARY) still claims '13+ files with backdrop-blur' and is stale. As written, this assertion can only pass if the agent either (a) is fooled by the stale reference doc into hallucinating glass that isn't there, or (b) the codebase reverts to having real glass again. The executor's actual behavior — grep-verifying the real state, catching that the skill's own reference doc is outdated, and explicitly declining to reintroduce a recently and deliberately removed design decision — is arguably the *more* correct response a skill should produce, yet it fails this assertion outright. Recommend rewriting this assertion to match current repo reality (e.g. 'SUMMARY.md investigates whether glass/backdrop-blur currently exists rather than assuming the skill's reference docs are authoritative, and explains its decision either way') or removing it if the codebase's glass-free state is intentional and expected to persist."
+      }
+    ],
+    "overall": "3 of 4 assertions are well-targeted and discriminating — they specifically reward an agent that reads existing code/tokens carefully before redesigning, and would fail a naive agent that recreates chips, invents a parallel color palette, or produces an empty/trivial diff. The one failing assertion (glass/backdrop-blur) is the weak link: it tests against a premise (existing glassmorphism) that no longer holds in the current codebase, per verified git history, making it un-passable by an honest, evidence-grounded agent. Beyond the four assertions, no expectation checks whether the diff is actually well-formed/buildable (e.g. via tsc or a build step) — the SUMMARY claims `tsc --noEmit` and `npm run dev` succeeded, but with an empty transcript this claim is unverified; an assertion or artifact capturing build output would make that check auditable rather than trust-based."
+  }
+}

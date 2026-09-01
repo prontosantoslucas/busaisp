@@ -23,8 +23,10 @@ import {
   MapPin,
   X,
   Flame,
-  Layers
+  Layers,
+  TrainTrack
 } from 'lucide-react';
+import { getAllRailLines } from '@/lib/railLinesGeometry';
 
 export interface LiveMapProps {
   selectedLine: SPTransLinha | null;
@@ -91,6 +93,7 @@ export default function LiveMap({
   const busMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stopMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const stationMarkersGroupRef = useRef<L.LayerGroup | null>(null);
+  const railLinesGroupRef = useRef<L.LayerGroup | null>(null);
   const incidentMarkersGroupRef = useRef<L.LayerGroup | null>(null);
   const trafficHeatmapGroupRef = useRef<L.LayerGroup | null>(null);
   const routePolylinesGroupRef = useRef<L.LayerGroup | null>(null);
@@ -102,12 +105,40 @@ export default function LiveMap({
   const [liveUserCoords, setLiveUserCoords] = useState<[number, number] | null>(userCoords || null);
   const [showIncidents, setShowIncidents] = useState(true);
   const [showTrafficHeatmap, setShowTrafficHeatmap] = useState(false);
+  const [showRailLines, setShowRailLines] = useState(true);
   const [tappedParada, setTappedParada] = useState<SPTransParada | null>(null);
   const [isLocatingTappedStop, setIsLocatingTappedStop] = useState(false);
   const [isArrivalsModalOpen, setIsArrivalsModalOpen] = useState(false);
 
   const lastFittedRouteIdRef = useRef<string | null>(null);
   const lastFittedLineRef = useRef<number | null>(null);
+
+  const handleLocateMe = () => {
+    setIsLocating(true);
+    const coordsToUse = liveUserCoords || userCoords;
+    if (coordsToUse && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo(coordsToUse, 16, { animate: true, duration: 1.0 });
+    }
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setLiveUserCoords(coords);
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo(coords, 16, { animate: true, duration: 1.0 });
+          }
+          setIsLocating(false);
+        },
+        (err) => {
+          console.warn('[GPS] Erro ao recentralizar:', err?.message);
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      setIsLocating(false);
+    }
+  };
 
   // Inicializar o Mapa Leaflet com CartoDB Dark Matter (Modo Noturno Puro)
   useEffect(() => {
@@ -135,6 +166,7 @@ export default function LiveMap({
     busMarkersGroupRef.current = L.layerGroup().addTo(map);
     stopMarkersGroupRef.current = L.layerGroup().addTo(map);
     stationMarkersGroupRef.current = L.layerGroup().addTo(map);
+    railLinesGroupRef.current = L.layerGroup().addTo(map);
     incidentMarkersGroupRef.current = L.layerGroup().addTo(map);
     trafficHeatmapGroupRef.current = L.layerGroup().addTo(map);
     routePolylinesGroupRef.current = L.layerGroup().addTo(map);
@@ -696,6 +728,55 @@ export default function LiveMap({
     });
   }, [stations, selectedStation]);
 
+  // Atualizar Traçado Vetorial das Linhas de Metrô e CPTM no Mapa
+  useEffect(() => {
+    if (!railLinesGroupRef.current || !mapInstanceRef.current) return;
+
+    railLinesGroupRef.current.clearLayers();
+
+    if (!showRailLines) return;
+
+    const allLines = getAllRailLines();
+
+    allLines.forEach((line) => {
+      if (line.coordinates.length < 2) return;
+
+      // Brilho exterior sutil
+      const lineGlow = L.polyline(line.coordinates, {
+        color: line.colorHex,
+        weight: 8,
+        opacity: 0.35
+      });
+
+      // Traçado sólido da linha
+      const lineTrack = L.polyline(line.coordinates, {
+        color: line.colorHex,
+        weight: 3.5,
+        opacity: 0.95
+      });
+
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 190px; padding: 4px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span style="background: ${line.colorHex}; color: ${line.colorHex === '#FFF000' || line.colorHex === '#A7A8AA' ? '#000' : '#fff'}; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: var(--bus-radius-sm);">
+              ${line.name}
+            </span>
+          </div>
+          <div style="font-size: 11px; color: var(--bus-text-secondary); line-height: 1.4;">
+            Operador: <strong style="color: var(--bus-text-primary);">${line.operator}</strong><br/>
+            Extensão: <strong>${line.stations.length} estações</strong>
+          </div>
+        </div>
+      `;
+
+      lineTrack.bindPopup(popupHtml);
+      lineTrack.bindTooltip(line.name, { sticky: true, direction: 'top' });
+
+      railLinesGroupRef.current?.addLayer(lineGlow);
+      railLinesGroupRef.current?.addLayer(lineTrack);
+    });
+  }, [showRailLines]);
+
   // Atualizar Mapa de Calor e Corredores de Trânsito com Diagnóstico de Motivos
   useEffect(() => {
     if (!trafficHeatmapGroupRef.current || !mapInstanceRef.current) return;
@@ -838,38 +919,6 @@ export default function LiveMap({
       trafficHeatmapGroupRef.current?.addLayer(marker);
     });
   }, [showTrafficHeatmap, incidents]);
-
-  const handleLocateMe = () => {
-    if (effectiveCoords && mapInstanceRef.current) {
-      mapInstanceRef.current.setView(effectiveCoords, 16, { animate: true });
-    }
-
-    if (!navigator.geolocation) {
-      alert('Geolocalização não é suportada pelo seu navegador.');
-      return;
-    }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setIsLocating(false);
-        setLiveUserCoords(coords);
-
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView(coords, 16, { animate: true });
-        }
-      },
-      (err) => {
-        console.warn('Erro ao obter localização:', err);
-        setIsLocating(false);
-        if (!effectiveCoords) {
-          alert('Não foi possível obter sua localização. Verifique as permissões de GPS.');
-        }
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  };
 
   return (
     <div className="map-perspective-viewport">
@@ -1014,6 +1063,35 @@ export default function LiveMap({
             aria-label="Mapa de Calor de Trânsito"
           >
             <Flame size={20} fill={showTrafficHeatmap ? '#FFFFFF' : 'none'} color={showTrafficHeatmap ? '#FFFFFF' : 'var(--bus-red)'} />
+          </button>
+
+          {/* Toggle de Camada de Trilhos (Metrô/CPTM) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowRailLines((prev) => !prev);
+            }}
+            className="bus-pill"
+            style={{
+              background: showRailLines ? 'var(--bus-violet-ink)' : 'var(--bus-surface-elevated)',
+              color: showRailLines ? '#FFFFFF' : 'var(--bus-text-primary)',
+              border: showRailLines ? '1.5px solid var(--bus-violet)' : '1px solid var(--bus-border)',
+              position: 'relative',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'var(--bus-shadow-raised)',
+              cursor: 'pointer',
+              touchAction: 'manipulation'
+            }}
+            title={showRailLines ? 'Ocultar Linhas de Metrô e Trens' : 'Exibir Linhas de Metrô e Trens'}
+            aria-label="Linhas de Metrô e Trens"
+          >
+            <TrainTrack size={19} color={showRailLines ? '#FFFFFF' : 'var(--bus-violet)'} />
           </button>
 
           {/* Toggle de Camada de Incidentes (Waze/CET) */}

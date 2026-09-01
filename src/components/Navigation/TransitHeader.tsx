@@ -17,6 +17,8 @@ interface TransitHeaderProps {
   onToggleVoice: () => void;
   onOpenSettings: () => void;
   hasGps: boolean;
+  gpsStatus?: 'INITIALIZING' | 'ACTIVE' | 'DENIED' | 'UNAVAILABLE';
+  onRequestGps?: () => void;
   activeVehiclesCount?: number;
   onToggleMap?: () => void;
   isMapFullscreen?: boolean;
@@ -40,10 +42,18 @@ export default function TransitHeader({
   onToggleVoice,
   onOpenSettings,
   hasGps,
+  gpsStatus = hasGps ? 'ACTIVE' : 'INITIALIZING',
+  onRequestGps,
   activeVehiclesCount = 0,
   onToggleMap,
   isMapFullscreen = false
 }: TransitHeaderProps) {
+  const getGpsLabel = () => {
+    if (gpsStatus === 'ACTIVE' || hasGps) return 'GPS Ativo';
+    if (gpsStatus === 'DENIED') return 'GPS Desativado (toque p/ ativar)';
+    return 'Buscando GPS...';
+  };
+
   return (
     <header
       style={{
@@ -80,17 +90,32 @@ export default function TransitHeader({
               BusaÍ<span style={{ color: 'var(--bus-violet)' }}>SP</span>
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--bus-text-secondary)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+          <div
+            onClick={onRequestGps}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '11px',
+              color: 'var(--bus-text-secondary)',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              cursor: onRequestGps ? 'pointer' : 'default'
+            }}
+            title="Status do GPS — Toque para atualizar localização"
+          >
             <span
               style={{
-                width: '6px',
-                height: '6px',
+                width: '7px',
+                height: '7px',
                 borderRadius: '50%',
                 background: hasGps ? 'var(--bus-emerald)' : 'var(--bus-live)',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: hasGps ? '0 0 6px rgba(61, 220, 151, 0.6)' : 'none',
+                animation: !hasGps ? 'radarPulse 1.5s infinite' : 'none'
               }}
             />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{hasGps ? 'GPS Ativo' : 'Buscando GPS...'}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{getGpsLabel()}</span>
             {activeVehiclesCount > 0 && (
               <>
                 <span style={{ color: 'var(--bus-text-dim)', flexShrink: 0 }}>•</span>
