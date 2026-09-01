@@ -1,5 +1,11 @@
 package com.busaisp.android.ui.favorites
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -43,13 +49,13 @@ import com.busaisp.android.domain.model.Favorite
 import com.busaisp.android.domain.model.RouteLocation
 import com.busaisp.android.ui.routesearch.RouteSearchViewModel
 import com.busaisp.android.ui.routesearch.components.AddressField
-import com.busaisp.android.ui.theme.AppColors
 
 @Composable
 fun FavoritesScreen(
     viewModel: FavoritesViewModel = hiltViewModel(),
     routeSearchViewModel: RouteSearchViewModel = hiltViewModel()
 ) {
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val home by viewModel.homeAddress.collectAsStateWithLifecycle()
     val work by viewModel.workAddress.collectAsStateWithLifecycle()
     val routeFavorites by viewModel.routeFavorites.collectAsStateWithLifecycle()
@@ -57,6 +63,11 @@ fun FavoritesScreen(
 
     var editingSlot by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
+
+    if (isLoading) {
+        FavoritesLoadingSkeleton()
+        return
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Meus Endereços", style = MaterialTheme.typography.titleMedium)
@@ -138,6 +149,74 @@ fun FavoritesScreen(
     }
 }
 
+// Skeleton no formato real da tela (2 cards de endereço + linhas de rota
+// favorita) em vez de spinner genérico — a forma final é previsível, então
+// antecipa. Sem isto, uma lista de favoritos vazia de verdade e "ainda
+// carregando do DataStore" ficavam visualmente idênticas.
+@Composable
+private fun FavoritesLoadingSkeleton() {
+    val transition = rememberInfiniteTransition(label = "favorites-skeleton-shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "favorites-skeleton-alpha"
+    )
+    val placeholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha * 0.18f)
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Meus Endereços", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(10.dp))
+        repeat(2) {
+            SkeletonRow(placeholderColor)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Rotas Favoritas", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(10.dp))
+        repeat(3) {
+            SkeletonRow(placeholderColor)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun SkeletonRow(placeholderColor: androidx.compose.ui.graphics.Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(placeholderColor, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
+                    .height(14.dp)
+                    .background(placeholderColor, RoundedCornerShape(4.dp))
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .width(160.dp)
+                    .height(12.dp)
+                    .background(placeholderColor, RoundedCornerShape(4.dp))
+            )
+        }
+    }
+}
+
 @Composable
 private fun AddressSlotCard(
     label: String,
@@ -177,8 +256,11 @@ private fun AddressSlotCard(
             Text(
                 text = value ?: "Toque para definir endereço",
                 style = MaterialTheme.typography.bodyMedium,
+                // Antes usava AppColors.LiveAmber aqui — nada a ver com GPS ao
+                // vivo, diluía a convenção (âmbar = dado ao vivo, ver Theme.kt).
+                // primary já é o acento interativo do redesign, reusado aqui.
                 color = if (value != null) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                        else AppColors.LiveAmber
+                        else MaterialTheme.colorScheme.primary
             )
         }
     }

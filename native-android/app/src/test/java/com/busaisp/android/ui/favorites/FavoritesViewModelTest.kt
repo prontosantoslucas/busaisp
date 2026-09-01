@@ -12,7 +12,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -60,6 +62,21 @@ class FavoritesViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.homeAddress.value)
+    }
+
+    @Test
+    fun `isLoading comeca true e vira false assim que o DataStore emite, mesmo com lista vazia`() = runTest {
+        // Repositorio real (DataStore) so emite depois da primeira leitura em
+        // disco — antes disto, favorites/homeAddress ficavam em emptyList()/null
+        // desde o inicio, indistinguivel de "carregou e nao tem nada". Este
+        // teste garante que isLoading resolve pra false mesmo quando o
+        // resultado real acaba sendo uma lista vazia (nao so quando ha dado).
+        val viewModel = FavoritesViewModel(FakeFavoriteRepository(emptyList()))
+
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("isLoading deveria ser false apos o Flow emitir, mesmo com lista vazia", viewModel.isLoading.value)
+        assertTrue(viewModel.favorites.value.isEmpty())
     }
 
     @Test

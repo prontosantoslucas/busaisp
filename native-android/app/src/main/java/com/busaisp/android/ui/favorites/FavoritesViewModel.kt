@@ -20,19 +20,33 @@ class FavoritesViewModel @Inject constructor(
     private val favoriteRepository: FavoriteRepository
 ) : ViewModel() {
 
-    val favorites: StateFlow<List<Favorite>> = favoriteRepository.observeFavorites()
+    // Fonte única — null significa "a primeira leitura do DataStore ainda não
+    // chegou". Antes cada StateFlow abaixo assinava observeFavorites() de
+    // novo por conta própria (4 coletores independentes do mesmo Flow) e
+    // começava direto em emptyList(), então uma lista vazia de verdade e
+    // "ainda carregando" ficavam visualmente idênticas na tela — não dava
+    // pra saber qual dos dois era. Ver isLoading.
+    private val rawFavorites: StateFlow<List<Favorite>?> = favoriteRepository.observeFavorites()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val isLoading: StateFlow<Boolean> = rawFavorites
+        .map { it == null }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val favorites: StateFlow<List<Favorite>> = rawFavorites
+        .map { it.orEmpty() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val homeAddress: StateFlow<Favorite?> = favoriteRepository.observeFavorites()
-        .map { list -> list.firstOrNull { it.type == FavoriteType.ENDERECO && it.refCode == FAVORITE_HOME_REF_CODE } }
+    val homeAddress: StateFlow<Favorite?> = rawFavorites
+        .map { list -> list.orEmpty().firstOrNull { it.type == FavoriteType.ENDERECO && it.refCode == FAVORITE_HOME_REF_CODE } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val workAddress: StateFlow<Favorite?> = favoriteRepository.observeFavorites()
-        .map { list -> list.firstOrNull { it.type == FavoriteType.ENDERECO && it.refCode == FAVORITE_WORK_REF_CODE } }
+    val workAddress: StateFlow<Favorite?> = rawFavorites
+        .map { list -> list.orEmpty().firstOrNull { it.type == FavoriteType.ENDERECO && it.refCode == FAVORITE_WORK_REF_CODE } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val routeFavorites: StateFlow<List<Favorite>> = favoriteRepository.observeFavorites()
-        .map { list -> list.filter { it.type == FavoriteType.LINHA } }
+    val routeFavorites: StateFlow<List<Favorite>> = rawFavorites
+        .map { list -> list.orEmpty().filter { it.type == FavoriteType.LINHA } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun toggleFavorite(favorite: Favorite) {
