@@ -14,19 +14,22 @@ sem acesso ao histórico de conversa que gerou este estado.
 - **Prioridade atual do usuário: o app Android nativo (o APK), não o app
   web.** Se não houver instrução explícita em contrário, trabalhe em
   `native-android/`.
-- **Redesign visual concluído nesta sessão: azul claro + branco, tema único
-  (não alterna mais com o sistema).** Spec completo em
-  `docs/superpowers/specs/2026-09-01-native-android-visual-redesign-design.md`.
+- **Redesign visual concluído nesta sessão: azul claro + branco, com modo
+  noturno de verdade (Sistema/Claro/Escuro).** Spec base em
+  `docs/superpowers/specs/2026-09-01-native-android-visual-redesign-design.md`
+  (a versão "sempre claro, sem alternância" desse spec foi superada depois —
+  o usuário pediu de volta o modo noturno, com opção manual e por sistema).
   Histórico pra quem chegar depois: uma primeira tentativa de reskin
   **dark-first** só no mapa (`2287d4d`) foi revertida (`2e101c0`) porque
   destoava do resto do app, que era Material default sem identidade forte —
-  isso levou a uma decisão de design pra aplicação inteira, não mais reskins
-  isolados por tela. **Não reintroduza o tema escuro/alternância com o
-  sistema sem confirmar com o usuário primeiro** — foi removido de propósito.
-  `Theme.kt` hoje é um único `lightColorScheme` com `primary =
-  AppColors.UserLocationBlue`. O mapa usa só um toque leve de cor
-  (`ui/map/MapLightPalette.kt`) — água/parques com wash translúcido do azul/
-  verde já existentes, resto com a aparência nativa do provedor "Liberty".
+  isso levou à decisão de redesenhar a aplicação inteira de forma coerente,
+  não mais reskins isolados por tela. `Theme.kt` hoje tem os dois esquemas
+  (`AppLightColors`/`AppDarkColors`, ambos com `primary = AppColors.UserLocationBlue`)
+  e resolve qual usar via `ThemeViewModel`/`ThemeMode` (preferência persistida
+  em DataStore, tela em Configurações). O mapa (`ui/map/MapColorPalette.kt`)
+  tem paleta própria por modo: claro é um toque leve (só água/parques),
+  escuro é um recolorir completo — ambos reagem em tempo real a mudança de
+  tema via `LiveBusMap`'s `darkTheme` param.
 - **Busca de linha de Metrô/CPTM no mapa agora funciona de forma honesta**:
   não há posição de trem em tempo real pra mostrar (só ônibus tem GPS via
   SPTrans), então a busca reconhece o nome/código da linha
