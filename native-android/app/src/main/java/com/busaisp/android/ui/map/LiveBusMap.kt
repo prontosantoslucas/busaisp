@@ -69,7 +69,11 @@ fun LiveBusMap(
                 .zoom(SAO_PAULO_INITIAL_ZOOM)
                 .build()
             map.setStyle(Style.Builder().fromUri(OPEN_FREE_MAP_LIBERTY_STYLE_URL)) { style ->
-                applyDarkMapPalette(style)
+                // Reskin dark-first (applyDarkMapPalette) foi revertido a pedido do
+                // usuário — o resultado visual ficou "contraste preto" ruim demais.
+                // Mapa volta ao estilo "Liberty" original sem recolorir, até haver uma
+                // decisão de design pra app inteiro (ver MapDarkPalette.kt, mantido
+                // no repo caso vire base pra uma tentativa futura mais cuidadosa).
 
                 // Camada do Mapa de Calor (Halos e Núcleos de Congestionamento)
                 style.addSource(GeoJsonSource(HEATMAP_SOURCE_ID, FeatureCollection.fromFeatures(emptyList())))
