@@ -426,6 +426,39 @@ describe('calculateRoute', () => {
     expect(result.alternatives[0].recommendedLine.lt).toBe('2000');
   });
 
+  it('usa a parada mais próxima do usuário pra uma linha, mesmo se o banco devolver a parada distante primeiro', async () => {
+    // Reproduz o bug real relatado: o usuário está numa parada (10m) que já
+    // tem a linha 1703 passando, mas direct_routes_between() ordena por
+    // departure_time_seconds (campo sem relação com distância/relevância) —
+    // então uma viagem da MESMA linha embarcando numa parada bem mais longe
+    // (900m) pode aparecer primeiro na resposta do banco. Sem ordenar por
+    // distância antes de desduplicar por linha, o algoritmo ancorava a linha
+    // 1703 na parada errada (mais longe), fazendo o app pedir pra andar até
+    // ali em vez de embarcar onde o usuário já estava.
+    (findNearbyStops as any)
+      .mockResolvedValueOnce([
+        { stopId: '900', name: 'PARADA LONGE (900m)', lat: -23.4380, lng: -46.5850, distanceMeters: 900 },
+        { stopId: '101', name: 'PARADA ONDE ESTOU (10m)', lat: -23.4300, lng: -46.5800, distanceMeters: 10 }
+      ])
+      .mockResolvedValueOnce([
+        { stopId: '201', name: 'PARADA DESTINO', lat: -23.5100, lng: -46.6200, distanceMeters: 50 }
+      ]);
+
+    (findDirectRoutes as any).mockResolvedValueOnce([
+      // direct_routes_between() devolve a viagem da parada DISTANTE primeiro
+      // (departure_time_seconds menor não tem nada a ver com proximidade).
+      { routeId: '1703-10', routeShortName: '1703', routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE', tripId: 't1', tripHeadsign: 'SHOPPING CENTER NORTE', originStopId: '900', originDepartureSeconds: 100, destStopId: '201', destArrivalSeconds: 900 },
+      { routeId: '1703-10', routeShortName: '1703', routeLongName: 'JD. FONTALIS - SHOPPING CENTER NORTE', tripId: 't2', tripHeadsign: 'SHOPPING CENTER NORTE', originStopId: '101', originDepartureSeconds: 500, destStopId: '201', destArrivalSeconds: 1300 }
+    ]);
+
+    (buscarPrevisaoParada as any).mockResolvedValue({ previsao: null, isMock: false });
+
+    const result = await calculateRoute(origin, dest);
+
+    expect(result.primaryRoute.recommendedLine.lt).toBe('1703');
+    expect(result.primaryRoute.departureStop.cp).toBe(101);
+  });
+
   it('considera problemas e incidentes de trânsito no trajeto adicionando atraso na duração e hora de chegada', async () => {
     (findNearbyStops as any)
       .mockResolvedValueOnce([{ stopId: '101', name: 'PARADA INICIAL', lat: -23.43, lng: -46.58, distanceMeters: 50 }])

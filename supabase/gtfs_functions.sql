@@ -59,27 +59,46 @@ returns table (
 language sql
 stable
 as $$
-  -- Nota: viagens circulares (mesma parada visitada 2x) podem gerar mais de uma linha por trip_id aqui.
-  select distinct
-    r.route_id,
-    r.short_name as route_short_name,
-    r.long_name as route_long_name,
-    o.trip_id,
-    t.headsign as trip_headsign,
-    o.stop_id as origin_stop_id,
-    o.departure_time_seconds as origin_departure_seconds,
-    d.stop_id as dest_stop_id,
-    d.arrival_time_seconds as dest_arrival_seconds
-  from public.gtfs_stop_times o
-  join public.gtfs_stop_times d
-    on o.trip_id = d.trip_id
-    and d.stop_sequence > o.stop_sequence
-  join public.gtfs_trips t on t.trip_id = o.trip_id
-  join public.gtfs_routes r on r.route_id = t.route_id
-  where o.stop_id = any(origin_stop_ids)
-    and d.stop_id = any(dest_stop_ids)
-    and r.route_type = any(route_types)
-  order by o.departure_time_seconds asc
+  -- 2026-09-01: a versão anterior fazia `select distinct` (sem DISTINCT ON) e
+  -- ordenava por departure_time_seconds — um campo de horário de viagem que o
+  -- app nunca usa pra nada (o ETA real vem separado, via SPTrans) e que não
+  -- tem relação nenhuma com distância até o usuário. Uma única linha real
+  -- roda dezenas/centenas de viagens por dia entre o mesmo par de paradas, e
+  -- cada uma virava uma linha diferente aqui — com o corte em 50 linhas,
+  -- isso enchia o resultado inteiro com viagens (de qualquer horário do dia,
+  -- inclusive madrugada) de só uma ou duas linhas, escondendo outras linhas
+  -- reais que também conectam essas paradas. Bug relatado pelo usuário: uma
+  -- linha existia bem na parada onde ele estava, mas nunca aparecia porque
+  -- o corte de 50 já tinha sido consumido por viagens irrelevantes.
+  -- DISTINCT ON (route_id, origin_stop_id) devolve só 1 linha por combinação
+  -- linha+parada de embarque (não mais 1 por viagem do dia inteiro), então o
+  -- mesmo limite de 50 agora cobre até 50 combinações DISTINTAS de linha+parada
+  -- em vez de até 50 viagens repetidas de pouquíssimas linhas.
+  select
+    route_id, route_short_name, route_long_name, trip_id, trip_headsign,
+    origin_stop_id, origin_departure_seconds, dest_stop_id, dest_arrival_seconds
+  from (
+    select distinct on (r.route_id, o.stop_id)
+      r.route_id,
+      r.short_name as route_short_name,
+      r.long_name as route_long_name,
+      o.trip_id,
+      t.headsign as trip_headsign,
+      o.stop_id as origin_stop_id,
+      o.departure_time_seconds as origin_departure_seconds,
+      d.stop_id as dest_stop_id,
+      d.arrival_time_seconds as dest_arrival_seconds
+    from public.gtfs_stop_times o
+    join public.gtfs_stop_times d
+      on o.trip_id = d.trip_id
+      and d.stop_sequence > o.stop_sequence
+    join public.gtfs_trips t on t.trip_id = o.trip_id
+    join public.gtfs_routes r on r.route_id = t.route_id
+    where o.stop_id = any(origin_stop_ids)
+      and d.stop_id = any(dest_stop_ids)
+      and r.route_type = any(route_types)
+    order by r.route_id, o.stop_id, o.departure_time_seconds asc
+  ) dedup
   limit least(max_results, 50);
 $$;
 

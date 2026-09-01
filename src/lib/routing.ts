@@ -823,8 +823,20 @@ async function findMultiLegPlans(
 
     const directRoutes = await findDirectRoutes(frontierStopIds, destStopIds, 40);
 
-    // Ordenar directRoutes para preferir linhas diurnas se não for de madrugada
+    // direct_routes_between() (SQL) ordena por departure_time_seconds — um
+    // campo de horário de viagem sem nenhuma relação com distância até o
+    // usuário — e nunca é usado depois disto (o ETA real vem separado, via
+    // SPTrans). Sem reordenar aqui, a dedução "primeira ocorrência de cada
+    // linha" abaixo podia ancorar uma linha na parada ERRADA (mais longe),
+    // mesmo quando o usuário já estava num ponto que a mesma linha atende —
+    // bug real relatado pelo usuário, reproduzido no teste "usa a parada mais
+    // próxima do usuário pra uma linha...". Ordenar por distância da parada
+    // de embarque até o usuário primeiro garante que a primeira ocorrência de
+    // cada linha seja de fato a parada mais próxima.
     directRoutes.sort((a, b) => {
+      const aDist = frontierByStopId.get(a.originStopId)?.stop.distanceMeters ?? Infinity;
+      const bDist = frontierByStopId.get(b.originStopId)?.stop.distanceMeters ?? Infinity;
+      if (aDist !== bDist) return aDist - bDist;
       const aNight = isNightLine(a.routeShortName || a.routeId);
       const bNight = isNightLine(b.routeShortName || b.routeId);
       if (!isNightTime) {
