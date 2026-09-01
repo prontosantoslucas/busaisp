@@ -32,3 +32,6 @@ next-env.d.ts
 
 # Referências locais de design
 /REF/
+
+# Sessões do companheiro visual de brainstorming (mockups temporários)
+/.superpowers/
